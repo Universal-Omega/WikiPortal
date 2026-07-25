@@ -1,0 +1,372 @@
+package org.wikitide.wikiportal
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Tab
+import androidx.compose.material.icons.outlined.Bookmark
+import androidx.compose.material.icons.outlined.Dashboard
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Tab
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.NavEntry
+import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
+import androidx.navigation3.ui.NavDisplay
+import androidx.savedstate.serialization.SavedStateConfiguration
+import coil3.ImageLoader
+import coil3.compose.setSingletonImageLoaderFactory
+import coil3.request.crossfade
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.modules.polymorphic
+import kotlinx.serialization.modules.subclassesOfSealed
+import org.koin.compose.koinInject
+import org.wikitide.wikiportal.data.AppRepository
+import org.wikitide.wikiportal.data.TabsRepository
+import org.wikitide.wikiportal.navigation.AddWikiRoute
+import org.wikitide.wikiportal.navigation.ArticleRoute
+import org.wikitide.wikiportal.navigation.DashboardRoute
+import org.wikitide.wikiportal.navigation.Route
+import org.wikitide.wikiportal.navigation.SavedRoute
+import org.wikitide.wikiportal.navigation.SettingsRoute
+import org.wikitide.wikiportal.navigation.TabsRoute
+import org.wikitide.wikiportal.navigation.WikiPickerRoute
+import org.wikitide.wikiportal.ui.article.ArticleHostScreen
+import org.wikitide.wikiportal.ui.dashboard.DashboardScreen
+import org.wikitide.wikiportal.ui.navigation.SystemBackInterceptor
+import org.wikitide.wikiportal.ui.saved.SavedScreen
+import org.wikitide.wikiportal.ui.settings.AddWikiScreen
+import org.wikitide.wikiportal.ui.settings.SettingsScreen
+import org.wikitide.wikiportal.ui.settings.WikiPickerScreen
+import org.wikitide.wikiportal.ui.tabs.TabsListScreen
+import org.wikitide.wikiportal.ui.theme.WikiPortalTheme
+
+private data class BottomDestination(val route: Route, val label: String, val selected: ImageVector, val unselected: ImageVector)
+
+private val bottomDestinations = listOf(
+    BottomDestination(DashboardRoute, "Dashboard", Icons.Filled.Dashboard, Icons.Outlined.Dashboard),
+    BottomDestination(TabsRoute, "Tabs", Icons.Filled.Tab, Icons.Outlined.Tab),
+    BottomDestination(SavedRoute, "Saved", Icons.Filled.Bookmark, Icons.Outlined.Bookmark),
+    BottomDestination(SettingsRoute, "Settings", Icons.Filled.Settings, Icons.Outlined.Settings),
+)
+
+/**
+ * Shared by the portrait NavigationBar and the landscape NavigationRail
+ * below. Only the icon itself is shared here, not the NavigationBarItem
+ * or NavigationRailItem calls. Those need to stay separate, since each
+ * one must be called from its own matching scope, RowScope for
+ * NavigationBar and ColumnScope for NavigationRail, and that scope is
+ * what makes their internal weight() work correctly. This helper does
+ * not need any scope. It is just an Icon, optionally wrapped in a
+ * badge, so it works fine from either place.
+ */
+@Composable
+private fun DestinationIcon(destination: BottomDestination, isSelected: Boolean, openTabsCount: Int) {
+    val icon = @Composable {
+        Icon(
+            imageVector = if (isSelected) destination.selected else destination.unselected,
+            contentDescription = destination.label,
+        )
+    }
+    // Only the Tabs icon shows a count. This is just a small detail in
+    // how it renders. Clicking and selecting still work the same way
+    // for all four destinations.
+    if (destination.route == TabsRoute) {
+        BadgedBox(badge = { if (openTabsCount > 0) Badge { Text("$openTabsCount") } }) { icon() }
+    } else {
+        icon()
+    }
+}
+
+// Polymorphic serialization setup for the Route sealed hierarchy. This is
+// needed so the back stack works on non-JVM targets like wasmJs since
+// they can't use the reflection-based serializer that Android and the
+// JVM would normally rely on.
+private val navConfig = SavedStateConfiguration {
+    @OptIn(ExperimentalSerializationApi::class)
+    serializersModule = SerializersModule {
+        polymorphic(NavKey::class) {
+            subclassesOfSealed<Route>()
+        }
+    }
+}
+
+@Composable
+fun WikiPortalApp(onDarkThemeResolved: (Boolean) -> Unit = {}) {
+    // Coil3 caches images by default even without this setup, but adding
+    // crossfade avoids a blank flash before the image pops in, which can
+    // look like it is still loading even when it was actually a cache
+    // hit. setSingletonImageLoaderFactory is a Composable function and
+    // it is safe to call it like a plain statement here. It just
+    // registers a factory, and the actual singleton loader is created
+    // later on first use, so calling this again on recomposition causes
+    // no problems.
+    setSingletonImageLoaderFactory { context ->
+        ImageLoader.Builder(context).crossfade(true).build()
+    }
+
+    val repository = koinInject<AppRepository>()
+    val tabsRepository = koinInject<TabsRepository>()
+    val themeMode by repository.themeMode.collectAsState()
+    val dynamicColor by repository.dynamicColor.collectAsState()
+
+    WikiPortalTheme(themeMode = themeMode, useDynamicColor = dynamicColor, onDarkThemeResolved = onDarkThemeResolved) {
+        val backStack = rememberNavBackStack(navConfig, DashboardRoute)
+
+        fun navigateTo(route: Route) {
+            if (backStack.lastOrNull() != route) backStack.add(route)
+        }
+
+        fun switchTab(route: Route) {
+            backStack.clear()
+            backStack.add(route)
+        }
+
+        /**
+         * Opens a reading tab for [wikiId] and [title], then makes sure
+         * we are on the Article destination. If that article is already
+         * open in another tab, found through findOpenTab, we just switch
+         * to that tab instead of opening a duplicate, the same way
+         * clicking an already-open tab works in a browser. A new tab is
+         * only created when no existing tab matches. ArticleRoute is a
+         * singleton, so navigateTo() does nothing if we are already
+         * there. Opening or switching to a tab from Dashboard or Saved
+         * only changes which tab TabsRepository considers active. It
+         * does not touch the nav back stack, so it never disposes or
+         * recreates an already-open tab's WebView.
+         */
+        fun openArticle(wikiId: String, title: String) {
+            val site = repository.allWikisNow().firstOrNull { it.id == wikiId } ?: repository.activeWiki.value
+            val existing = tabsRepository.findOpenTab(wikiId, title)
+            if (existing != null) {
+                tabsRepository.setActiveTab(existing.id)
+            } else {
+                tabsRepository.openTab(site, title)
+            }
+            navigateTo(ArticleRoute)
+        }
+
+        // The order here matters. First we close the tab switcher overlay
+        // if it is open. Then we let the active tab's own in-page history
+        // handle the back press, through tryGoBackInActiveTab.
+        fun handleBack() {
+            if (tabsRepository.isSwitcherOpen.value) {
+                tabsRepository.setSwitcherOpen(false)
+            } else if (tabsRepository.tryGoBackInActiveTab()) {
+                // The active tab's own history already handled this.
+            } else {
+                backStack.removeLastOrNull()
+            }
+        }
+
+        val current = backStack.lastOrNull()
+        // ArticleRoute is not one of the bottomDestinations on purpose, so
+        // the nav stays hidden during normal article reading. That
+        // includes when the in-reader tab switcher overlay is open on top
+        // of it, see TabsScreen.kt. This is computed once here and shared
+        // by both branches below instead of being recomputed in each one.
+        val showNav = bottomDestinations.any { it.route == current }
+        val openTabs by tabsRepository.tabs.collectAsState()
+
+        // NavDisplay itself is the same either way. Only the surrounding
+        // chrome, a bottom bar or a side rail, differs between the two
+        // branches below. So it is defined once here and reused instead
+        // of being duplicated.
+        val navDisplayContent: @Composable (Modifier) -> Unit = { modifier ->
+            NavDisplay(
+                backStack = backStack,
+                onBack = { handleBack() },
+                modifier = modifier,
+                entryDecorators = listOf(
+                    rememberSaveableStateHolderNavEntryDecorator(),
+                    rememberViewModelStoreNavEntryDecorator(),
+                ),
+                entryProvider = { key: NavKey ->
+                    when (key) {
+                        DashboardRoute -> NavEntry(key) {
+                            DashboardScreen(
+                                onArticleClick = { wikiId, title -> openArticle(wikiId, title) },
+                                onOpenWikiPicker = { navigateTo(WikiPickerRoute) },
+                            )
+                        }
+                        TabsRoute -> NavEntry(key) {
+                            TabsListScreen(
+                                onOpenTab = { wikiId, title -> openArticle(wikiId, title) },
+                            )
+                        }
+                        SavedRoute -> NavEntry(key) {
+                            SavedScreen(onArticleClick = { wikiId, title -> openArticle(wikiId, title) })
+                        }
+                        SettingsRoute -> NavEntry(key) {
+                            SettingsScreen(onOpenWikiPicker = { navigateTo(WikiPickerRoute) })
+                        }
+                        WikiPickerRoute -> NavEntry(key) {
+                            WikiPickerScreen(
+                                onBack = { backStack.removeLastOrNull() },
+                                onAddCustomWiki = { navigateTo(AddWikiRoute) },
+                            )
+                        }
+                        AddWikiRoute -> NavEntry(key) {
+                            AddWikiScreen(onDone = { backStack.removeLastOrNull() })
+                        }
+                        ArticleRoute -> NavEntry(key) {
+                            ArticleHostScreen(
+                                onBack = { backStack.removeLastOrNull() },
+                            )
+                        }
+                        else -> error("Unknown route: $key")
+                    }
+                },
+            )
+        }
+
+        // Comparing width to height instead of using a platform
+        // orientation API. There isn't one available in commonMain that
+        // works the same way across Android, IOS, Desktop, and WasmJs. This
+        // also gives a sensible result for a wide desktop window or a
+        // tablet or foldable, not just a rotated phone, which a strict
+        // orientation check would miss.
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            if (maxWidth > maxHeight) {
+                // The background is set here, not just on the Scaffold
+                // below, because of the cutout side. When a side display
+                // cutout eats into this Row, the sliver of screen the
+                // system reserves for it shows this Row's own background
+                // before Compose draws the rail or Scaffold inside it.
+                // Without this, that sliver shows the theme's default
+                // window background, a light gray, instead of the app's
+                // actual background.
+                Row(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+                    if (showNav) {
+                        NavigationRail(
+                            // The rail owns the Start edge of this Row, so
+                            // it should absorb a Start-side cutout or
+                            // inset, not the Scaffold below. If the
+                            // Scaffold also claimed the Start inset, the
+                            // side without a cutout would still get
+                            // padded for no reason.
+                            modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Start)),
+                        ) {
+                            // NavigationRail does not center its items by
+                            // default. Left alone, they stack from the top
+                            // and leave the rest of the rail's height as
+                            // empty space below them. This Column is what
+                            // centers the group within the rail's full
+                            // height. Using spacedBy also gives the items
+                            // some breathing room, since Center alone
+                            // would pack them edge to edge with no gap.
+                            Column(
+                                modifier = Modifier.fillMaxHeight(),
+                                verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterVertically),
+                            ) {
+                                bottomDestinations.forEach { destination ->
+                                    val isSelected = destination.route == current
+                                    NavigationRailItem(
+                                        selected = isSelected,
+                                        onClick = { switchTab(destination.route) },
+                                        icon = { DestinationIcon(destination, isSelected, openTabs.size) },
+                                        label = { Text(destination.label) },
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    // Bottom and End are always this Scaffold's job. Start
+                    // is too, except when the rail is showing. In that
+                    // case the rail already absorbed it above, and adding
+                    // it again here would double pad that side on top of
+                    // the rail's own width.
+                    val scaffoldInsetSides = if (showNav) {
+                        WindowInsetsSides.Bottom + WindowInsetsSides.End
+                    } else {
+                        WindowInsetsSides.Bottom + WindowInsetsSides.End + WindowInsetsSides.Start
+                    }
+                    Scaffold(
+                        modifier = Modifier.weight(1f),
+                        containerColor = MaterialTheme.colorScheme.background,
+                        // Each screen's own TopAppBar already reserves
+                        // space for the status bar by default. Reserving
+                        // it here too would double pad everything, so top
+                        // is never included above.
+                        contentWindowInsets = WindowInsets.safeDrawing.only(scaffoldInsetSides),
+                    ) { innerPadding ->
+                        navDisplayContent(Modifier.padding(innerPadding))
+                    }
+                }
+            } else {
+                Scaffold(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal),
+                    bottomBar = {
+                        if (showNav) {
+                            NavigationBar {
+                                bottomDestinations.forEach { destination ->
+                                    val isSelected = destination.route == current
+                                    NavigationBarItem(
+                                        selected = isSelected,
+                                        onClick = { switchTab(destination.route) },
+                                        icon = { DestinationIcon(destination, isSelected, openTabs.size) },
+                                        label = { Text(destination.label) },
+                                    )
+                                }
+                            }
+                        }
+                    },
+                ) { innerPadding ->
+                    navDisplayContent(Modifier.padding(innerPadding))
+                }
+            }
+        }
+
+        // This is registered after Scaffold and NavDisplay above. See
+        // SystemBackInterceptor's own comment for why. That way, on
+        // Android, while it is enabled, this is what the system checks
+        // for the back gesture instead of NavDisplay's own predictive
+        // back callback. It is only enabled when we are showing
+        // ArticleRoute and there is something for handleBack() to
+        // intercept besides a normal back stack pop, meaning the switcher
+        // overlay or in-page WebView history. When neither of those
+        // applies, this stays disabled and the gesture falls through to
+        // NavDisplay's normal predictive pop, which is the correct
+        // behavior in that case.
+        val isSwitcherOpen by tabsRepository.isSwitcherOpen.collectAsState()
+        val activeTabCanGoBack by tabsRepository.activeTabCanGoBack.collectAsState()
+        SystemBackInterceptor(
+            enabled = backStack.lastOrNull() == ArticleRoute && (isSwitcherOpen || activeTabCanGoBack),
+            onBack = { handleBack() },
+        )
+    }
+}

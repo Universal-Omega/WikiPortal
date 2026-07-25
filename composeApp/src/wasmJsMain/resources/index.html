@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>WikiPortal</title>
+    <style>
+        html, body { 
+            margin: 0; 
+            padding: 0; 
+            height: 100%; 
+            width: 100%; 
+            overflow: hidden; 
+            background-color: #ffffff;
+        }
+
+        #ComposeTarget {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        body > div:has(iframe) {
+            position: absolute !important;
+            top: 64px !important; 
+            left: 0 !important;
+            width: 100% !important;
+            height: calc(100% - 64px) !important; 
+            z-index: 1 !important;
+            overflow: hidden !important;
+        }
+
+        body > div:has(iframe) iframe {
+            position: relative !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            display: block !important;
+        }
+
+        body:has(iframe) div, 
+        body:has(iframe) canvas {
+            background-color: transparent !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="ComposeTarget"></div>
+    <script>
+        // Polyfill to trick Skiko on certain browsers
+        const originalGetContext = HTMLCanvasElement.prototype.getContext;
+        HTMLCanvasElement.prototype.getContext = function(type, attributes) {
+            const gl = originalGetContext.call(this, type, attributes);
+            if ((type === 'webgl' || type === 'webgl2') && gl) {
+                const originalGetParameter = gl.getParameter;
+                gl.getParameter = function(pname) {
+                    if (pname === 0x9245) return "Google Inc. (Apple)";
+                    if (pname === 0x9246) return "ANCIENT MOCK GPU (WebGL Premium)";
+                    try {
+                        return originalGetParameter.call(this, pname);
+                    } catch(e) {
+                        return 0; 
+                    }
+                };
+            }
+            return gl;
+        };
+    </script>
+    <script src="wikiportal.js"></script>
+</body>
+</html>
+<!-- The one above worked when testing, the one below was used previously -->
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WikiPortal</title>
+    <style>
+        html, body { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; }
+        #ComposeTarget { width: 100%; height: 100%; }
+    </style>
+</head>
+<body>
+    <div id="ComposeTarget"></div>
+    <script src="wikiportal.js"></script>
+</body>
+</html>-->

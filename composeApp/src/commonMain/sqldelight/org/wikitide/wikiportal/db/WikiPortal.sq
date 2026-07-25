@@ -1,0 +1,111 @@
+import kotlin.Boolean;
+import kotlin.collections.List;
+import org.wikitide.wikiportal.data.model.SkinOption;
+
+CREATE TABLE IF NOT EXISTS Setting (
+    key TEXT NOT NULL PRIMARY KEY,
+    value TEXT NOT NULL
+);
+
+upsertSetting:
+INSERT INTO Setting(key, value) VALUES (?, ?)
+ON CONFLICT(key) DO UPDATE SET value = excluded.value;
+
+getSetting:
+SELECT value FROM Setting WHERE key = ?;
+
+selectSettingsWithPrefix:
+SELECT key AS settingKey, value AS settingValue FROM Setting WHERE key LIKE :prefix || '%';
+
+CREATE TABLE IF NOT EXISTS Wiki (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL,
+    baseUrl TEXT NOT NULL,
+    scriptPath TEXT NOT NULL,
+    skin TEXT NOT NULL,
+    articlePathPrefix TEXT,
+    faviconUrl TEXT,
+    isCustom INTEGER AS Boolean NOT NULL DEFAULT 1,
+    availableSkins TEXT AS List<SkinOption>,
+    skinIsUserSet INTEGER AS Boolean NOT NULL DEFAULT 0
+);
+
+upsertWiki:
+INSERT OR REPLACE INTO Wiki(id, name, description, baseUrl, scriptPath, skin, articlePathPrefix, faviconUrl, isCustom, availableSkins, skinIsUserSet)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+deleteWiki:
+DELETE FROM Wiki WHERE id = ?;
+
+selectAllWikis:
+SELECT * FROM Wiki ORDER BY name ASC;
+
+CREATE TABLE IF NOT EXISTS SavedPage (
+    wikiId TEXT NOT NULL,
+    wikiName TEXT NOT NULL,
+    title TEXT NOT NULL,
+    extract TEXT NOT NULL,
+    thumbnailUrl TEXT,
+    savedAtEpochMillis INTEGER NOT NULL,
+    PRIMARY KEY (wikiId, title)
+);
+
+upsertSavedPage:
+INSERT OR REPLACE INTO SavedPage(wikiId, wikiName, title, extract, thumbnailUrl, savedAtEpochMillis)
+VALUES (?, ?, ?, ?, ?, ?);
+
+deleteSavedPage:
+DELETE FROM SavedPage WHERE wikiId = ? AND title = ?;
+
+isSaved:
+SELECT EXISTS(SELECT 1 FROM SavedPage WHERE wikiId = ? AND title = ?);
+
+selectAllSavedPages:
+SELECT * FROM SavedPage ORDER BY savedAtEpochMillis DESC;
+
+CREATE TABLE IF NOT EXISTS HistoryEntry (
+    wikiId TEXT NOT NULL,
+    wikiName TEXT NOT NULL,
+    title TEXT NOT NULL,
+    extract TEXT NOT NULL DEFAULT '',
+    thumbnailUrl TEXT,
+    visitedAtEpochMillis INTEGER NOT NULL,
+    PRIMARY KEY (wikiId, title)
+);
+
+upsertHistoryEntry:
+INSERT OR REPLACE INTO HistoryEntry(wikiId, wikiName, title, extract, thumbnailUrl, visitedAtEpochMillis)
+VALUES (?, ?, ?, ?, ?, ?);
+
+selectRecentHistory:
+SELECT * FROM HistoryEntry ORDER BY visitedAtEpochMillis DESC LIMIT :limit;
+
+clearHistory:
+DELETE FROM HistoryEntry;
+
+CREATE TABLE IF NOT EXISTS OfflineArticle (
+    wikiId TEXT NOT NULL,
+    wikiName TEXT NOT NULL,
+    title TEXT NOT NULL,
+    thumbnailUrl TEXT,
+    html TEXT NOT NULL,
+    savedAtEpochMillis INTEGER NOT NULL,
+    PRIMARY KEY (wikiId, title)
+);
+
+upsertOfflineArticle:
+INSERT OR REPLACE INTO OfflineArticle(wikiId, wikiName, title, thumbnailUrl, html, savedAtEpochMillis)
+VALUES (?, ?, ?, ?, ?, ?);
+
+getOfflineArticleHtml:
+SELECT html FROM OfflineArticle WHERE wikiId = ? AND title = ?;
+
+deleteOfflineArticle:
+DELETE FROM OfflineArticle WHERE wikiId = ? AND title = ?;
+
+selectAllOfflineArticleKeys:
+SELECT wikiId, title FROM OfflineArticle;
+
+selectAllOfflineArticles:
+SELECT wikiId, wikiName, title, thumbnailUrl, savedAtEpochMillis FROM OfflineArticle ORDER BY savedAtEpochMillis DESC;
