@@ -35,7 +35,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,8 +42,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -249,7 +246,6 @@ private fun DidYouMeanRow(suggestion: String, onClick: () -> Unit) {
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FullScreenSearchOverlay(
     searchState: SearchUiState,
@@ -257,43 +253,35 @@ private fun FullScreenSearchOverlay(
     onArticleClick: (wikiId: String, title: String) -> Unit,
     onClose: () -> Unit,
 ) {
-    val focusRequester = remember { FocusRequester() }
-    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).imePadding()) {
-        TopAppBar(
-            navigationIcon = {
-                IconButton(onClick = onClose) {
-                    Icon(Icons.Filled.ArrowBack, contentDescription = "Close search")
-                }
-            },
-            title = {
-                OutlinedTextField(
-                    value = searchState.query,
-                    onValueChange = searchViewModel::onQueryChange,
-                    modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
-                    placeholder = { Text("Search ${searchState.wikiName}") },
-                    singleLine = true,
-                    trailingIcon = {
-                        if (searchState.query.isNotEmpty()) {
-                            IconButton(onClick = { searchViewModel.onQueryChange("") }) {
-                                Icon(Icons.Filled.Close, contentDescription = "Clear")
-                            }
+    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onClose) {
+                Icon(Icons.Filled.ArrowBack, contentDescription = "Close search")
+            }
+            OutlinedTextField(
+                value = searchState.query,
+                onValueChange = searchViewModel::onQueryChange,
+                modifier = Modifier.weight(1f).padding(end = 8.dp),
+                placeholder = { Text("Search ${searchState.wikiName}") },
+                singleLine = true,
+                trailingIcon = {
+                    if (searchState.query.isNotEmpty()) {
+                        IconButton(onClick = { searchViewModel.onQueryChange("") }) {
+                            Icon(Icons.Filled.Close, contentDescription = "Clear")
                         }
-                    },
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    shape = MaterialTheme.shapes.large,
-                )
-            },
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
-        )
-        Box(Modifier.weight(1f)) {
+                    }
+                },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                shape = MaterialTheme.shapes.large,
+            )
+        }
+        Box(Modifier.weight(1f).imePadding()) {
             SearchResultsContent(searchState, onArticleClick, onSearchFor = searchViewModel::searchFor)
         }
     }
-    // This requests focus once, right when the overlay first appears,
-    // so the keyboard comes straight up without an extra tap on the
-    // field. It's keyed on Unit rather than the query, so it doesn't
-    // re-steal focus every time the person types a character.
-    LaunchedEffect(Unit) { focusRequester.requestFocus() }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
