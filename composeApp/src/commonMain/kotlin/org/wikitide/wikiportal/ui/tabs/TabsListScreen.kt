@@ -107,7 +107,7 @@ fun TabsListScreen(
                                         modifier = Modifier.size(16.dp),
                                     )
                                     Text(
-                                        "Currently viewing",
+                                        "Last viewed",
                                         style = MaterialTheme.typography.labelMedium,
                                         color = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.padding(start = 4.dp).weight(1f),
