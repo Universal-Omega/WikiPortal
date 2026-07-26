@@ -41,6 +41,16 @@ data class WikiSite(
      * See AppRepository.init and AppRepository.setWikiSkin.
      */
     val skinIsUserSet: Boolean = false,
+    /**
+     * The wiki's own reported main page title, general.mainpage from the
+     * same siteinfo call that resolves articlePathPrefix,
+     * discoveredFaviconUrl, and availableSkins. Null until
+     * WikiMetadataRefresher has resolved it at least once. See
+     * ExploreViewModel and ArticleHostScreen's "go to main page" button
+     * for where this is used, and AppRepository.updateMainPageTitle for
+     * the one place it's updated outside of a full metadata refresh.
+     */
+    val mainPageTitle: String? = null,
 ) {
     val apiUrl: String get() = "$baseUrl$scriptPath/api.php"
     val indexUrl: String get() = "$baseUrl$scriptPath/index.php"
