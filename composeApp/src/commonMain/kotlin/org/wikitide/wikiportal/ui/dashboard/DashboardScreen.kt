@@ -8,12 +8,18 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -39,9 +45,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -67,8 +75,8 @@ fun DashboardScreen(
     val searchState by searchViewModel.state.collectAsState()
     val relevantState by relevantLinksViewModel.state.collectAsState()
     val tabs by tabsRepository.tabs.collectAsState()
-    var tabIndex by remember { mutableStateOf(0) }
-    var isFullScreenSearchOpen by remember { mutableStateOf(false) }
+    var tabIndex by rememberSaveable(key = "dashboard_tab_index") { mutableStateOf(0) }
+    var isFullScreenSearchOpen by rememberSaveable(key = "dashboard_full_screen_search_open") { mutableStateOf(false) }
 
     // Titles within the current wiki that already have an open tab. This
     // drives the "Open" indicator, so tapping one of these jumps to the
@@ -110,6 +118,13 @@ fun DashboardScreen(
                             }
                             WikiSwitcherChip(wikiName = exploreState.wiki?.name.orEmpty(), onClick = onOpenWikiPicker)
                         },
+                        // The Start side of this inset is already handled
+                        // further out, by the NavigationRail in landscape
+                        // or by the outer Scaffold otherwise. Using the
+                        // default windowInsets here would consume that
+                        // same Start inset a second time, which is what
+                        // was pushing this title away from the rail.
+                        windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
                         colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
                     )
 
@@ -253,7 +268,12 @@ private fun FullScreenSearchOverlay(
     onArticleClick: (wikiId: String, title: String) -> Unit,
     onClose: () -> Unit,
 ) {
-    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    val keyboardController = LocalSoftwareKeyboardController.current
+    Column(
+        Modifier.fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top)),
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -275,6 +295,7 @@ private fun FullScreenSearchOverlay(
                     }
                 },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { keyboardController?.hide() }),
                 shape = MaterialTheme.shapes.large,
             )
         }
