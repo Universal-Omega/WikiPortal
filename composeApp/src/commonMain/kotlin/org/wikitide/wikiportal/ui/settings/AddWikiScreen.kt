@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -48,7 +48,7 @@ fun AddWikiScreen(onDone: () -> Unit, viewModel: AddWikiViewModel = koinViewMode
         topBar = {
             TopAppBar(
                 title = { Text("Add a wiki") },
-                navigationIcon = { IconButton(onClick = onDone) { Icon(Icons.Filled.ArrowBack, contentDescription = "Back") } },
+                navigationIcon = { IconButton(onClick = onDone) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } },
                 windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
             )
         },
