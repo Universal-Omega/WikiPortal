@@ -5,6 +5,7 @@ import org.wikitide.wikiportal.network.COMMON_SCRIPT_PATHS
 import org.wikitide.wikiportal.network.MediaWikiApi
 import org.wikitide.wikiportal.network.deriveArticlePathPrefix
 import org.wikitide.wikiportal.network.deriveAvailableSkins
+import org.wikitide.wikiportal.network.deriveUncuratedDefaultSkin
 import org.wikitide.wikiportal.network.deriveWikiDefaultSkin
 import org.wikitide.wikiportal.network.resolveDefaultSkin
 import org.wikitide.wikiportal.network.resolveFaviconUrl
@@ -114,6 +115,10 @@ class WikiMetadataRefresher(private val api: MediaWikiApi) {
             // deriveAvailableSkins' comment for why that is a distinct
             // case from "checked, and it's genuinely none of them".
             availableSkins = deriveAvailableSkins(resolvedQuery.skins) ?: site.availableSkins,
+            // Refreshed alongside availableSkins, from the same siprop=skins
+            // data, since it exists purely to back that field's own
+            // last-resort fallback. See WikiSite.uncuratedDefaultSkin.
+            uncuratedDefaultSkin = deriveUncuratedDefaultSkin(resolvedQuery.skins) ?: site.uncuratedDefaultSkin,
             // resolveDefaultSkin leaves site.skin untouched in every
             // case except when nobody has ever chosen one and the
             // wiki's own default is something this app allows. See its
