@@ -58,11 +58,6 @@ interface WikiPortalStore {
     suspend fun offlineArticleKeys(): Set<String>
     suspend fun offlineArticles(): List<SavedPage>
 
-    /**
-     * Open reading tabs, see TabsRepository. Oldest opened first.
-     * Each tab is its own row upserted and deleted individually,
-     * rather than one blob rewritten on every change.
-     */
     suspend fun openTabs(): List<ArticleTab>
     suspend fun upsertOpenTab(tab: ArticleTab)
     suspend fun deleteOpenTab(id: String)
