@@ -117,6 +117,7 @@ object WikiSkins {
         "refreshed",
         "foreground",
         "metrolook",
+        "femiwiki",
     )
 }
 
