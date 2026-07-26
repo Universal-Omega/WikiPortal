@@ -151,8 +151,10 @@ fun WikiPortalApp(onDarkThemeResolved: (Boolean) -> Unit = {}) {
         }
 
         fun switchTab(route: Route) {
+            val bottomRoutes = bottomDestinations.map { it.route }
+            val survivors = backStack.filter { it in bottomRoutes && it != route }
             backStack.clear()
-            backStack.add(route)
+            backStack.addAll(survivors + route)
         }
 
         /**
