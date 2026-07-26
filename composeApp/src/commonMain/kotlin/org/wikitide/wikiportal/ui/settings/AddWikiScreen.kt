@@ -47,7 +47,7 @@ fun AddWikiScreen(onDone: () -> Unit, viewModel: AddWikiViewModel = koinViewMode
     LaunchedEffect(state.done) { if (state.done) onDone() }
 
     Scaffold(
-        contentWindowInsets = WindowInsets(0.dp),
+        // contentWindowInsets = WindowInsets(0.dp),
         topBar = {
             TopAppBar(
                 title = { Text("Add a wiki") },
