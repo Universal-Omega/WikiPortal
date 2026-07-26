@@ -136,7 +136,7 @@ class AddWikiViewModel(
                         discoveredFaviconUrl = faviconUrl,
                         availableSkins = availableSkins,
                         uncuratedDefaultSkin = uncuratedDefaultSkin,
-                        skin = resolveDefaultSkin(resolvedSite, wikiDefaultSkin),
+                        skin = resolveDefaultSkin(resolvedSite, wikiDefaultSkin, uncuratedDefaultSkin, availableSkins),
                     ),
                 )
                 _state.value = AddWikiUiState(done = true)
