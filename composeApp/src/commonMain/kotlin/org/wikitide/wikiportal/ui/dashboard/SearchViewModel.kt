@@ -83,8 +83,28 @@ class SearchViewModel(
 
     private var searchJob: Job? = null
 
+    // Tracks which wiki the current results actually belong to, so a wiki
+    // switch elsewhere in the app, for example the wiki picker, can be
+    // told apart from this ViewModel's own initial startup value below.
+    private var trackedWikiId: String? = null
+
     init {
         if (_query.value.isNotBlank()) runSearch(_query.value)
+        viewModelScope.launch {
+            repository.activeWiki.collect { wiki ->
+                val previous = trackedWikiId
+                trackedWikiId = wiki.id
+                // Re-run whatever is currently typed against the newly
+                // active wiki, so results never linger tagged to a wiki
+                // the person has since switched away from. The very
+                // first emission here is just the starting wiki, not a
+                // real switch, so it's skipped.
+                if (previous != null && previous != wiki.id && _query.value.isNotBlank()) {
+                    searchJob?.cancel()
+                    runSearch(_query.value)
+                }
+            }
+        }
     }
 
     fun onQueryChange(query: String) {

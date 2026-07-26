@@ -9,16 +9,22 @@ import kotlinx.cinterop.usePinned
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.jetbrains.skia.Image
 import platform.Foundation.NSData
+import platform.Foundation.NSNumber
 import platform.UIKit.UIImage
 import platform.UIKit.UIImagePNGRepresentation
 import platform.WebKit.WKSnapshotConfiguration
 import kotlin.coroutines.resume
 
+private const val MAX_PREVIEW_WIDTH_PX = 320.0
+
 @OptIn(ExperimentalForeignApi::class)
 actual suspend fun captureTabPreview(nativeWebView: NativeWebView): ImageBitmap? {
     val snapshotImage: UIImage? = suspendCancellableCoroutine { continuation ->
+        val configuration = WKSnapshotConfiguration().apply {
+            snapshotWidth = NSNumber(double = MAX_PREVIEW_WIDTH_PX)
+        }
         nativeWebView.takeSnapshotWithConfiguration(
-            snapshotConfiguration = WKSnapshotConfiguration(),
+            snapshotConfiguration = configuration,
         ) { image, error ->
             if (!continuation.isActive) return@takeSnapshotWithConfiguration
             if (error != null) {
@@ -27,8 +33,8 @@ actual suspend fun captureTabPreview(nativeWebView: NativeWebView): ImageBitmap?
             continuation.resume(image)
         }
     }
-    if (snapshotImage == null) return null
 
+    if (snapshotImage == null) return null
     val pngData = UIImagePNGRepresentation(snapshotImage) ?: run {
         println("TabPreview: UIImagePNGRepresentation returned null")
         return null

@@ -35,6 +35,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.movableContentOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -151,8 +153,10 @@ fun WikiPortalApp(onDarkThemeResolved: (Boolean) -> Unit = {}) {
         }
 
         fun switchTab(route: Route) {
+            val bottomRoutes = bottomDestinations.map { it.route }
+            val survivors = backStack.filter { it in bottomRoutes && it != route }
             backStack.clear()
-            backStack.add(route)
+            backStack.addAll(survivors + route)
         }
 
         /**
@@ -203,54 +207,55 @@ fun WikiPortalApp(onDarkThemeResolved: (Boolean) -> Unit = {}) {
 
         // NavDisplay itself is the same either way. Only the surrounding
         // chrome, a bottom bar or a side rail, differs between the two
-        // branches below. So it is defined once here and reused instead
-        // of being duplicated.
-        val navDisplayContent: @Composable (Modifier) -> Unit = { modifier ->
-            NavDisplay(
-                backStack = backStack,
-                onBack = { handleBack() },
-                modifier = modifier,
-                entryDecorators = listOf(
-                    rememberSaveableStateHolderNavEntryDecorator(),
-                    rememberViewModelStoreNavEntryDecorator(),
-                ),
-                entryProvider = { key: NavKey ->
-                    when (key) {
-                        DashboardRoute -> NavEntry(key) {
-                            DashboardScreen(
-                                onArticleClick = { wikiId, title -> openArticle(wikiId, title) },
-                                onOpenWikiPicker = { navigateTo(WikiPickerRoute) },
-                            )
+        // branches below.
+        val navDisplayContent = remember {
+            movableContentOf { modifier: Modifier ->
+                NavDisplay(
+                    backStack = backStack,
+                    onBack = { handleBack() },
+                    modifier = modifier,
+                    entryDecorators = listOf(
+                        rememberSaveableStateHolderNavEntryDecorator(),
+                        rememberViewModelStoreNavEntryDecorator(),
+                    ),
+                    entryProvider = { key: NavKey ->
+                        when (key) {
+                            DashboardRoute -> NavEntry(key) {
+                                DashboardScreen(
+                                    onArticleClick = { wikiId, title -> openArticle(wikiId, title) },
+                                    onOpenWikiPicker = { navigateTo(WikiPickerRoute) },
+                                )
+                            }
+                            TabsRoute -> NavEntry(key) {
+                                TabsListScreen(
+                                    onOpenTab = { wikiId, title -> openArticle(wikiId, title) },
+                                )
+                            }
+                            SavedRoute -> NavEntry(key) {
+                                SavedScreen(onArticleClick = { wikiId, title -> openArticle(wikiId, title) })
+                            }
+                            SettingsRoute -> NavEntry(key) {
+                                SettingsScreen(onOpenWikiPicker = { navigateTo(WikiPickerRoute) })
+                            }
+                            WikiPickerRoute -> NavEntry(key) {
+                                WikiPickerScreen(
+                                    onBack = { backStack.removeLastOrNull() },
+                                    onAddCustomWiki = { navigateTo(AddWikiRoute) },
+                                )
+                            }
+                            AddWikiRoute -> NavEntry(key) {
+                                AddWikiScreen(onDone = { backStack.removeLastOrNull() })
+                            }
+                            ArticleRoute -> NavEntry(key) {
+                                ArticleHostScreen(
+                                    onBack = { backStack.removeLastOrNull() },
+                                )
+                            }
+                            else -> error("Unknown route: $key")
                         }
-                        TabsRoute -> NavEntry(key) {
-                            TabsListScreen(
-                                onOpenTab = { wikiId, title -> openArticle(wikiId, title) },
-                            )
-                        }
-                        SavedRoute -> NavEntry(key) {
-                            SavedScreen(onArticleClick = { wikiId, title -> openArticle(wikiId, title) })
-                        }
-                        SettingsRoute -> NavEntry(key) {
-                            SettingsScreen(onOpenWikiPicker = { navigateTo(WikiPickerRoute) })
-                        }
-                        WikiPickerRoute -> NavEntry(key) {
-                            WikiPickerScreen(
-                                onBack = { backStack.removeLastOrNull() },
-                                onAddCustomWiki = { navigateTo(AddWikiRoute) },
-                            )
-                        }
-                        AddWikiRoute -> NavEntry(key) {
-                            AddWikiScreen(onDone = { backStack.removeLastOrNull() })
-                        }
-                        ArticleRoute -> NavEntry(key) {
-                            ArticleHostScreen(
-                                onBack = { backStack.removeLastOrNull() },
-                            )
-                        }
-                        else -> error("Unknown route: $key")
-                    }
-                },
-            )
+                    },
+                )
+            }
         }
 
         // Comparing width to height instead of using a platform

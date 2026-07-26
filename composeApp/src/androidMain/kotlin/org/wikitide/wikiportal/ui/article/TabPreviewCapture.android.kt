@@ -12,6 +12,8 @@ import com.multiplatform.webview.web.NativeWebView
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
+private const val MAX_PREVIEW_WIDTH_PX = 320
+
 actual suspend fun captureTabPreview(nativeWebView: NativeWebView): ImageBitmap? {
     return suspendCancellableCoroutine { continuation ->
         try {
@@ -49,9 +51,10 @@ actual suspend fun captureTabPreview(nativeWebView: NativeWebView): ImageBitmap?
                     if (!continuation.isActive) return@request
 
                     if (result == PixelCopy.SUCCESS) {
-                        continuation.resume(bitmap.asImageBitmap())
+                        continuation.resume(bitmap.toThumbnail().asImageBitmap())
                     } else {
                         println("TabPreview: PixelCopy failed with code $result")
+                        bitmap.recycle()
                         continuation.resume(null)
                     }
                 },
@@ -64,4 +67,14 @@ actual suspend fun captureTabPreview(nativeWebView: NativeWebView): ImageBitmap?
             }
         }
     }
+}
+
+private fun Bitmap.toThumbnail(): Bitmap {
+    if (width <= MAX_PREVIEW_WIDTH_PX) return this
+    val scale = MAX_PREVIEW_WIDTH_PX.toFloat() / width
+    val targetWidth = MAX_PREVIEW_WIDTH_PX
+    val targetHeight = (height * scale).toInt().coerceAtLeast(1)
+    val scaled = Bitmap.createScaledBitmap(this, targetWidth, targetHeight, true)
+    if (scaled !== this) recycle()
+    return scaled
 }
