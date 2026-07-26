@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -37,7 +38,6 @@ import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -92,16 +92,26 @@ fun DashboardScreen(
                 val showSearchBar = !isCompactHeight || searchState.query.isNotBlank()
 
                 Column(Modifier.fillMaxWidth()) {
-                    TopAppBar(
-                        title = {
-                            Text(
-                                "Dashboard",
-                                style = MaterialTheme.typography.headlineMedium,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        },
-                        actions = {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.background)
+                            .windowInsetsPadding(TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top))
+                            .heightIn(min = 64.dp)
+                            .padding(start = 16.dp, end = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            "Dashboard",
+                            style = MaterialTheme.typography.headlineMedium,
+                            maxLines = 1,
+                            softWrap = false,
+                        )
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
                             if (isCompactHeight && !showSearchBar) {
                                 IconButton(onClick = { isFullScreenSearchOpen = true }) {
                                     Icon(imageVector = Icons.Filled.Search, contentDescription = "Search")
@@ -122,11 +132,13 @@ fun DashboardScreen(
                             ) {
                                 Icon(imageVector = Icons.Filled.Home, contentDescription = "Go to main page")
                             }
-                            WikiSwitcherChip(wikiName = exploreState.wiki?.name.orEmpty(), onClick = onOpenWikiPicker)
-                        },
-                        windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
-                        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
-                    )
+                            WikiSwitcherChip(
+                                wikiName = exploreState.wiki?.name.orEmpty(),
+                                onClick = onOpenWikiPicker,
+                                modifier = Modifier.weight(1f, fill = false),
+                            )
+                        }
+                    }
 
                     if (showSearchBar) {
                         Box(Modifier.fillMaxWidth()) {
