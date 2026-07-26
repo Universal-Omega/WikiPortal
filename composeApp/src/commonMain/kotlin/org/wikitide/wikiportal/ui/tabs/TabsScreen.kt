@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -21,6 +20,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -67,7 +67,7 @@ fun TabsScreen(
     val activeTabId by tabsRepository.activeTabId.collectAsState()
     val gridState = rememberLazyGridState()
 
-    LaunchedEffect(activeTabId, tabs) {
+    LaunchedEffect(activeTabId) {
         val index = tabs.indexOfFirst { it.id == activeTabId }
         if (index >= 0) gridState.animateScrollToItem(index)
     }
@@ -194,23 +194,14 @@ private fun TabCard(
                     }
                 }
                 Box(
-                    modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(30.dp),
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(4.dp)
+                        .size(30.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.55f)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    val outlineColor = Color.Black.copy(alpha = 0.75f)
-                    val outlineOffsets = listOf(
-                        -1.dp to -1.dp, 0.dp to -1.dp, 1.dp to -1.dp,
-                        -1.dp to 0.dp, 1.dp to 0.dp,
-                        -1.dp to 1.dp, 0.dp to 1.dp, 1.dp to 1.dp,
-                    )
-                    outlineOffsets.forEach { (x, y) ->
-                        Icon(
-                            imageVector = Icons.Filled.Close,
-                            contentDescription = null,
-                            tint = outlineColor,
-                            modifier = Modifier.size(18.dp).offset(x = x, y = y),
-                        )
-                    }
                     IconButton(onClick = onClose, modifier = Modifier.matchParentSize()) {
                         Icon(
                             imageVector = Icons.Filled.Close,
