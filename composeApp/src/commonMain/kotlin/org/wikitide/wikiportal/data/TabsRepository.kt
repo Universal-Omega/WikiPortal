@@ -41,6 +41,20 @@ class TabsRepository(
     private val _activeTabId = MutableStateFlow<String?>(null)
     val activeTabId: StateFlow<String?> = _activeTabId
 
+    /**
+     * Tabs that have actually been selected at least once this app
+     * session, meaning ArticleHostScreen should give them a real,
+     * mounted WebView. See ArticleHostScreen's render loop. This is
+     * deliberately not persisted and starts empty every launch: a
+     * restored tab list from a previous session, potentially a couple
+     * dozen tabs, has no business all spinning up their own WebView and
+     * firing off network requests the moment the person opens any one of
+     * them. A tab only materializes once it's the one actually tapped,
+     * in TabsListScreen, TabsScreen, or by name from Dashboard or Saved.
+     */
+    private val _materializedTabIds = MutableStateFlow<Set<String>>(emptySet())
+    val materializedTabIds: StateFlow<Set<String>> = _materializedTabIds
+
     init {
         appScope.launch {
             val restoredTabs = store.openTabs()
@@ -129,6 +143,7 @@ class TabsRepository(
         _tabs.update { it + tab }
         _activeTabId.value = id
         _activeTabCanGoBack.value = false
+        _materializedTabIds.update { it + id }
         appScope.launch { store.upsertOpenTab(tab) }
         persistActiveTabId(id)
         return id
@@ -138,6 +153,7 @@ class TabsRepository(
         if (_tabs.value.any { it.id == tabId }) {
             _activeTabId.value = tabId
             _activeTabCanGoBack.value = false
+            _materializedTabIds.update { it + tabId }
             persistActiveTabId(tabId)
         }
     }
@@ -176,6 +192,7 @@ class TabsRepository(
         val remaining = _tabs.value.filterNot { it.id == tabId }
         _tabs.value = remaining
         _previews.update { it - tabId }
+        _materializedTabIds.update { it - tabId }
         backHandlers.remove(tabId)
         appScope.launch { store.deleteOpenTab(tabId) }
         if (_activeTabId.value == tabId) {
@@ -198,6 +215,7 @@ class TabsRepository(
     fun closeAllTabs() {
         _tabs.value = emptyList()
         _previews.value = emptyMap()
+        _materializedTabIds.value = emptySet()
         backHandlers.clear()
         _activeTabId.value = null
         _activeTabCanGoBack.value = false
