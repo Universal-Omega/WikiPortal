@@ -13,7 +13,8 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         // Required by compose-webview-multiplatform's desktop target (KCEF/JCEF native binaries).
-        maven("https://jogamp.org/deployment/maven")
+        // maven("https://jogamp.org/deployment/maven") // official but unfortunately down right now so using a mirror
+        maven("https://maven.scijava.org/content/repositories/public/")
     }
 }
 
