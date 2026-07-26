@@ -62,7 +62,7 @@ fun AddWikiScreen(onDone: () -> Unit, viewModel: AddWikiViewModel = koinViewMode
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .imePadding()
-                .padding(20.dp),
+                .padding(start = 20.dp, end = 20.dp, bottom = 20.dp, top = 32.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
