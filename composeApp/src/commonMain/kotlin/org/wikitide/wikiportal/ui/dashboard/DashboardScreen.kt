@@ -93,7 +93,14 @@ fun DashboardScreen(
 
                 Column(Modifier.fillMaxWidth()) {
                     TopAppBar(
-                        title = { Text("Dashboard", style = MaterialTheme.typography.headlineMedium) },
+                        title = {
+                            Text(
+                                "Dashboard",
+                                style = MaterialTheme.typography.headlineMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        },
                         actions = {
                             if (isCompactHeight && !showSearchBar) {
                                 IconButton(onClick = { isFullScreenSearchOpen = true }) {
