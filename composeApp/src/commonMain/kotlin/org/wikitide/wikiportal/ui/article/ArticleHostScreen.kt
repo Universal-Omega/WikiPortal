@@ -13,8 +13,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Download
@@ -275,12 +275,12 @@ private fun SingleArticleTab(
                                     }
                                 },
                             ) {
-                                Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                             }
 
                             if (navigator.canGoForward) {
                                 IconButton(onClick = { navigator.navigateForward() }) {
-                                    Icon(Icons.Filled.ArrowForward, contentDescription = "Forward")
+                                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Forward")
                                 }
                             }
                         }
