@@ -19,7 +19,6 @@ import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.DownloadDone
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Tab
@@ -81,6 +80,7 @@ fun ArticleHostScreen(
     val tabs by tabsRepository.tabs.collectAsState()
     val activeTabId by tabsRepository.activeTabId.collectAsState()
     val isSwitcherOpen by tabsRepository.isSwitcherOpen.collectAsState()
+    val materializedTabIds by tabsRepository.materializedTabIds.collectAsState()
 
     if (tabs.isEmpty()) {
         LaunchedEffect(Unit) { onBack() }
@@ -89,6 +89,13 @@ fun ArticleHostScreen(
 
     Box(Modifier.fillMaxSize()) {
         tabs.forEach { tab ->
+            // A tab that was restored from a previous session but hasn't
+            // actually been tapped yet this launch has no WebView at
+            // all, not just a paused one. It still shows up fine in
+            // TabsListScreen and TabsScreen, which only read the tab's
+            // own metadata, not a live view of it. See
+            // TabsRepository.materializedTabIds.
+            if (tab.id !in materializedTabIds && tab.id != activeTabId) return@forEach
             key(tab.id) {
                 val isActive = tab.id == activeTabId && !isSwitcherOpen
                 Box(
@@ -294,11 +301,6 @@ private fun SingleArticleTab(
                         )
                     },
                     actions = {
-                        site.mainPageTitle?.let { mainPageTitle ->
-                            IconButton(onClick = { navigator.loadUrl(site.articleUrl(mainPageTitle)) }) {
-                                Icon(Icons.Filled.Home, contentDescription = "Go to main page")
-                            }
-                        }
                         BadgedBox(
                             badge = { if (tabs.isNotEmpty()) Badge { Text("${tabs.size}") } },
                         ) {
