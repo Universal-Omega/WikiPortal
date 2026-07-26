@@ -36,6 +36,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -50,6 +52,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -200,6 +203,7 @@ private fun SingleArticleTab(
     var summarizedTitle by remember(tab.id) { mutableStateOf<String?>(null) }
     var nativeWebViewRef by remember(tab.id) { mutableStateOf<NativeWebView?>(null) }
     val savedPages by repository.savedPages.collectAsState()
+    val pullToRefreshState = rememberPullToRefreshState()
 
     // Every open tab's WebView stays mounted the whole time it's open, so
     // switching tabs never reloads one, but an inactive tab has no
@@ -230,8 +234,17 @@ private fun SingleArticleTab(
     // doesn't redundantly repeat either.
     LaunchedEffect(isActive, currentTitle, pageState.isLoading) {
         if (!isActive || pageState.isLoading || currentTitle.isBlank()) return@LaunchedEffect
+        // This has to happen before the summarizedTitle dedup check
+        // below, not after it. A pull-to-refresh reloads the page at its
+        // current title, so currentTitle == summarizedTitle is exactly
+        // the common case for a refresh finishing, and returning early
+        // before reaching this used to leave isRefreshing stuck true,
+        // and the indicator stuck visible, forever.
+        if (isRefreshing) {
+            isRefreshing = false
+            pullToRefreshState.animateToHidden()
+        }
         if (currentTitle == summarizedTitle) return@LaunchedEffect
-        isRefreshing = false
         // Fetch first, then fill in both pageSummary and the tab record
         // with the result.
         val freshSummary = api.getPageSummary(site, currentTitle).getOrNull()
@@ -412,13 +425,14 @@ private fun SingleArticleTab(
                 modifier = Modifier.fillMaxSize(),
             )
 
-            // A simple swipe-to-refresh: a thin invisible strip at the
-            // very top edge that triggers a refresh on a downward drag
-            // starting there. This is not the same as native pull to
-            // refresh. Compose's PullToRefreshBox relies on the nested
-            // scroll protocol, which a native WebView does not take part
-            // in.
+            // A manual swipe-to-refresh: a thin invisible strip at the
+            // very top edge that tracks a downward drag starting there,
+            // driving a real PullToRefreshState by hand rather than the
+            // usual Modifier.pullToRefresh. That modifier depends on the
+            // nested scroll protocol, which a native WebView does not
+            // take part in, so it would never receive the drag at all.
             var dragAmount by remember(tab.id) { mutableStateOf(0f) }
+            val pullThresholdPx = with(LocalDensity.current) { PullToRefreshDefaults.PositionalThreshold.toPx() }
 
             Box(
                 Modifier
@@ -428,30 +442,36 @@ private fun SingleArticleTab(
                     .pointerInput(tab.id) {
                         detectVerticalDragGestures(
                             onDragEnd = {
-                                if (dragAmount > 120f && !isRefreshing) {
-                                    isRefreshing = true
-                                    navigator.reload()
-                                }
+                                val triggered = dragAmount >= pullThresholdPx && !isRefreshing
                                 dragAmount = 0f
+                                scope.launch {
+                                    if (triggered) {
+                                        pullToRefreshState.animateToThreshold()
+                                        isRefreshing = true
+                                        navigator.reload()
+                                    } else {
+                                        pullToRefreshState.animateToHidden()
+                                    }
+                                }
                             },
                             onVerticalDrag = { change, delta ->
-                                if (delta > 0f) {
-                                    dragAmount += delta
+                                if (delta > 0f && !isRefreshing) {
+                                    dragAmount = (dragAmount + delta).coerceAtMost(pullThresholdPx * 1.5f)
                                     change.consume()
+                                    scope.launch {
+                                        pullToRefreshState.snapTo((dragAmount / pullThresholdPx).coerceIn(0f, 1f))
+                                    }
                                 }
                             },
                         )
                     },
             )
 
-            if (isRefreshing) {
-                CircularProgressIndicator(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = 8.dp)
-                        .size(28.dp),
-                )
-            }
+            PullToRefreshDefaults.Indicator(
+                state = pullToRefreshState,
+                isRefreshing = isRefreshing,
+                modifier = Modifier.align(Alignment.TopCenter),
+            )
         }
     }
 
