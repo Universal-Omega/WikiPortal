@@ -127,6 +127,22 @@ class MediaWikiApi(
         println("Ktor: getFaviconUrlFromHtml(${site.indexUrl}) failed: ${it::class.simpleName}: ${it.message}")
     }
 
+    /**
+     * Follows [url] exactly the way a browser, or the wiki's own domain
+     * redirects, actually would, and returns the scheme and host it
+     * genuinely resolves to, lowercased. Used when adding a custom
+     * wiki, so a mistyped scheme, a wrong case, for example
+     * http://AllTheTropes.org, or an outdated subdomain the wiki itself
+     * 30x-redirects elsewhere, for example wiki.miraheze.org landing on
+     * meta.miraheze.org, gets stored as wherever it actually resolves
+     * to, not the literal text typed in.
+     */
+    suspend fun resolveFinalBaseUrl(url: String): Result<String> = runCatchingCancellable {
+        val response = httpClient.get(url)
+        val finalUrl = response.request.url
+        "${finalUrl.protocol.name}://${finalUrl.host.lowercase()}"
+    }
+
     suspend fun getRandomArticles(site: WikiSite, count: Int = 15): Result<List<PageSummaryDto>> =
         actionApi.get<RandomPagesResponse>(
             site.apiUrl,
