@@ -455,8 +455,8 @@ private fun SingleArticleTab(
                                 }
                             },
                             onVerticalDrag = { change, delta ->
-                                if (delta > 0f && !isRefreshing) {
-                                    dragAmount = (dragAmount + delta).coerceAtMost(pullThresholdPx * 1.5f)
+                                if (!isRefreshing) {
+                                    dragAmount = (dragAmount + delta).coerceIn(0f, pullThresholdPx * 1.5f)
                                     change.consume()
                                     scope.launch {
                                         pullToRefreshState.snapTo((dragAmount / pullThresholdPx).coerceIn(0f, 1f))
