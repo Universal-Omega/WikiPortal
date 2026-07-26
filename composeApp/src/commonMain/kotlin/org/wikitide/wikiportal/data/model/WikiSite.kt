@@ -16,6 +16,20 @@ data class WikiSite(
     val discoveredFaviconUrl: String? = null,
     val availableSkins: List<SkinOption>? = null,
     /**
+     * The wiki's own reported default skin, with its own real display
+     * name, regardless of whether it's one of this app's curated
+     * [WikiSkins.options]. This exists purely as a last-resort fallback
+     * for the skin picker: when [availableSkins] comes back as a real,
+     * successfully-fetched but genuinely empty list, meaning the wiki
+     * uses no skin this app curates at all, showing the full curated
+     * list would be misleading, since none of those are actually
+     * installed there. Showing this one skin instead, uncurated, is
+     * still more useful than either an empty picker or a list of skins
+     * that don't exist on this wiki. See [skinChoices] and
+     * [hasNoSkinData].
+     */
+    val uncuratedDefaultSkin: SkinOption? = null,
+    /**
      * Whether [skin] is something the person actually chose, through the
      * "Change skin" picker, as opposed to still being whatever this wiki
      * was seeded or added with. This matters for presets specifically.
@@ -33,9 +47,14 @@ data class WikiSite(
     val restUrl: String get() = "$baseUrl$scriptPath/rest.php"
 
     val faviconUrl: String get() = discoveredFaviconUrl ?: "$baseUrl/favicon.ico"
+
+    val hasNoSkinData: Boolean get() = availableSkins == null
     val skinChoices: List<SkinOption>
         get() {
-            val base = availableSkins ?: WikiSkins.options.map { SkinOption(it, it) }
+            val base = when {
+                availableSkins.isNullOrEmpty() -> listOfNotNull(uncuratedDefaultSkin)
+                else -> availableSkins
+            }
             return if (base.any { it.code == skin }) base else base + SkinOption(skin, skin)
         }
 
