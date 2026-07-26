@@ -112,6 +112,11 @@ object WikiSkins {
         "cosmos",
         "citizen",
         "monobook",
+        "chameleon",
+        "medik",
+        "refreshed",
+        "foreground",
+        "metrolook",
     )
 }
 
