@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -52,7 +51,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 import coil3.compose.AsyncImage
 import org.koin.compose.koinInject
 import org.wikitide.wikiportal.data.AppRepository
@@ -267,18 +269,34 @@ private fun SkinPickerDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
-                Column(
-                    modifier = Modifier.heightIn(max = 280.dp).verticalScroll(rememberScrollState()),
-                ) {
+                val scrollState = rememberScrollState()
+                // Where the selected row sits within the scrollable
+                // Column, in pixels, captured as it's laid out. Null
+                // until the selected row has actually been measured
+                // once.
+                var selectedOffset by remember(wiki.id) { mutableStateOf<Int?>(null) }
+                Column(modifier = Modifier.verticalScroll(scrollState)) {
                     wiki.skinChoices.forEach { choice ->
                         Row(
-                            modifier = Modifier.fillMaxWidth().clickable { onSkinSelected(choice.code) }.padding(vertical = 4.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSkinSelected(choice.code) }
+                                .padding(vertical = 4.dp)
+                                .onGloballyPositioned { coordinates ->
+                                    if (choice.code == wiki.skin) {
+                                        selectedOffset = coordinates.positionInParent().y.roundToInt()
+                                    }
+                                },
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             RadioButton(selected = choice.code == wiki.skin, onClick = { onSkinSelected(choice.code) })
                             Text(choice.name, modifier = Modifier.padding(start = 4.dp))
                         }
                     }
+                }
+
+                LaunchedEffect(selectedOffset) {
+                    selectedOffset?.let { offset -> scrollState.animateScrollTo(offset) }
                 }
             }
         },
