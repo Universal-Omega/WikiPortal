@@ -22,11 +22,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -273,7 +273,7 @@ private fun FullScreenSearchOverlay(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = onClose) {
-                Icon(Icons.Filled.ArrowBack, contentDescription = "Close search")
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Close search")
             }
             OutlinedTextField(
                 value = searchState.query,
@@ -335,7 +335,7 @@ private fun FeedTabContent(
                     item {
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 4.dp)) {
                             Icon(
-                                Icons.Filled.TrendingUp,
+                                Icons.AutoMirrored.Filled.TrendingUp,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.padding(end = 4.dp),
