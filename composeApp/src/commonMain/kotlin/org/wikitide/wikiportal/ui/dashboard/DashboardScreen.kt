@@ -1,5 +1,6 @@
 package org.wikitide.wikiportal.ui.dashboard
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -7,13 +8,21 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Search
@@ -36,9 +45,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -64,13 +75,8 @@ fun DashboardScreen(
     val searchState by searchViewModel.state.collectAsState()
     val relevantState by relevantLinksViewModel.state.collectAsState()
     val tabs by tabsRepository.tabs.collectAsState()
-    var tabIndex by remember { mutableStateOf(0) }
-    // Manually toggled open or closed by the search icon below when
-    // height is tight. Once there is an actual query, the bar stays
-    // visible regardless of this flag, see showSearchBar below, since
-    // collapsing mid search would strand the user's typed query with no
-    // way to see it.
-    var isSearchExpanded by remember { mutableStateOf(false) }
+    var tabIndex by rememberSaveable(key = "dashboard_tab_index") { mutableStateOf(0) }
+    var isFullScreenSearchOpen by rememberSaveable(key = "dashboard_full_screen_search_open") { mutableStateOf(false) }
 
     // Titles within the current wiki that already have an open tab. This
     // drives the "Open" indicator, so tapping one of these jumps to the
@@ -80,100 +86,104 @@ fun DashboardScreen(
         tabs.filter { it.wikiId == exploreState.wiki?.id }.map { it.title }.toSet()
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        // This uses the same width-vs-height BoxWithConstraints technique
-        // App.kt uses for its landscape and portrait split. No platform
-        // orientation API is available uniformly here either, and
-        // measuring the actual available height, instead of assuming
-        // landscape means short, also covers phones that are short even
-        // in portrait, for example small-height multi-window, or just a
-        // phone with a lot of on-screen chrome eating into the top.
-        BoxWithConstraints(Modifier.fillMaxWidth()) {
-            val isCompactHeight = maxHeight < 500.dp
-            // The bar never collapses out from under an in-progress
-            // search. Only the empty, idle bar collapses to an icon.
-            val showSearchBar = !isCompactHeight || isSearchExpanded || searchState.query.isNotBlank()
+    Box(Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                val isCompactHeight = maxHeight < 500.dp
+                val showSearchBar = !isCompactHeight || searchState.query.isNotBlank()
 
-            Column(Modifier.fillMaxWidth()) {
-                TopAppBar(
-                    title = { Text("Dashboard", style = MaterialTheme.typography.headlineMedium) },
-                    actions = {
-                        if (isCompactHeight && !showSearchBar) {
-                            IconButton(onClick = { isSearchExpanded = true }) {
-                                Icon(imageVector = Icons.Filled.Search, contentDescription = "Search")
-                            }
-                        }
-                        // Jumps straight to the wiki's own main page. The
-                        // title comes from that wiki's siteinfo and is
-                        // never assumed, since custom wikis can rename it.
-                        // This reuses the normal article-open path so it
-                        // lands in a tab exactly like any other link.
-                        IconButton(
-                            onClick = {
-                                val wikiId = exploreState.wiki?.id ?: return@IconButton
-                                val mainPage = exploreState.mainPageTitle ?: return@IconButton
-                                onArticleClick(wikiId, mainPage)
-                            },
-                            enabled = exploreState.wiki != null && exploreState.mainPageTitle != null,
-                        ) {
-                            Icon(imageVector = Icons.Filled.Home, contentDescription = "Go to main page")
-                        }
-                        WikiSwitcherChip(wikiName = exploreState.wiki?.name.orEmpty(), onClick = onOpenWikiPicker)
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
-                )
-
-                if (showSearchBar) {
-                    OutlinedTextField(
-                        value = searchState.query,
-                        onValueChange = searchViewModel::onQueryChange,
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                        placeholder = { Text("Search ${searchState.wikiName}") },
-                        singleLine = true,
-                        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                        trailingIcon = {
-                            if (searchState.query.isNotEmpty()) {
-                                IconButton(onClick = { searchViewModel.onQueryChange("") }) {
-                                    Icon(Icons.Filled.Close, contentDescription = "Clear")
-                                }
-                            } else if (isCompactHeight) {
-                                // No query typed yet. This is purely the
-                                // affordance to collapse back to the icon,
-                                // so it only needs to exist when there is
-                                // somewhere to collapse back to.
-                                IconButton(onClick = { isSearchExpanded = false }) {
-                                    Icon(Icons.Filled.Close, contentDescription = "Hide search")
+                Column(Modifier.fillMaxWidth()) {
+                    TopAppBar(
+                        title = { Text("Dashboard", style = MaterialTheme.typography.headlineMedium) },
+                        actions = {
+                            if (isCompactHeight && !showSearchBar) {
+                                IconButton(onClick = { isFullScreenSearchOpen = true }) {
+                                    Icon(imageVector = Icons.Filled.Search, contentDescription = "Search")
                                 }
                             }
+                            // Jumps straight to the wiki's own main page. The
+                            // title comes from that wiki's siteinfo and is
+                            // never assumed, since custom wikis can rename it.
+                            // This reuses the normal article-open path so it
+                            // lands in a tab exactly like any other link.
+                            IconButton(
+                                onClick = {
+                                    val wikiId = exploreState.wiki?.id ?: return@IconButton
+                                    val mainPage = exploreState.mainPageTitle ?: return@IconButton
+                                    onArticleClick(wikiId, mainPage)
+                                },
+                                enabled = exploreState.wiki != null && exploreState.mainPageTitle != null,
+                            ) {
+                                Icon(imageVector = Icons.Filled.Home, contentDescription = "Go to main page")
+                            }
+                            WikiSwitcherChip(wikiName = exploreState.wiki?.name.orEmpty(), onClick = onOpenWikiPicker)
                         },
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                        shape = MaterialTheme.shapes.large,
+                        windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
+                        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
+                    )
+
+                    if (showSearchBar) {
+                        Box(Modifier.fillMaxWidth()) {
+                            OutlinedTextField(
+                                value = searchState.query,
+                                onValueChange = searchViewModel::onQueryChange,
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                                placeholder = { Text("Search ${searchState.wikiName}") },
+                                singleLine = true,
+                                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                                trailingIcon = {
+                                    if (searchState.query.isNotEmpty()) {
+                                        IconButton(onClick = { searchViewModel.onQueryChange("") }) {
+                                            Icon(Icons.Filled.Close, contentDescription = "Clear")
+                                        }
+                                    }
+                                },
+                                readOnly = isCompactHeight,
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                                shape = MaterialTheme.shapes.large,
+                            )
+                            if (isCompactHeight) {
+                                Box(
+                                    Modifier.matchParentSize()
+                                        .clickable(onClick = { isFullScreenSearchOpen = true }),
+                                ) {}
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (searchState.query.isNotBlank()) {
+                SearchResultsContent(searchState, onArticleClick, onSearchFor = searchViewModel::searchFor)
+            } else {
+                SecondaryTabRow(selectedTabIndex = tabIndex) {
+                    Tab(selected = tabIndex == 0, onClick = { tabIndex = 0 }, text = { Text("Feed") })
+                    Tab(selected = tabIndex == 1, onClick = { tabIndex = 1 }, text = { Text("Relevant") })
+                }
+                when (tabIndex) {
+                    0 -> FeedTabContent(
+                        state = exploreState,
+                        openTitles = openTitles,
+                        onArticleClick = onArticleClick,
+                        onOpenWikiPicker = onOpenWikiPicker,
+                        onRefresh = exploreViewModel::refresh,
+                    )
+                    else -> RelevantLinksTabContent(
+                        state = relevantState,
+                        onArticleClick = { title -> exploreState.wiki?.id?.let { onArticleClick(it, title) } },
+                        onRefresh = relevantLinksViewModel::refresh,
                     )
                 }
             }
         }
 
-        if (searchState.query.isNotBlank()) {
-            SearchResultsContent(searchState, onArticleClick, onSearchFor = searchViewModel::searchFor)
-        } else {
-            SecondaryTabRow(selectedTabIndex = tabIndex) {
-                Tab(selected = tabIndex == 0, onClick = { tabIndex = 0 }, text = { Text("Feed") })
-                Tab(selected = tabIndex == 1, onClick = { tabIndex = 1 }, text = { Text("Relevant") })
-            }
-            when (tabIndex) {
-                0 -> FeedTabContent(
-                    state = exploreState,
-                    openTitles = openTitles,
-                    onArticleClick = onArticleClick,
-                    onOpenWikiPicker = onOpenWikiPicker,
-                    onRefresh = exploreViewModel::refresh,
-                )
-                else -> RelevantLinksTabContent(
-                    state = relevantState,
-                    onArticleClick = { title -> exploreState.wiki?.id?.let { onArticleClick(it, title) } },
-                    onRefresh = relevantLinksViewModel::refresh,
-                )
-            }
+        if (isFullScreenSearchOpen) {
+            FullScreenSearchOverlay(
+                searchState = searchState,
+                searchViewModel = searchViewModel,
+                onArticleClick = onArticleClick,
+                onClose = { isFullScreenSearchOpen = false },
+            )
         }
     }
 }
@@ -243,6 +253,50 @@ private fun DidYouMeanRow(suggestion: String, onClick: () -> Unit) {
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier.padding(vertical = 4.dp).clickable(onClick = onClick),
     )
+}
+
+@Composable
+private fun FullScreenSearchOverlay(
+    searchState: SearchUiState,
+    searchViewModel: SearchViewModel,
+    onArticleClick: (wikiId: String, title: String) -> Unit,
+    onClose: () -> Unit,
+) {
+    val keyboardController = LocalSoftwareKeyboardController.current
+    Column(
+        Modifier.fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top)),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onClose) {
+                Icon(Icons.Filled.ArrowBack, contentDescription = "Close search")
+            }
+            OutlinedTextField(
+                value = searchState.query,
+                onValueChange = searchViewModel::onQueryChange,
+                modifier = Modifier.weight(1f).padding(end = 8.dp),
+                placeholder = { Text("Search ${searchState.wikiName}") },
+                singleLine = true,
+                trailingIcon = {
+                    if (searchState.query.isNotEmpty()) {
+                        IconButton(onClick = { searchViewModel.onQueryChange("") }) {
+                            Icon(Icons.Filled.Close, contentDescription = "Clear")
+                        }
+                    }
+                },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { keyboardController?.hide() }),
+                shape = MaterialTheme.shapes.large,
+            )
+        }
+        Box(Modifier.weight(1f).imePadding()) {
+            SearchResultsContent(searchState, onArticleClick, onSearchFor = searchViewModel::searchFor)
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
