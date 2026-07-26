@@ -98,6 +98,21 @@ fun deriveWikiDefaultSkin(skins: List<SkinInfoDto>): SkinOption? {
 }
 
 /**
+ * The same lookup as [deriveWikiDefaultSkin], but without the curated
+ * check, used purely for the skin picker's own last-resort fallback,
+ * see [WikiSite.uncuratedDefaultSkin] and [WikiSite.skinChoices]. This
+ * is never used to decide what [WikiSite.skin] actually renders with.
+ * [resolveDefaultSkin] below is the only thing that does that, and it
+ * deliberately keeps requiring a curated match, so the app never
+ * silently starts rendering a wiki with a skin it has never been
+ * tested against.
+ */
+fun deriveUncuratedDefaultSkin(skins: List<SkinInfoDto>): SkinOption? {
+    val reportedDefault = skins.firstOrNull { it.default } ?: return null
+    return SkinOption(reportedDefault.code, reportedDefault.name.ifBlank { reportedDefault.code })
+}
+
+/**
  * What [site]'s skin should be, given what the wiki itself reports as
  * its own default. If nobody has ever actually chosen a skin for
  * [site], meaning neither a preset author, still at
