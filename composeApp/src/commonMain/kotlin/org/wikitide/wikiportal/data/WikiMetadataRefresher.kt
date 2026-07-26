@@ -105,6 +105,8 @@ class WikiMetadataRefresher(private val api: MediaWikiApi) {
         val resolved = resolvedQuery.general ?: return null
         val sitename = resolved.sitename ?: return null
 
+        val curatedSkins = deriveAvailableSkins(resolvedQuery.skins)
+        val uncuratedDefault = deriveUncuratedDefaultSkin(resolvedQuery.skins)
         val updated = site.copy(
             name = sitename,
             scriptPath = workingScriptPath,
@@ -114,16 +116,16 @@ class WikiMetadataRefresher(private val api: MediaWikiApi) {
             // empty, if this particular probe came back empty. See
             // deriveAvailableSkins' comment for why that is a distinct
             // case from "checked, and it's genuinely none of them".
-            availableSkins = deriveAvailableSkins(resolvedQuery.skins) ?: site.availableSkins,
+            availableSkins = curatedSkins ?: site.availableSkins,
             // Refreshed alongside availableSkins, from the same siprop=skins
             // data, since it exists purely to back that field's own
             // last-resort fallback. See WikiSite.uncuratedDefaultSkin.
-            uncuratedDefaultSkin = deriveUncuratedDefaultSkin(resolvedQuery.skins) ?: site.uncuratedDefaultSkin,
+            uncuratedDefaultSkin = uncuratedDefault ?: site.uncuratedDefaultSkin,
             // resolveDefaultSkin leaves site.skin untouched in every
-            // case except when nobody has ever chosen one and the
-            // wiki's own default is something this app allows. See its
-            // comment.
-            skin = resolveDefaultSkin(site, deriveWikiDefaultSkin(resolvedQuery.skins)),
+            // case except when nobody has ever chosen one. See its
+            // own comment for the two different ways it can still
+            // change in that case.
+            skin = resolveDefaultSkin(site, deriveWikiDefaultSkin(resolvedQuery.skins), uncuratedDefault, curatedSkins),
         )
         val mainPageTitle = resolved.mainpage?.takeIf { it.isNotBlank() } ?: "Main Page"
         return Result(site = updated, mainPageTitle = mainPageTitle)
