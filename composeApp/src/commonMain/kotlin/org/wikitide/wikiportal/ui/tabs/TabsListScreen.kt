@@ -62,7 +62,7 @@ fun TabsListScreen(
     val activeTabId by tabsRepository.activeTabId.collectAsState()
     val listState = rememberLazyListState()
 
-    LaunchedEffect(activeTabId, tabs) {
+    LaunchedEffect(activeTabId) {
         val index = tabs.indexOfFirst { it.id == activeTabId }
         if (index >= 0) listState.animateScrollToItem(index)
     }
