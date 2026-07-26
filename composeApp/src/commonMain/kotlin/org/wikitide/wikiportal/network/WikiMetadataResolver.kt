@@ -99,13 +99,12 @@ fun deriveWikiDefaultSkin(skins: List<SkinInfoDto>): SkinOption? {
 
 /**
  * The same lookup as [deriveWikiDefaultSkin], but without the curated
- * check, used purely for the skin picker's own last-resort fallback,
- * see [WikiSite.uncuratedDefaultSkin] and [WikiSite.skinChoices]. This
- * is never used to decide what [WikiSite.skin] actually renders with.
- * [resolveDefaultSkin] below is the only thing that does that, and it
- * deliberately keeps requiring a curated match, so the app never
- * silently starts rendering a wiki with a skin it has never been
- * tested against.
+ * check. This backs [WikiSite.uncuratedDefaultSkin], the skin picker's
+ * own last-resort fallback display, see [WikiSite.skinChoices]. It is
+ * also the one exception to [resolveDefaultSkin] otherwise always
+ * requiring a curated match before touching [WikiSite.skin]: see that
+ * function's own comment for why a wiki with nothing curated installed
+ * at all is different.
  */
 fun deriveUncuratedDefaultSkin(skins: List<SkinInfoDto>): SkinOption? {
     val reportedDefault = skins.firstOrNull { it.default } ?: return null
@@ -113,15 +112,32 @@ fun deriveUncuratedDefaultSkin(skins: List<SkinInfoDto>): SkinOption? {
 }
 
 /**
- * What [site]'s skin should be, given what the wiki itself reports as
- * its own default. If nobody has ever actually chosen a skin for
- * [site], meaning neither a preset author, still at
+ * What [site]'s skin should be, given what the wiki itself reports.
+ * This only ever touches [site.skin] at all when nobody has ever
+ * actually chosen one, meaning neither a preset author, still at
  * [WikiSite.DEFAULT_SKIN] and never overridden, nor the person
- * themselves, see [WikiSite.skinIsUserSet], and the wiki's own default
- * is one of this app's allowed skins, this prefers that over this app's
- * own generic fallback.
+ * themselves, see [WikiSite.skinIsUserSet].
+ *
+ * In that case, this prefers the wiki's own reported default,
+ * [wikiDefaultSkin], whenever it's one of this app's curated skins,
+ * over this app's own generic fallback.
+ *
+ * [curatedSkins] is the wiki's full curated intersection, see
+ * [deriveAvailableSkins]. When that comes back
+ * genuinely empty, meaning the wiki has nothing curated installed at
+ * all, not even [WikiSite.DEFAULT_SKIN] itself, this instead falls
+ * back to [uncuratedDefaultSkin], uncurated as it is. Leaving
+ * [WikiSite.DEFAULT_SKIN] selected in that case would be inaccurate.
  */
-fun resolveDefaultSkin(site: WikiSite, wikiDefaultSkin: SkinOption?): String {
+fun resolveDefaultSkin(
+    site: WikiSite,
+    wikiDefaultSkin: SkinOption?,
+    uncuratedDefaultSkin: SkinOption?,
+    curatedSkins: List<SkinOption>?,
+): String {
     val stillUnset = !site.skinIsUserSet && site.skin == WikiSite.DEFAULT_SKIN
-    return if (stillUnset && wikiDefaultSkin != null) wikiDefaultSkin.code else site.skin
+    if (!stillUnset) return site.skin
+    if (wikiDefaultSkin != null) return wikiDefaultSkin.code
+    if (curatedSkins != null && curatedSkins.isEmpty() && uncuratedDefaultSkin != null) return uncuratedDefaultSkin.code
+    return site.skin
 }
