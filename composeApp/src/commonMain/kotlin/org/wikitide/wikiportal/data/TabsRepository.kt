@@ -1,30 +1,64 @@
 package org.wikitide.wikiportal.data
 
 import androidx.compose.ui.graphics.ImageBitmap
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import org.wikitide.wikiportal.data.model.ArticleTab
 import org.wikitide.wikiportal.data.model.WikiSite
+import org.wikitide.wikiportal.data.store.SettingKeys
+import org.wikitide.wikiportal.data.store.WikiPortalStore
 import kotlin.random.Random
 import kotlin.time.Clock
 
 private fun nowEpochMillis(): Long = Clock.System.now().toEpochMilliseconds()
 
 /**
- * Tracks open reading tabs, similar to a browser's tab strip. This is kept
- * in memory only for now and is not saved across app restarts.
+ * Tracks open reading tabs, similar to a browser's tab strip. Each tab's
+ * own row, see [store]'s OpenTab table, is upserted or deleted
+ * individually as tabs open, navigate, and close, and the whole set is
+ * loaded back at startup, see [init], so restarting the app doesn't lose
+ * open tabs. Which tab was active is saved separately as a single
+ * setting, the same way AppRepository saves the active wiki id. Real
+ * captured preview bitmaps, see [_previews], are not part of any of that
+ * and start out empty again each launch. That's an in-memory-only visual
+ * nicety, not the tab's identity, and are quick to recapture as each
+ * restored tab is actually viewed again.
  *
  * Every open tab's WebView stays mounted at the same time inside
  * ArticleHostScreen. See that file's comment for why.
  */
-class TabsRepository {
+class TabsRepository(
+    private val store: WikiPortalStore,
+    private val appScope: CoroutineScope,
+) {
 
     private val _tabs = MutableStateFlow<List<ArticleTab>>(emptyList())
     val tabs: StateFlow<List<ArticleTab>> = _tabs
 
     private val _activeTabId = MutableStateFlow<String?>(null)
     val activeTabId: StateFlow<String?> = _activeTabId
+
+    init {
+        appScope.launch {
+            val restoredTabs = store.openTabs()
+            val restoredActiveId = store.getSetting(SettingKeys.ACTIVE_TAB_ID)?.takeIf { it.isNotBlank() }
+            // Only apply this if nothing has already opened a tab in the
+            // moments since this repository was constructed, so a very
+            // early openTab() call can't get wiped out by this finishing
+            // its disk read afterward.
+            if (_tabs.value.isEmpty()) {
+                _tabs.value = restoredTabs
+                _activeTabId.value = restoredTabs.firstOrNull { it.id == restoredActiveId }?.id ?: restoredTabs.lastOrNull()?.id
+            }
+        }
+    }
+
+    private fun persistActiveTabId(id: String?) {
+        appScope.launch { store.setSetting(SettingKeys.ACTIVE_TAB_ID, id.orEmpty()) }
+    }
 
     /**
      * Whether the tab switcher overlay is showing. This lives here
@@ -91,9 +125,12 @@ class TabsRepository {
 
     fun openTab(site: WikiSite, title: String): String {
         val id = "tab-${nowEpochMillis()}-${Random.nextInt(10_000)}"
-        _tabs.update { it + ArticleTab(id, site.id, site.name, title, createdAtEpochMillis = nowEpochMillis()) }
+        val tab = ArticleTab(id, site.id, site.name, title, createdAtEpochMillis = nowEpochMillis())
+        _tabs.update { it + tab }
         _activeTabId.value = id
         _activeTabCanGoBack.value = false
+        appScope.launch { store.upsertOpenTab(tab) }
+        persistActiveTabId(id)
         return id
     }
 
@@ -101,6 +138,7 @@ class TabsRepository {
         if (_tabs.value.any { it.id == tabId }) {
             _activeTabId.value = tabId
             _activeTabCanGoBack.value = false
+            persistActiveTabId(tabId)
         }
     }
 
@@ -112,6 +150,7 @@ class TabsRepository {
      * tab's original site.
      */
     fun updateTab(tabId: String, title: String, thumbnailUrl: String?, wikiName: String, extract: String? = null) {
+        var updatedTab: ArticleTab? = null
         _tabs.update { list ->
             list.map {
                 if (it.id == tabId) {
@@ -120,12 +159,13 @@ class TabsRepository {
                         thumbnailUrl = thumbnailUrl ?: it.thumbnailUrl,
                         wikiName = wikiName,
                         extract = extract ?: it.extract,
-                    )
+                    ).also { updated -> updatedTab = updated }
                 } else {
                     it
                 }
             }
         }
+        updatedTab?.let { tab -> appScope.launch { store.upsertOpenTab(tab) } }
     }
 
     fun updatePreview(tabId: String, bitmap: ImageBitmap) {
@@ -137,9 +177,11 @@ class TabsRepository {
         _tabs.value = remaining
         _previews.update { it - tabId }
         backHandlers.remove(tabId)
+        appScope.launch { store.deleteOpenTab(tabId) }
         if (_activeTabId.value == tabId) {
             _activeTabId.value = remaining.lastOrNull()?.id
             _activeTabCanGoBack.value = false
+            persistActiveTabId(_activeTabId.value)
         }
         // If that was the last tab, ArticleHostScreen is about to tear
         // itself down, since tabs.isEmpty() there triggers onBack().
@@ -160,6 +202,8 @@ class TabsRepository {
         _activeTabId.value = null
         _activeTabCanGoBack.value = false
         _isSwitcherOpen.value = false
+        appScope.launch { store.clearOpenTabs() }
+        persistActiveTabId(null)
     }
 
     fun tab(tabId: String): ArticleTab? = _tabs.value.firstOrNull { it.id == tabId }
