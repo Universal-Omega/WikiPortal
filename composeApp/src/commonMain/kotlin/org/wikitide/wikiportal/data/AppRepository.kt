@@ -49,18 +49,6 @@ class AppRepository(
     private val _customWikis = MutableStateFlow<List<WikiSite>>(emptyList())
     val customWikis: StateFlow<List<WikiSite>> = _customWikis
 
-    /**
-     * Maps a wiki id to its cached main page title. This is saved, see
-     * WikiPortalStore.mainPageTitles, so Dashboard's "go to main page"
-     * button does not need its own siteinfo call for a wiki that is
-     * already known. It is filled in here at startup, kept up to date by
-     * [cacheMainPageTitle], and refreshed as a side effect of
-     * [refreshWikiMetadata], which already fetches the same siteinfo for
-     * other reasons, for both presets and custom wikis.
-     */
-    private val _mainPageTitles = MutableStateFlow<Map<String, String>>(emptyMap())
-    val mainPageTitles: StateFlow<Map<String, String>> = _mainPageTitles
-
     private val _themeMode = MutableStateFlow(ThemeMode.SYSTEM)
     val themeMode: StateFlow<ThemeMode> = _themeMode
 
@@ -163,7 +151,6 @@ class AppRepository(
             val missingById = missingPresets.associateBy { it.id }
             _presetWikis.value = PresetWikis.all.map { resyncedById[it.id] ?: missingById.getValue(it.id) }
             _customWikis.value = storedCustomRows
-            _mainPageTitles.value = store.mainPageTitles()
 
             val activeId = store.getSetting(SettingKeys.ACTIVE_WIKI_ID)
             val restoredActiveWiki =
@@ -234,24 +221,18 @@ class AppRepository(
     suspend fun refreshWikiMetadata(site: WikiSite) {
         val shouldRefresh = revalidationMutex.withLock { revalidatedThisSession.add(site.id) }
         if (!shouldRefresh) return
-        val result = metadataRefresher.refresh(site) ?: return
+        val updated = metadataRefresher.refresh(site) ?: return
+        if (updated == site) return
 
-        if (result.site != site) {
-            if (result.site.isCustom) {
-                _customWikis.update { list -> list.map { if (it.id == result.site.id) result.site else it } }
-            } else {
-                _presetWikis.update { list -> list.map { if (it.id == result.site.id) result.site else it } }
-            }
-            store.upsertWiki(result.site)
-            // Only replace the active wiki if the person hasn't already
-            // switched away while this was in flight.
-            if (_activeWiki.value.id == result.site.id) _activeWiki.value = result.site
+        if (updated.isCustom) {
+            _customWikis.update { list -> list.map { if (it.id == updated.id) updated else it } }
+        } else {
+            _presetWikis.update { list -> list.map { if (it.id == updated.id) updated else it } }
         }
-        // This is cached regardless of whether the site's other fields
-        // changed. The siteinfo call already confirmed the current title,
-        // so there is no reason to throw that away and let Explore fetch
-        // it again separately.
-        cacheMainPageTitle(site.id, result.mainPageTitle)
+        store.upsertWiki(updated)
+        // Only replace the active wiki if the person hasn't already
+        // switched away while this was in flight.
+        if (_activeWiki.value.id == updated.id) _activeWiki.value = updated
     }
 
     /**
@@ -288,14 +269,25 @@ class AppRepository(
     }
 
     /**
-     * Caches a wiki's main page title, see [mainPageTitles], so future
-     * lookups, this session and future ones, don't need their own
-     * siteinfo call. This takes [wikiId] rather than a WikiSite so it
-     * applies uniformly to presets and custom wikis alike.
+     * Updates just a wiki's cached main page title, without touching
+     * anything else [refreshWikiMetadata] owns. Used by ExploreViewModel's
+     * own lighter, opportunistic fetch for when the full metadata refresh
+     * hasn't resolved a main page title yet, for example after an earlier
+     * refresh attempt failed while offline. This takes [wikiId] rather
+     * than a WikiSite so it applies uniformly to presets and custom wikis
+     * alike, the same as [setWikiSkin].
      */
-    fun cacheMainPageTitle(wikiId: String, title: String) {
-        _mainPageTitles.update { it + (wikiId to title) }
-        appScope.launch { store.setMainPageTitle(wikiId, title) }
+    fun updateMainPageTitle(wikiId: String, title: String) {
+        val updated = (_presetWikis.value + _customWikis.value).firstOrNull { it.id == wikiId }
+            ?.copy(mainPageTitle = title)
+            ?: return
+        if (updated.isCustom) {
+            _customWikis.update { list -> list.map { if (it.id == wikiId) updated else it } }
+        } else {
+            _presetWikis.update { list -> list.map { if (it.id == wikiId) updated else it } }
+        }
+        if (_activeWiki.value.id == wikiId) _activeWiki.value = updated
+        appScope.launch { store.upsertWiki(updated) }
     }
 
     /**
