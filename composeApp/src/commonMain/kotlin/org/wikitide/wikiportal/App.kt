@@ -2,6 +2,7 @@ package org.wikitide.wikiportal
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -35,10 +36,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
@@ -57,7 +63,6 @@ import org.koin.compose.koinInject
 import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.TabsRepository
 import org.wikitide.wikiportal.navigation.AddWikiRoute
-import org.wikitide.wikiportal.navigation.ArticleRoute
 import org.wikitide.wikiportal.navigation.DashboardRoute
 import org.wikitide.wikiportal.navigation.Route
 import org.wikitide.wikiportal.navigation.SavedRoute
@@ -145,12 +150,14 @@ fun WikiPortalApp(onDarkThemeResolved: (Boolean) -> Unit = {}) {
 
     WikiPortalTheme(themeMode = themeMode, useDynamicColor = dynamicColor, onDarkThemeResolved = onDarkThemeResolved) {
         val backStack = rememberNavBackStack(navConfig, DashboardRoute)
+        var showArticleView by rememberSaveable(key = "show_article_view") { mutableStateOf(false) }
 
         fun navigateTo(route: Route) {
             if (backStack.lastOrNull() != route) backStack.add(route)
         }
 
         fun switchTab(route: Route) {
+            showArticleView = false
             backStack.clear()
             backStack.add(route)
         }
@@ -161,12 +168,12 @@ fun WikiPortalApp(onDarkThemeResolved: (Boolean) -> Unit = {}) {
          * open in another tab, found through findOpenTab, we just switch
          * to that tab instead of opening a duplicate, the same way
          * clicking an already-open tab works in a browser. A new tab is
-         * only created when no existing tab matches. ArticleRoute is a
-         * singleton, so navigateTo() does nothing if we are already
-         * there. Opening or switching to a tab from Dashboard or Saved
-         * only changes which tab TabsRepository considers active. It
-         * does not touch the nav back stack, so it never disposes or
-         * recreates an already-open tab's WebView.
+         * only created when no existing tab matches. Opening or
+         * switching to a tab from anywhere only changes which tab
+         * TabsRepository considers active and shows the (permanently
+         * mounted) article overlay. It never touches the nav backstack,
+         * so it never disposes or recreates an already-open tab's
+         * WebView.
          */
         fun openArticle(wikiId: String, title: String) {
             val site = repository.allWikisNow().firstOrNull { it.id == wikiId } ?: repository.activeWiki.value
@@ -176,29 +183,29 @@ fun WikiPortalApp(onDarkThemeResolved: (Boolean) -> Unit = {}) {
             } else {
                 tabsRepository.openTab(site, title)
             }
-            navigateTo(ArticleRoute)
+            showArticleView = true
         }
 
         // The order here matters. First we close the tab switcher overlay
         // if it is open. Then we let the active tab's own in-page history
-        // handle the back press, through tryGoBackInActiveTab.
+        // handle the back press, through tryGoBackInActiveTab. Only once
+        // neither applies do we close the article overlay itself,
+        // revealing whatever's underneath, and only if neither of THOSE
+        // applies either do we fall back to the normal nav backstack pop.
         fun handleBack() {
             if (tabsRepository.isSwitcherOpen.value) {
                 tabsRepository.setSwitcherOpen(false)
             } else if (tabsRepository.tryGoBackInActiveTab()) {
                 // The active tab's own history already handled this.
+            } else if (showArticleView) {
+                showArticleView = false
             } else {
                 backStack.removeLastOrNull()
             }
         }
 
         val current = backStack.lastOrNull()
-        // ArticleRoute is not one of the bottomDestinations on purpose, so
-        // the nav stays hidden during normal article reading. That
-        // includes when the in-reader tab switcher overlay is open on top
-        // of it, see TabsScreen.kt. This is computed once here and shared
-        // by both branches below instead of being recomputed in each one.
-        val showNav = bottomDestinations.any { it.route == current }
+        val showNav = !showArticleView && bottomDestinations.any { it.route == current }
         val openTabs by tabsRepository.tabs.collectAsState()
 
         // NavDisplay itself is the same either way. Only the surrounding
@@ -242,11 +249,6 @@ fun WikiPortalApp(onDarkThemeResolved: (Boolean) -> Unit = {}) {
                         AddWikiRoute -> NavEntry(key) {
                             AddWikiScreen(onDone = { backStack.removeLastOrNull() })
                         }
-                        ArticleRoute -> NavEntry(key) {
-                            ArticleHostScreen(
-                                onBack = { backStack.removeLastOrNull() },
-                            )
-                        }
                         else -> error("Unknown route: $key")
                     }
                 },
@@ -259,7 +261,8 @@ fun WikiPortalApp(onDarkThemeResolved: (Boolean) -> Unit = {}) {
         // also gives a sensible result for a wide desktop window or a
         // tablet or foldable, not just a rotated phone, which a strict
         // orientation check would miss.
-        BoxWithConstraints(Modifier.fillMaxSize()) {
+        Box(Modifier.fillMaxSize()) {
+            BoxWithConstraints(Modifier.fillMaxSize().zIndex(if (showArticleView) 0f else 1f)) {
             if (maxWidth > maxHeight) {
                 // The background is set here, not just on the Scaffold
                 // below, because of the cutout side. When a side display
@@ -349,15 +352,24 @@ fun WikiPortalApp(onDarkThemeResolved: (Boolean) -> Unit = {}) {
                     navDisplayContent(Modifier.padding(innerPadding))
                 }
             }
+            }
+
+            Box(
+                Modifier.fillMaxSize()
+                    .zIndex(if (showArticleView) 1f else 0f)
+                    .alpha(if (showArticleView) 1f else 0f),
+            ) {
+                ArticleHostScreen(onBack = { showArticleView = false })
+            }
         }
 
         // This is registered after Scaffold and NavDisplay above. See
         // SystemBackInterceptor's own comment for why. That way, on
         // Android, while it is enabled, this is what the system checks
         // for the back gesture instead of NavDisplay's own predictive
-        // back callback. It is only enabled when we are showing
-        // ArticleRoute and there is something for handleBack() to
-        // intercept besides a normal back stack pop, meaning the switcher
+        // back callback. It is only enabled while the article overlay is
+        // showing and there is something for handleBack() to intercept
+        // besides simply closing that overlay, meaning the switcher
         // overlay or in-page WebView history. When neither of those
         // applies, this stays disabled and the gesture falls through to
         // NavDisplay's normal predictive pop, which is the correct
@@ -365,7 +377,7 @@ fun WikiPortalApp(onDarkThemeResolved: (Boolean) -> Unit = {}) {
         val isSwitcherOpen by tabsRepository.isSwitcherOpen.collectAsState()
         val activeTabCanGoBack by tabsRepository.activeTabCanGoBack.collectAsState()
         SystemBackInterceptor(
-            enabled = backStack.lastOrNull() == ArticleRoute && (isSwitcherOpen || activeTabCanGoBack),
+            enabled = showArticleView && (isSwitcherOpen || activeTabCanGoBack),
             onBack = { handleBack() },
         )
     }
