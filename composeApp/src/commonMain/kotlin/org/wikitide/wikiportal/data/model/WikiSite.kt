@@ -105,19 +105,18 @@ data class SkinOption(val code: String, val name: String)
  */
 object WikiSkins {
     val options: List<String> = listOf(
-        "vector-2022",
-        "vector",
-        "minerva",
-        "timeless",
-        "cosmos",
-        "citizen",
-        "monobook",
+        WikiSite.DEFAULT_SKIN,
         "chameleon",
-        "medik",
-        "refreshed",
-        "foreground",
-        "metrolook",
+        "citizen",
+        "cosmos",
         "femiwiki",
+        "foreground",
+        "medik",
+        "metrolook",
+        "minerva",
+        "monobook",
+        "refreshed",
+        "timeless",
     )
 }
 
