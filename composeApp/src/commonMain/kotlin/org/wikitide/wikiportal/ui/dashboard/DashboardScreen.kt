@@ -118,12 +118,6 @@ fun DashboardScreen(
                             }
                             WikiSwitcherChip(wikiName = exploreState.wiki?.name.orEmpty(), onClick = onOpenWikiPicker)
                         },
-                        // The Start side of this inset is already handled
-                        // further out, by the NavigationRail in landscape
-                        // or by the outer Scaffold otherwise. Using the
-                        // default windowInsets here would consume that
-                        // same Start inset a second time, which is what
-                        // was pushing this title away from the rail.
                         windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
                         colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
                     )
