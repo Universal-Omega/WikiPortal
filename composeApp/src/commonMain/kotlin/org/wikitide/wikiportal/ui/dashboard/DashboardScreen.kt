@@ -22,11 +22,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -45,7 +45,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -75,8 +74,8 @@ fun DashboardScreen(
     val searchState by searchViewModel.state.collectAsState()
     val relevantState by relevantLinksViewModel.state.collectAsState()
     val tabs by tabsRepository.tabs.collectAsState()
-    var tabIndex by rememberSaveable(key = "dashboard_tab_index") { mutableStateOf(0) }
-    var isFullScreenSearchOpen by rememberSaveable(key = "dashboard_full_screen_search_open") { mutableStateOf(false) }
+    var tabIndex by remember { mutableStateOf(0) }
+    var isFullScreenSearchOpen by remember { mutableStateOf(false) }
 
     // Titles within the current wiki that already have an open tab. This
     // drives the "Open" indicator, so tapping one of these jumps to the
@@ -273,7 +272,7 @@ private fun FullScreenSearchOverlay(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = onClose) {
-                Icon(Icons.Filled.ArrowBack, contentDescription = "Close search")
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Close search")
             }
             OutlinedTextField(
                 value = searchState.query,
@@ -335,7 +334,7 @@ private fun FeedTabContent(
                     item {
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 4.dp)) {
                             Icon(
-                                Icons.Filled.TrendingUp,
+                                Icons.AutoMirrored.Filled.TrendingUp,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.padding(end = 4.dp),

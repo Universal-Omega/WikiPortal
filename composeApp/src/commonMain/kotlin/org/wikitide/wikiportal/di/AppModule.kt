@@ -38,7 +38,7 @@ val commonModule = module {
     single { MatomoAnalyticsApi(get(), get()) }
     single { WikiMetadataRefresher(get()) }
     single { AppRepository(get(), get(), get()) }
-    single { TabsRepository() }
+    single { TabsRepository(get(), get()) }
 
     viewModel { ExploreViewModel(get(), get(), get(), get()) }
     viewModel { SearchViewModel(get(), get(), get()) }

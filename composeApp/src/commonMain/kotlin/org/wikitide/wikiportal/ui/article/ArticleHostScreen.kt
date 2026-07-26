@@ -3,15 +3,18 @@ package org.wikitide.wikiportal.ui.article
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Download
@@ -32,6 +35,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -76,6 +80,7 @@ fun ArticleHostScreen(
     val tabs by tabsRepository.tabs.collectAsState()
     val activeTabId by tabsRepository.activeTabId.collectAsState()
     val isSwitcherOpen by tabsRepository.isSwitcherOpen.collectAsState()
+    val materializedTabIds by tabsRepository.materializedTabIds.collectAsState()
 
     if (tabs.isEmpty()) {
         LaunchedEffect(Unit) { onBack() }
@@ -84,6 +89,13 @@ fun ArticleHostScreen(
 
     Box(Modifier.fillMaxSize()) {
         tabs.forEach { tab ->
+            // A tab that was restored from a previous session but hasn't
+            // actually been tapped yet this launch has no WebView at
+            // all, not just a paused one. It still shows up fine in
+            // TabsListScreen and TabsScreen, which only read the tab's
+            // own metadata, not a live view of it. See
+            // TabsRepository.materializedTabIds.
+            if (tab.id !in materializedTabIds && tab.id != activeTabId) return@forEach
             key(tab.id) {
                 val isActive = tab.id == activeTabId && !isSwitcherOpen
                 Box(
@@ -120,8 +132,15 @@ private fun SingleArticleTab(
     tabsRepository: TabsRepository = koinInject(),
 ) {
     val tabs by tabsRepository.tabs.collectAsState()
-    val site = remember(tab.wikiId) { repository.allWikisNow().firstOrNull { it.id == tab.wikiId } ?: repository.activeWiki.value }
-    val allWikis = remember { repository.allWikisNow() }
+    val presetWikis by repository.presetWikis.collectAsState()
+    val customWikis by repository.customWikis.collectAsState()
+    // Reactive, not a one-time snapshot, so a metadata refresh that
+    // resolves after this tab was already opened, for example this
+    // wiki's main page title for the home button below, actually reaches
+    // this tab instead of being frozen out by a remember() taken before
+    // it existed.
+    val allWikis = remember(presetWikis, customWikis) { presetWikis + customWikis }
+    val site = remember(tab.wikiId, allWikis) { allWikis.firstOrNull { it.id == tab.wikiId } ?: repository.activeWiki.value }
     val initialTitle = remember(tab.id) { tab.title }
     val textScale by repository.textScale.collectAsState()
     val offlineKeys by repository.offlineKeys.collectAsState()
@@ -175,23 +194,48 @@ private fun SingleArticleTab(
     var isSavingOffline by remember(tab.id) { mutableStateOf(false) }
     var isRefreshing by remember(tab.id) { mutableStateOf(false) }
     var isOverflowMenuOpen by remember(tab.id) { mutableStateOf(false) }
+    // The title a summary was last fetched for, so reactivating a tab
+    // that hasn't navigated anywhere new doesn't re-fetch and re-record a
+    // visit it already has.
+    var summarizedTitle by remember(tab.id) { mutableStateOf<String?>(null) }
     var nativeWebViewRef by remember(tab.id) { mutableStateOf<NativeWebView?>(null) }
     val savedPages by repository.savedPages.collectAsState()
+
+    // Every open tab's WebView stays mounted the whole time it's open, so
+    // switching tabs never reloads one, but an inactive tab has no
+    // business still running its page's JS and timers in the background.
+    // This pauses the underlying engine, see setWebViewActive, without
+    // touching navigation state, so reactivating a tab shows it exactly
+    // as it was left.
+    LaunchedEffect(isActive, nativeWebViewRef) {
+        nativeWebViewRef?.let { setWebViewActive(it, isActive) }
+    }
 
     val currentTitle = pageState.canonicalTitle.ifBlank { initialTitle }
     val isSaved = savedPages.any { it.wikiId == site.id && it.title == currentTitle }
     val isOfflineSaved = repository.isOfflineSaved(site.id, currentTitle)
 
-    LaunchedEffect(tab.id, currentTitle, offlineKeys) {
+    // Gated on isActive so a background tab doesn't do this local lookup
+    // every time any tab's offline status changes. It re-runs the moment
+    // the tab becomes active again, which is early enough to still land
+    // before the person would notice.
+    LaunchedEffect(isActive, tab.id, currentTitle, offlineKeys) {
+        if (!isActive) return@LaunchedEffect
         offlineHtml = if (isOfflineSaved) repository.getOfflineArticleHtml(site.id, currentTitle) else null
     }
 
-    LaunchedEffect(currentTitle, pageState.isLoading) {
-        if (pageState.isLoading || currentTitle.isBlank()) return@LaunchedEffect
+    // Gated on isActive, and deduped by summarizedTitle, so background
+    // tabs never make their own network calls or history writes, and a
+    // tab reactivating on the same title it was last summarized for
+    // doesn't redundantly repeat either.
+    LaunchedEffect(isActive, currentTitle, pageState.isLoading) {
+        if (!isActive || pageState.isLoading || currentTitle.isBlank()) return@LaunchedEffect
+        if (currentTitle == summarizedTitle) return@LaunchedEffect
         isRefreshing = false
         // Fetch first, then fill in both pageSummary and the tab record
         // with the result.
         val freshSummary = api.getPageSummary(site, currentTitle).getOrNull()
+        summarizedTitle = currentTitle
         pageSummary = freshSummary
         tabsRepository.updateTab(
             tab.id, currentTitle, freshSummary?.thumbnail?.source, pageState.displaySiteName.orEmpty(), freshSummary?.extract,
@@ -218,6 +262,7 @@ private fun SingleArticleTab(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0.dp),
         topBar = {
             Column {
                 TopAppBar(
@@ -230,12 +275,12 @@ private fun SingleArticleTab(
                                     }
                                 },
                             ) {
-                                Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                             }
 
                             if (navigator.canGoForward) {
                                 IconButton(onClick = { navigator.navigateForward() }) {
-                                    Icon(Icons.Filled.ArrowForward, contentDescription = "Forward")
+                                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Forward")
                                 }
                             }
                         }
@@ -338,6 +383,7 @@ private fun SingleArticleTab(
                             )
                         }
                     },
+                    windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
                 )
 
                 if (pageState.isLoading) {

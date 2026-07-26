@@ -7,16 +7,21 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Palette
@@ -33,6 +38,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -45,7 +51,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 import coil3.compose.AsyncImage
 import org.koin.compose.koinInject
 import org.wikitide.wikiportal.data.AppRepository
@@ -69,10 +78,12 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, repository
     val editingSkinForWiki = editingSkinForId?.let { id -> (presetWikis + customWikis).firstOrNull { it.id == id } }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0.dp),
         topBar = {
             TopAppBar(
                 title = { Text("Choose a wiki") },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, contentDescription = "Back") } },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } },
+                windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
             )
         },
         floatingActionButton = {
@@ -220,7 +231,13 @@ private fun WikiRow(
  * the choices shown here are always a subset, narrowed by that wiki's
  * own siteinfo, except the current skin itself, which is always
  * included even if it fell out of that list, so skinChoices is never
- * actually empty. See its comment.
+ * actually empty when there's any skin data at all. See its comment.
+ *
+ * When siprop=skins has genuinely never resolved for this wiki at all,
+ * see WikiSite.hasNoSkinData, this shows a dedicated failure message
+ * instead of any list. Falling back to this app's full curated list in
+ * that case would offer skins that were never actually confirmed to
+ * exist on this specific wiki.
  *
  * A wiki's availableSkins is only filled in once it has actually been
  * revalidated, see AppRepository.refreshWikiMetadata.
@@ -246,17 +263,40 @@ private fun SkinPickerDialog(
                 Box(modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
+            } else if (wiki.hasNoSkinData) {
+                Text(
+                    "Couldn't find any skins for ${wiki.name}.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             } else {
-                Column {
+                val scrollState = rememberScrollState()
+                // Where the selected row sits within the scrollable
+                // Column, in pixels, captured as it's laid out. Null
+                // until the selected row has actually been measured
+                // once.
+                var selectedOffset by remember(wiki.id) { mutableStateOf<Int?>(null) }
+                Column(modifier = Modifier.verticalScroll(scrollState)) {
                     wiki.skinChoices.forEach { choice ->
                         Row(
-                            modifier = Modifier.fillMaxWidth().clickable { onSkinSelected(choice.code) }.padding(vertical = 4.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSkinSelected(choice.code) }
+                                .padding(vertical = 4.dp)
+                                .onGloballyPositioned { coordinates ->
+                                    if (choice.code == wiki.skin) {
+                                        selectedOffset = coordinates.positionInParent().y.roundToInt()
+                                    }
+                                },
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             RadioButton(selected = choice.code == wiki.skin, onClick = { onSkinSelected(choice.code) })
                             Text(choice.name, modifier = Modifier.padding(start = 4.dp))
                         }
                     }
+                }
+
+                LaunchedEffect(selectedOffset) {
+                    selectedOffset?.let { offset -> scrollState.animateScrollTo(offset) }
                 }
             }
         },

@@ -46,12 +46,14 @@ class RelevantLinksViewModel(
                 api.getProjectNamespaceActivity(wiki)
             }
             val titles = result.getOrElse { emptyList() }
-            _state.value = RelevantLinksUiState(
-                titles = titles,
-                isLoading = false,
-                label = source?.label,
-                wikiName = wiki.name,
-            )
+            if (repository.activeWiki.value.id == wiki.id) {
+                _state.value = RelevantLinksUiState(
+                    titles = titles,
+                    isLoading = false,
+                    label = source?.label,
+                    wikiName = wiki.name,
+                )
+            }
         }
     }
 }

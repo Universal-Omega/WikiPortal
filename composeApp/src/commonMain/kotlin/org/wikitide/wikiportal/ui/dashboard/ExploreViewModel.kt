@@ -35,11 +35,6 @@ private data class ExploreCoreState(
     val errorMessage: String?,
 )
 
-private data class ExploreTrendingState(
-    val mainPageTitles: Map<String, String>,
-    val trending: List<TrendingArticle>,
-)
-
 class ExploreViewModel(
     private val repository: AppRepository,
     private val api: MediaWikiApi,
@@ -58,18 +53,16 @@ class ExploreViewModel(
         ) { wiki, articles, showImages, isLoading, errorMessage ->
             ExploreCoreState(wiki, articles, showImages, isLoading, errorMessage)
         },
-        combine(repository.mainPageTitles, _trending) { mainPageTitles, trending ->
-            ExploreTrendingState(mainPageTitles, trending)
-        },
-    ) { core, trendingState ->
+        _trending,
+    ) { core, trending ->
         ExploreUiState(
             wiki = core.wiki,
             articles = core.articles,
             showImages = core.showImages,
             isLoading = core.isLoading,
             errorMessage = core.errorMessage,
-            mainPageTitle = trendingState.mainPageTitles[core.wiki.id],
-            trending = trendingState.trending,
+            mainPageTitle = core.wiki.mainPageTitle,
+            trending = trending,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ExploreUiState())
 
@@ -90,25 +83,32 @@ class ExploreViewModel(
             _isLoading.value = true
             _errorMessage.value = null
             val result = api.getRandomArticles(wiki)
-            result.onSuccess { articles ->
-                _articles.value = articles
-            }.onFailure { e ->
-                _articles.value = emptyList()
-                _errorMessage.value = "${e::class.simpleName}: ${e.message}"
+            // Only apply this if the person hasn't already switched to a
+            // different wiki while the request was in flight. Otherwise a
+            // slow response for the wiki we've left can land after a
+            // newer, faster one and silently show the wrong wiki's
+            // articles. Same guard as the trending fetch below.
+            if (repository.activeWiki.value.id == wiki.id) {
+                result.onSuccess { articles ->
+                    _articles.value = articles
+                }.onFailure { e ->
+                    _articles.value = emptyList()
+                    _errorMessage.value = "${e::class.simpleName}: ${e.message}"
+                }
+                _isLoading.value = false
             }
-            _isLoading.value = false
         }
         // This only hits the network if this wiki's main page title
-        // isn't already cached. It is saved across sessions in
-        // AppRepository, and also kept fresh by WikiMetadataRefresher
+        // isn't already cached, see WikiSite.mainPageTitle. It's saved
+        // across sessions, and also kept fresh by WikiMetadataRefresher
         // during its own revalidation. In practice this fires at most
         // once ever per wiki, not once per Explore visit or
         // pull-to-refresh like before.
-        if (wiki.id !in repository.mainPageTitles.value) {
+        if (wiki.mainPageTitle == null) {
             viewModelScope.launch {
                 val info = api.getSiteInfo(wiki).getOrNull()?.general
                 val title = info?.mainpage?.takeIf { it.isNotBlank() } ?: "Main Page"
-                repository.cacheMainPageTitle(wiki.id, title)
+                repository.updateMainPageTitle(wiki.id, title)
             }
         }
         // Whichever trending source, if any, applies to this wiki. See

@@ -5,6 +5,7 @@ import org.wikitide.wikiportal.network.COMMON_SCRIPT_PATHS
 import org.wikitide.wikiportal.network.MediaWikiApi
 import org.wikitide.wikiportal.network.deriveArticlePathPrefix
 import org.wikitide.wikiportal.network.deriveAvailableSkins
+import org.wikitide.wikiportal.network.deriveUncuratedDefaultSkin
 import org.wikitide.wikiportal.network.deriveWikiDefaultSkin
 import org.wikitide.wikiportal.network.resolveDefaultSkin
 import org.wikitide.wikiportal.network.resolveFaviconUrl
@@ -46,11 +47,11 @@ import org.wikitide.wikiportal.network.resolveFaviconUrl
  * articlePathPrefix or favicon.
  *
  * The same siteinfo call also reports the wiki's current main page
- * title, general.mainpage, which AppRepository separately caches, see
- * AppRepository.mainPageTitles, so Dashboard doesn't need its own extra
- * network round trip just to know where the "go to main page" button
- * should link. Refreshing that here piggybacks on a call this class is
- * already making, at no extra cost.
+ * title, general.mainpage, cached directly as [WikiSite.mainPageTitle],
+ * so Dashboard and ArticleHostScreen's "go to main page" buttons don't
+ * need their own extra network round trip just to know where that
+ * button should link. Refreshing it here piggybacks on a call this
+ * class is already making, at no extra cost.
  *
  * [AppRepository] calls [refresh] once per app session, the first time
  * a given wiki becomes active, see AppRepository.setActiveWiki. This is
@@ -65,22 +66,15 @@ import org.wikitide.wikiportal.network.resolveFaviconUrl
 class WikiMetadataRefresher(private val api: MediaWikiApi) {
 
     /**
-     * [site] is the possibly updated WikiSite, unchanged from the input
-     * if nothing differed. [mainPageTitle] is resolved independently of
-     * whether [site] itself changed. Even when scriptPath, favicon, and
-     * articlePathPrefix are all still correct, the siteinfo call still
-     * confirmed the current main page title for free, so callers should
-     * cache it regardless. See AppRepository.refreshWikiMetadata.
-     */
-    data class Result(val site: WikiSite, val mainPageTitle: String)
-
-    /**
      * Returns null only if the lookup failed outright, for example
      * being offline or the site being temporarily down. Callers should
      * keep using cached values rather than treating a transient failure
-     * as "the wiki broke".
+     * as "the wiki broke". Returns [site] itself, unchanged, if nothing
+     * differed, so callers can tell "nothing changed" apart from "this
+     * needs to be saved" with a plain equality check, see
+     * AppRepository.refreshWikiMetadata, without a separate flag.
      */
-    suspend fun refresh(site: WikiSite): Result? {
+    suspend fun refresh(site: WikiSite): WikiSite? {
         var query = api.getSiteInfo(site).getOrNull()
         var workingScriptPath = site.scriptPath
 
@@ -104,7 +98,9 @@ class WikiMetadataRefresher(private val api: MediaWikiApi) {
         val resolved = resolvedQuery.general ?: return null
         val sitename = resolved.sitename ?: return null
 
-        val updated = site.copy(
+        val curatedSkins = deriveAvailableSkins(resolvedQuery.skins)
+        val uncuratedDefault = deriveUncuratedDefaultSkin(resolvedQuery.skins)
+        return site.copy(
             name = sitename,
             scriptPath = workingScriptPath,
             articlePathPrefix = deriveArticlePathPrefix(resolved.base, resolved.mainpage),
@@ -113,15 +109,18 @@ class WikiMetadataRefresher(private val api: MediaWikiApi) {
             // empty, if this particular probe came back empty. See
             // deriveAvailableSkins' comment for why that is a distinct
             // case from "checked, and it's genuinely none of them".
-            availableSkins = deriveAvailableSkins(resolvedQuery.skins) ?: site.availableSkins,
+            availableSkins = curatedSkins ?: site.availableSkins,
+            // Refreshed alongside availableSkins, from the same siprop=skins
+            // data, since it exists purely to back that field's own
+            // last-resort fallback. See WikiSite.uncuratedDefaultSkin.
+            uncuratedDefaultSkin = uncuratedDefault ?: site.uncuratedDefaultSkin,
             // resolveDefaultSkin leaves site.skin untouched in every
-            // case except when nobody has ever chosen one and the
-            // wiki's own default is something this app allows. See its
-            // comment.
-            skin = resolveDefaultSkin(site, deriveWikiDefaultSkin(resolvedQuery.skins)),
+            // case except when nobody has ever chosen one. See its
+            // own comment for the two different ways it can still
+            // change in that case.
+            skin = resolveDefaultSkin(site, deriveWikiDefaultSkin(resolvedQuery.skins), uncuratedDefault, curatedSkins),
+            mainPageTitle = resolved.mainpage?.takeIf { it.isNotBlank() } ?: "Main Page",
         )
-        val mainPageTitle = resolved.mainpage?.takeIf { it.isNotBlank() } ?: "Main Page"
-        return Result(site = updated, mainPageTitle = mainPageTitle)
     }
 
     /**

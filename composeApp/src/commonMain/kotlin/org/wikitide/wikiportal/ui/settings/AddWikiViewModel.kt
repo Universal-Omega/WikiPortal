@@ -12,6 +12,7 @@ import org.wikitide.wikiportal.network.COMMON_SCRIPT_PATHS
 import org.wikitide.wikiportal.network.MediaWikiApi
 import org.wikitide.wikiportal.network.deriveArticlePathPrefix
 import org.wikitide.wikiportal.network.deriveAvailableSkins
+import org.wikitide.wikiportal.network.deriveUncuratedDefaultSkin
 import org.wikitide.wikiportal.network.deriveWikiDefaultSkin
 import org.wikitide.wikiportal.network.resolveDefaultSkin
 import org.wikitide.wikiportal.network.resolveFaviconUrl
@@ -31,15 +32,40 @@ class AddWikiViewModel(
     private val _state = MutableStateFlow(AddWikiUiState())
     val state: StateFlow<AddWikiUiState> = _state
 
+    /**
+     * The host component of a base URL, lowercased, with no scheme or
+     * trailing path. Used both for duplicate detection and as the
+     * basis for a new custom wiki's id, so "http://AllTheTropes.org"
+     * and "https://allthetropes.org/" are recognized as the exact same
+     * wiki.
+     */
+    private fun hostOf(baseUrl: String): String =
+        baseUrl.removePrefix("https://").removePrefix("http://").substringBefore("/").lowercase()
+
     fun submit(rawUrl: String, customScriptPath: String = "") {
-        val normalized = normalizeUrl(rawUrl)
-        if (normalized == null) {
+        val normalizedInput = normalizeUrl(rawUrl)
+        if (normalizedInput == null) {
             _state.value = AddWikiUiState(errorMessage = "Enter a valid wiki URL, e.g. https://mywiki.example.com")
             return
         }
         _state.value = AddWikiUiState(isChecking = true)
         viewModelScope.launch {
-            val baseId = normalized.removePrefix("https://").removePrefix("http://").substringBefore("/")
+            // Resolves wherever this URL actually, genuinely leads,
+            // following both a wrong scheme or case correcting itself
+            // and the wiki's own domain redirects, for example
+            // wiki.miraheze.org landing on meta.miraheze.org, rather
+            // than trusting the literal text typed in. Falls back to
+            // the typed URL itself if this preliminary probe fails,
+            // for example being offline, since the real validity check
+            // is the api.php probing below regardless.
+            val resolvedBaseUrl = api.resolveFinalBaseUrl(normalizedInput).getOrNull() ?: normalizedInput
+            val host = hostOf(resolvedBaseUrl)
+
+            val duplicate = repository.allWikisNow().firstOrNull { hostOf(it.baseUrl) == host }
+            if (duplicate != null) {
+                _state.value = AddWikiUiState(errorMessage = "${duplicate.name} is already in your wiki list.")
+                return@launch
+            }
 
             val trimmedCustomPath = customScriptPath.trim()
             val candidatePaths = if (trimmedCustomPath.isNotBlank()) {
@@ -54,6 +80,7 @@ class AddWikiViewModel(
             var articlePathPrefix: String? = null
             var faviconUrl: String? = null
             var availableSkins: List<SkinOption>? = null
+            var uncuratedDefaultSkin: SkinOption? = null
             var wikiDefaultSkin: SkinOption? = null
             var lastError: Throwable? = null
 
@@ -65,9 +92,9 @@ class AddWikiViewModel(
             // success.
             for (path in candidatePaths) {
                 val candidate = WikiSite(
-                    id = baseId,
-                    name = normalized,
-                    baseUrl = normalized,
+                    id = host,
+                    name = resolvedBaseUrl,
+                    baseUrl = resolvedBaseUrl,
                     scriptPath = path,
                     isCustom = true,
                 )
@@ -82,6 +109,7 @@ class AddWikiViewModel(
                         ?: api.getFaviconUrlFromHtml(candidate).getOrNull()
                     val skinsReported = result.getOrNull()?.skins.orEmpty()
                     availableSkins = deriveAvailableSkins(skinsReported)
+                    uncuratedDefaultSkin = deriveUncuratedDefaultSkin(skinsReported)
                     wikiDefaultSkin = deriveWikiDefaultSkin(skinsReported)
                     break
                 }
@@ -107,7 +135,8 @@ class AddWikiViewModel(
                         articlePathPrefix = articlePathPrefix,
                         discoveredFaviconUrl = faviconUrl,
                         availableSkins = availableSkins,
-                        skin = resolveDefaultSkin(resolvedSite, wikiDefaultSkin),
+                        uncuratedDefaultSkin = uncuratedDefaultSkin,
+                        skin = resolveDefaultSkin(resolvedSite, wikiDefaultSkin, uncuratedDefaultSkin, availableSkins),
                     ),
                 )
                 _state.value = AddWikiUiState(done = true)

@@ -1,22 +1,30 @@
 package org.wikitide.wikiportal.ui.tabs
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Public
@@ -29,7 +37,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -54,12 +64,20 @@ fun TabsScreen(
 ) {
     val tabs by tabsRepository.tabs.collectAsState()
     val previews by tabsRepository.previews.collectAsState()
+    val activeTabId by tabsRepository.activeTabId.collectAsState()
+    val gridState = rememberLazyGridState()
+
+    LaunchedEffect(activeTabId) {
+        val index = tabs.indexOfFirst { it.id == activeTabId }
+        if (index >= 0) gridState.animateScrollToItem(index)
+    }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0.dp),
         topBar = {
             TopAppBar(
                 title = { Text("${tabs.size} tab${if (tabs.size == 1) "" else "s"}") },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, contentDescription = "Back") } },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } },
                 actions = {
                     if (tabs.isNotEmpty()) {
                         IconButton(onClick = { tabsRepository.closeAllTabs(); onBack() }) {
@@ -67,6 +85,7 @@ fun TabsScreen(
                         }
                     }
                 },
+                windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
             )
         },
     ) { innerPadding ->
@@ -76,6 +95,7 @@ fun TabsScreen(
             }
         } else {
             LazyVerticalGrid(
+                state = gridState,
                 columns = GridCells.Fixed(2),
                 modifier = Modifier.padding(innerPadding).fillMaxSize(),
                 contentPadding = PaddingValues(12.dp),
@@ -84,6 +104,7 @@ fun TabsScreen(
                     TabCard(
                         tab = tab,
                         preview = previews[tab.id],
+                        isActive = tab.id == activeTabId,
                         onClick = { onSelectTab(tab.id) },
                         onClose = { tabsRepository.closeTab(tab.id) },
                         modifier = Modifier.padding(6.dp),
@@ -98,12 +119,23 @@ fun TabsScreen(
 private fun TabCard(
     tab: ArticleTab,
     preview: ImageBitmap?,
+    isActive: Boolean,
     onClick: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
-        modifier = modifier.fillMaxWidth().aspectRatio(0.85f).clickable(onClick = onClick),
+        modifier = modifier
+            .fillMaxWidth()
+            .aspectRatio(0.85f)
+            .clickable(onClick = onClick)
+            .then(
+                if (isActive) {
+                    Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp))
+                } else {
+                    Modifier
+                },
+            ),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Column(Modifier.fillMaxSize()) {
@@ -137,24 +169,39 @@ private fun TabCard(
                         )
                     }
                 }
-                Box(
-                    modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(30.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    val outlineColor = Color.Black.copy(alpha = 0.75f)
-                    val outlineOffsets = listOf(
-                        -1.dp to -1.dp, 0.dp to -1.dp, 1.dp to -1.dp,
-                        -1.dp to 0.dp, 1.dp to 0.dp,
-                        -1.dp to 1.dp, 0.dp to 1.dp, 1.dp to 1.dp,
-                    )
-                    outlineOffsets.forEach { (x, y) ->
+                if (isActive) {
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(4.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(MaterialTheme.colorScheme.primary)
+                            .padding(horizontal = 6.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
                         Icon(
-                            imageVector = Icons.Filled.Close,
+                            Icons.Filled.CheckCircle,
                             contentDescription = null,
-                            tint = outlineColor,
-                            modifier = Modifier.size(18.dp).offset(x = x, y = y),
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(12.dp),
+                        )
+                        Text(
+                            "Viewing",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.padding(start = 3.dp),
                         )
                     }
+                }
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(4.dp)
+                        .size(30.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.55f)),
+                    contentAlignment = Alignment.Center,
+                ) {
                     IconButton(onClick = onClose, modifier = Modifier.matchParentSize()) {
                         Icon(
                             imageVector = Icons.Filled.Close,

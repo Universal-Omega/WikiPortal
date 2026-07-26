@@ -7,6 +7,7 @@ import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import app.cash.sqldelight.db.SqlDriver
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import org.wikitide.wikiportal.data.model.ArticleTab
 import org.wikitide.wikiportal.data.model.SavedPage
 import org.wikitide.wikiportal.data.model.WikiSite
 import org.wikitide.wikiportal.db.Wiki
@@ -57,17 +58,6 @@ class SqlDelightWikiPortalStore(private val driver: SqlDriver) : WikiPortalStore
         queries.upsertSetting(key, value)
     }
 
-    override suspend fun mainPageTitles(): Map<String, String> {
-        ensureSchema()
-        return queries.selectSettingsWithPrefix(MAIN_PAGE_TITLE_KEY_PREFIX).awaitAsList()
-            .associate { it.settingKey.removePrefix(MAIN_PAGE_TITLE_KEY_PREFIX) to it.settingValue }
-    }
-
-    override suspend fun setMainPageTitle(wikiId: String, title: String) {
-        ensureSchema()
-        queries.upsertSetting(MAIN_PAGE_TITLE_KEY_PREFIX + wikiId, title)
-    }
-
     override suspend fun allStoredWikis(): List<WikiSite> {
         ensureSchema()
         return queries.selectAllWikis().awaitAsList().map {
@@ -83,6 +73,7 @@ class SqlDelightWikiPortalStore(private val driver: SqlDriver) : WikiPortalStore
                 discoveredFaviconUrl = it.faviconUrl,
                 availableSkins = it.availableSkins,
                 skinIsUserSet = it.skinIsUserSet,
+                mainPageTitle = it.mainPageTitle,
             )
         }
     }
@@ -92,6 +83,7 @@ class SqlDelightWikiPortalStore(private val driver: SqlDriver) : WikiPortalStore
         queries.upsertWiki(
             site.id, site.name, site.description, site.baseUrl, site.scriptPath, site.skin,
             site.articlePathPrefix, site.discoveredFaviconUrl, site.isCustom, site.availableSkins, site.skinIsUserSet,
+            site.mainPageTitle,
         )
     }
 
@@ -185,5 +177,37 @@ class SqlDelightWikiPortalStore(private val driver: SqlDriver) : WikiPortalStore
                 timestampEpochMillis = it.savedAtEpochMillis,
             )
         }
+    }
+
+    override suspend fun openTabs(): List<ArticleTab> {
+        ensureSchema()
+        return queries.selectAllOpenTabs().awaitAsList().map {
+            ArticleTab(
+                id = it.id,
+                wikiId = it.wikiId,
+                wikiName = it.wikiName,
+                title = it.title,
+                thumbnailUrl = it.thumbnailUrl,
+                extract = it.extract,
+                createdAtEpochMillis = it.createdAtEpochMillis,
+            )
+        }
+    }
+
+    override suspend fun upsertOpenTab(tab: ArticleTab) {
+        ensureSchema()
+        queries.upsertOpenTab(
+            tab.id, tab.wikiId, tab.wikiName, tab.title, tab.thumbnailUrl, tab.extract, tab.createdAtEpochMillis,
+        )
+    }
+
+    override suspend fun deleteOpenTab(id: String) {
+        ensureSchema()
+        queries.deleteOpenTab(id)
+    }
+
+    override suspend fun clearOpenTabs() {
+        ensureSchema()
+        queries.clearOpenTabs()
     }
 }

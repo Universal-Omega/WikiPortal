@@ -14,9 +14,6 @@ ON CONFLICT(key) DO UPDATE SET value = excluded.value;
 getSetting:
 SELECT value FROM Setting WHERE key = ?;
 
-selectSettingsWithPrefix:
-SELECT key AS settingKey, value AS settingValue FROM Setting WHERE key LIKE :prefix || '%';
-
 CREATE TABLE IF NOT EXISTS Wiki (
     id TEXT NOT NULL PRIMARY KEY,
     name TEXT NOT NULL,
@@ -28,12 +25,13 @@ CREATE TABLE IF NOT EXISTS Wiki (
     faviconUrl TEXT,
     isCustom INTEGER AS Boolean NOT NULL DEFAULT 1,
     availableSkins TEXT AS List<SkinOption>,
-    skinIsUserSet INTEGER AS Boolean NOT NULL DEFAULT 0
+    skinIsUserSet INTEGER AS Boolean NOT NULL DEFAULT 0,
+    mainPageTitle TEXT
 );
 
 upsertWiki:
-INSERT OR REPLACE INTO Wiki(id, name, description, baseUrl, scriptPath, skin, articlePathPrefix, faviconUrl, isCustom, availableSkins, skinIsUserSet)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO Wiki(id, name, description, baseUrl, scriptPath, skin, articlePathPrefix, faviconUrl, isCustom, availableSkins, skinIsUserSet, mainPageTitle)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 deleteWiki:
 DELETE FROM Wiki WHERE id = ?;
@@ -109,3 +107,26 @@ SELECT wikiId, title FROM OfflineArticle;
 
 selectAllOfflineArticles:
 SELECT wikiId, wikiName, title, thumbnailUrl, savedAtEpochMillis FROM OfflineArticle ORDER BY savedAtEpochMillis DESC;
+
+CREATE TABLE IF NOT EXISTS OpenTab (
+    id TEXT NOT NULL PRIMARY KEY,
+    wikiId TEXT NOT NULL,
+    wikiName TEXT NOT NULL,
+    title TEXT NOT NULL,
+    thumbnailUrl TEXT,
+    extract TEXT,
+    createdAtEpochMillis INTEGER NOT NULL
+);
+
+upsertOpenTab:
+INSERT OR REPLACE INTO OpenTab(id, wikiId, wikiName, title, thumbnailUrl, extract, createdAtEpochMillis)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+deleteOpenTab:
+DELETE FROM OpenTab WHERE id = ?;
+
+clearOpenTabs:
+DELETE FROM OpenTab;
+
+selectAllOpenTabs:
+SELECT * FROM OpenTab ORDER BY createdAtEpochMillis ASC;
