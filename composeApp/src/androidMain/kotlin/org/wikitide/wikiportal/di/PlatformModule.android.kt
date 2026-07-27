@@ -10,6 +10,8 @@ import org.koin.core.module.Module
 import org.koin.dsl.module
 import org.wikitide.wikiportal.data.store.SqlDelightWikiPortalStore
 import org.wikitide.wikiportal.data.store.WikiPortalStore
+import org.wikitide.wikiportal.util.AndroidLogExporter
+import org.wikitide.wikiportal.util.LogExporter
 
 actual fun platformModule(): Module = module {
     single<SqlDriver> {
@@ -26,4 +28,5 @@ actual fun platformModule(): Module = module {
         AndroidSqliteDriver(openHelper)
     }
     single<WikiPortalStore> { SqlDelightWikiPortalStore(get()) }
+    single<LogExporter> { AndroidLogExporter(get()) }
 }
