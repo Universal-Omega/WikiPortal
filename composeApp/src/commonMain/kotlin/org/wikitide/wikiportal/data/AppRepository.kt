@@ -10,9 +10,11 @@ import kotlinx.coroutines.sync.withLock
 import org.wikitide.wikiportal.data.model.PresetWikis
 import org.wikitide.wikiportal.data.model.SavedPage
 import org.wikitide.wikiportal.data.model.ThemeMode
+import org.wikitide.wikiportal.data.model.WikiFolder
 import org.wikitide.wikiportal.data.model.WikiSite
 import org.wikitide.wikiportal.data.store.SettingKeys
 import org.wikitide.wikiportal.data.store.WikiPortalStore
+import kotlin.random.Random
 
 /**
  * A reactive layer over [WikiPortalStore]. The store itself is a plain
@@ -48,6 +50,16 @@ class AppRepository(
 
     private val _customWikis = MutableStateFlow<List<WikiSite>>(emptyList())
     val customWikis: StateFlow<List<WikiSite>> = _customWikis
+
+    /**
+     * Folders the person created themselves, so their own custom wikis
+     * can be grouped in WikiPickerScreen the same way [PresetWikis] are
+     * grouped under [PresetFolders]. Ordered the way they were created
+     * in. See [createFolder], [renameFolder], [deleteFolder], and
+     * [moveWikiToFolder].
+     */
+    private val _customFolders = MutableStateFlow<List<WikiFolder>>(emptyList())
+    val customFolders: StateFlow<List<WikiFolder>> = _customFolders
 
     private val _themeMode = MutableStateFlow(ThemeMode.SYSTEM)
     val themeMode: StateFlow<ThemeMode> = _themeMode
@@ -151,6 +163,7 @@ class AppRepository(
             val missingById = missingPresets.associateBy { it.id }
             _presetWikis.value = PresetWikis.all.map { resyncedById[it.id] ?: missingById.getValue(it.id) }
             _customWikis.value = storedCustomRows
+            _customFolders.value = store.allFolders()
 
             val activeId = store.getSetting(SettingKeys.ACTIVE_WIKI_ID)
             val restoredActiveWiki =
@@ -329,6 +342,74 @@ class AppRepository(
             val fallback = _presetWikis.value.firstOrNull { it.id == PresetWikis.default.id } ?: PresetWikis.default
             setActiveWiki(fallback)
         }
+    }
+
+    /**
+     * Creates a new folder for the person's own custom wikis and
+     * returns it so the caller can immediately move a wiki into it, for
+     * example right after the person types a name in WikiPickerScreen's
+     * "New folder" dialog. The id is derived from the name plus a short
+     * random suffix, only to keep it readable in logs and storage. It
+     * is never shown in the UI and never needs to be typed back in, so
+     * a collision would just mean two folders happen to share a
+     * suffix, not a lookup failure.
+     */
+    fun createFolder(name: String): WikiFolder {
+        val slug = name.lowercase().map { if (it.isLetterOrDigit()) it else '-' }.joinToString("")
+        val folder = WikiFolder(id = "folder-custom-$slug-${Random.nextInt(100000, 999999)}", name = name, isCustom = true)
+        _customFolders.update { it + folder }
+        appScope.launch { store.upsertFolder(folder, _customFolders.value.size - 1) }
+        return folder
+    }
+
+    fun renameFolder(folderId: String, newName: String) {
+        val updated = _customFolders.value.firstOrNull { it.id == folderId }?.copy(name = newName) ?: return
+        val sortOrder = _customFolders.value.indexOfFirst { it.id == folderId }
+        _customFolders.update { list -> list.map { if (it.id == folderId) updated else it } }
+        appScope.launch { store.upsertFolder(updated, sortOrder) }
+    }
+
+    /**
+     * Deletes a custom folder. Wikis that were in it are not deleted
+     * along with it, they just fall back to ungrouped, the same place a
+     * newly added custom wiki starts out.
+     */
+    fun deleteFolder(folderId: String) {
+        _customFolders.update { list -> list.filterNot { it.id == folderId } }
+        val orphaned = _customWikis.value.filter { it.folderId == folderId }.map { it.copy(folderId = null) }
+        _customWikis.update { list -> list.map { wiki -> orphaned.firstOrNull { it.id == wiki.id } ?: wiki } }
+        appScope.launch {
+            store.removeFolder(folderId)
+            orphaned.forEach { store.upsertWiki(it) }
+        }
+    }
+
+    /**
+     * Persists a new order for the person's custom folders after a drag
+     * reorder in WikiPickerScreen. [orderedIds] is expected to already
+     * be the full set of custom folder ids in their new order. Any id
+     * that no longer matches a real folder, for example one deleted in
+     * another session, is just skipped rather than treated as an error.
+     */
+    fun reorderFolders(orderedIds: List<String>) {
+        val byId = _customFolders.value.associateBy { it.id }
+        val reordered = orderedIds.mapNotNull { byId[it] }
+        _customFolders.value = reordered
+        appScope.launch { reordered.forEachIndexed { index, folder -> store.upsertFolder(folder, index) } }
+    }
+
+    /**
+     * Moves a custom wiki into [folderId], or back out to ungrouped
+     * when [folderId] is null. Presets are not movable this way. Their
+     * folder is fixed at [PresetFolders] and set once, in
+     * [PresetWikis], since they are not the person's own wikis to
+     * reorganize.
+     */
+    fun moveWikiToFolder(wikiId: String, folderId: String?) {
+        val updated = _customWikis.value.firstOrNull { it.id == wikiId }?.copy(folderId = folderId) ?: return
+        _customWikis.update { list -> list.map { if (it.id == wikiId) updated else it } }
+        if (_activeWiki.value.id == wikiId) _activeWiki.value = updated
+        appScope.launch { store.upsertWiki(updated) }
     }
 
     fun setThemeMode(mode: ThemeMode) {

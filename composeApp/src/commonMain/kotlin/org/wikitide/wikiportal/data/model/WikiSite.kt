@@ -51,6 +51,17 @@ data class WikiSite(
      * the one place it's updated outside of a full metadata refresh.
      */
     val mainPageTitle: String? = null,
+    /**
+     * Which [WikiFolder] this wiki is grouped under in the wiki picker,
+     * or null for a wiki that sits ungrouped. Presets are seeded with
+     * one of [PresetFolders] here so the picker can show a small number
+     * of folders instead of a long flat list, and more presets can be
+     * added under an existing folder later without the list growing.
+     * Custom wikis start out null, meaning "not in a folder yet", and
+     * the person can move them into a folder of their own from
+     * WikiPickerScreen. See AppRepository.moveWikiToFolder.
+     */
+    val folderId: String? = null,
 ) {
     val apiUrl: String get() = "$baseUrl$scriptPath/api.php"
     val indexUrl: String get() = "$baseUrl$scriptPath/index.php"
@@ -121,6 +132,30 @@ object WikiSkins {
 }
 
 /**
+ * A named group of wikis in the wiki picker, see WikiPickerScreen. A
+ * folder is either one of the app's own [PresetFolders], shipped by
+ * default and not removable, or one the person created themselves to
+ * organize their own custom wikis, [isCustom] true. Which wikis actually
+ * belong to a folder is not stored here. It lives on each [WikiSite] as
+ * [WikiSite.folderId], the same way a preset's skin lives on the wiki
+ * row rather than on PresetWikis.
+ */
+@Serializable
+data class WikiFolder(
+    val id: String,
+    val name: String,
+    val isCustom: Boolean = false,
+)
+
+/** We don't use these right now, but may eventually */
+object PresetFolders {
+    val MIRAHEZE = WikiFolder(id = "folder-miraheze", name = "Miraheze")
+    val WIKIMEDIA = WikiFolder(id = "folder-wikimedia", name = "Wikimedia")
+
+    val all: List<WikiFolder> = listOf(MIRAHEZE, WIKIMEDIA)
+}
+
+/**
  * Seed data for the wikis the app ships with a starting definition for.
  * This is not the live source of truth once the app has run once.
  * AppRepository reconciles this list into saved storage on startup. Any
@@ -133,6 +168,12 @@ object WikiSkins {
  * availableSkins get auto refreshed the same way, and its skin can be
  * changed from the UI. See AppRepository.presetWikis for the live,
  * saved list.
+ *
+ * Each entry also carries a [WikiSite.folderId] pointing at one of
+ * [PresetFolders], so the picker groups these under a small number of
+ * named folders instead of a single long list. Adding another Miraheze
+ * or Wikimedia wiki later is then just a new entry here with the
+ * matching folder id.
  */
 object PresetWikis {
     val MIRAHEZE_META = WikiSite(
@@ -141,24 +182,28 @@ object PresetWikis {
         description = "Central coordination wiki for the Miraheze wiki farm",
         baseUrl = "https://meta.miraheze.org",
         skin = "citizen",
+        // folderId = PresetFolders.MIRAHEZE.id,
     )
     val WIKIPEDIA_EN = WikiSite(
         id = "wikipedia-en",
         name = "Wikipedia",
         description = "The Free Encyclopedia",
         baseUrl = "https://en.wikipedia.org",
+        // folderId = PresetFolders.WIKIMEDIA.id,
     )
     val WIKTIONARY_EN = WikiSite(
         id = "wiktionary-en",
         name = "Wiktionary",
         description = "The Free Dictionary",
         baseUrl = "https://en.wiktionary.org",
+        // folderId = PresetFolders.WIKIMEDIA.id,
     )
     val WIKIBOOKS_EN = WikiSite(
         id = "wikibooks-en",
         name = "Wikibooks",
         description = "Open-content textbooks",
         baseUrl = "https://en.wikibooks.org",
+        // folderId = PresetFolders.WIKIMEDIA.id,
     )
 
     val all: List<WikiSite> = listOf(
