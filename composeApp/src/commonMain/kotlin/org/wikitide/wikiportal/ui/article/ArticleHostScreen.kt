@@ -176,18 +176,19 @@ private fun SingleArticleTab(
                     navigator: WebViewNavigator,
                 ): WebRequestInterceptResult {
                     val url = request.url
-                    if (url.contains("useskin=${site.skin}")) return WebRequestInterceptResult.Allow
                     if (url.startsWith("data:")) return WebRequestInterceptResult.Allow
-                    if (!url.startsWith(site.baseUrl)) {
-                        val isKnownWiki = allWikisState.value.any { url.startsWith(it.baseUrl) }
-                        if (!isKnownWiki && confirmExternalNavigationState.value) {
+                    val targetSite = allWikisState.value.firstOrNull { url.startsWith(it.baseUrl) }
+                    if (targetSite == null) {
+                        if (confirmExternalNavigationState.value) {
                             pendingExternalUrl = url
                             return WebRequestInterceptResult.Reject
                         }
                         return WebRequestInterceptResult.Allow
                     }
-                    if (!looksLikeArticleRequest(url, site)) return WebRequestInterceptResult.Allow
-                    val rewritten = withAppSkin(url, site) ?: return WebRequestInterceptResult.Allow
+
+                    if (url.contains("useskin=${targetSite.skin}")) return WebRequestInterceptResult.Allow
+                    if (!looksLikeArticleRequest(url, targetSite)) return WebRequestInterceptResult.Allow
+                    val rewritten = withAppSkin(url, targetSite) ?: return WebRequestInterceptResult.Allow
                     scope.launch { navigator.loadUrl(rewritten) }
                     return WebRequestInterceptResult.Reject
                 }
