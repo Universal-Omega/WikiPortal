@@ -227,6 +227,20 @@ private fun SingleArticleTab(
     }
 
     var pageState by remember(tab.id) { mutableStateOf(WikiPageState(title = initialTitle, canonicalTitle = initialTitle, displaySiteName = site.name)) }
+
+    // The interceptor above only ever sees genuinely new top-level
+    // requests, so it correctly flips isOnExternalSite back to false
+    // whenever a link takes the tab to a known wiki. It never sees the
+    // system back gesture or the "Refresh" menu item, though, since
+    // navigator.navigateBack() and navigator.reload() replay existing
+    // history rather than issuing a fresh request.
+    LaunchedEffect(pageState.url, pageState.isLoading) {
+        if (pageState.isLoading) return@LaunchedEffect
+        val settledUrl = pageState.url
+        if (settledUrl.isBlank()) return@LaunchedEffect
+        isOnExternalSite = allWikis.none { settledUrl.startsWith(it.baseUrl) }
+    }
+
     var pageSummary by remember(tab.id) { mutableStateOf<PageSummaryDto?>(null) }
     var offlineHtml by remember(tab.id) { mutableStateOf<String?>(null) }
     var isSavingOffline by remember(tab.id) { mutableStateOf(false) }
