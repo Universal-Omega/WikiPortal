@@ -161,18 +161,8 @@ private fun SingleArticleTab(
     // near the end of this composable.
     var pendingExternalUrl by remember(tab.id) { mutableStateOf<String?>(null) }
 
-    // The exact external address the person just tapped "Continue" on.
-    // Approving the dialog reissues this same url through
-    // navigator.loadUrl, which passes back through this same
-    // interceptor as a fresh request.
-    var approvedExternalUrl by remember(tab.id) { mutableStateOf<String?>(null) }
-
-    var lastDeclinedUrl by remember(tab.id) { mutableStateOf<String?>(null) }
-    var lastDeclinedAtMillis by remember(tab.id) { mutableStateOf(0L) }
-
-    // Whether the tab's live navigation, as decided by this
-    // interceptor's own past calls, currently sits outside every saved
-    // wiki.
+    // Whether the tab's live navigation currently sits outside every
+    // saved wiki.
     var isOnExternalSite by remember(tab.id) { mutableStateOf(false) }
 
     // Read through rememberUpdatedState rather than as a remember(site)
@@ -181,10 +171,7 @@ private fun SingleArticleTab(
     // navigator, which owns the WebView's actual navigation history.
     val confirmExternalNavigationState = rememberUpdatedState(confirmExternalNavigation)
     val allWikisState = rememberUpdatedState(allWikis)
-    val approvedExternalUrlState = rememberUpdatedState(approvedExternalUrl)
     val isOnExternalSiteState = rememberUpdatedState(isOnExternalSite)
-    val lastDeclinedUrlState = rememberUpdatedState(lastDeclinedUrl)
-    val lastDeclinedAtMillisState = rememberUpdatedState(lastDeclinedAtMillis)
 
     val navigator = rememberWebViewNavigator(
         requestInterceptor = remember(site) {
@@ -197,16 +184,9 @@ private fun SingleArticleTab(
                     if (url.startsWith("data:")) return WebRequestInterceptResult.Allow
                     val targetSite = allWikisState.value.firstOrNull { url.startsWith(it.baseUrl) }
                     if (targetSite == null) {
-                        val alreadyDecided = url == approvedExternalUrlState.value || isOnExternalSiteState.value
-                        if (alreadyDecided || !confirmExternalNavigationState.value) {
+                        if (isOnExternalSiteState.value || !confirmExternalNavigationState.value) {
                             isOnExternalSite = true
                             return WebRequestInterceptResult.Allow
-                        }
-
-                        val isDuplicateOfRecentDecline = url == lastDeclinedUrlState.value &&
-                            nowEpochMillis() - lastDeclinedAtMillisState.value < 800L
-                        if (isDuplicateOfRecentDecline) {
-                            return WebRequestInterceptResult.Reject
                         }
 
                         pendingExternalUrl = url
@@ -553,26 +533,21 @@ private fun SingleArticleTab(
 
     pendingExternalUrl?.let { url ->
         val host = runCatching { Url(url).host }.getOrNull()?.ifBlank { null }
-        val decline = {
-            pendingExternalUrl = null
-            lastDeclinedUrl = url
-            lastDeclinedAtMillis = nowEpochMillis()
-        }
         AlertDialog(
-            onDismissRequest = decline,
+            onDismissRequest = { pendingExternalUrl = null },
             title = { Text("Leave ${site.name}?") },
             text = { Text("This link goes to ${host ?: "an outside site"}, not ${site.name}.") },
             confirmButton = {
                 TextButton(
                     onClick = {
                         pendingExternalUrl = null
-                        approvedExternalUrl = url
+                        isOnExternalSite = true
                         scope.launch { navigator.loadUrl(url) }
                     },
                 ) { Text("Continue") }
             },
             dismissButton = {
-                TextButton(onClick = decline) { Text("Stay here") }
+                TextButton(onClick = { pendingExternalUrl = null }) { Text("Stay here") }
             },
         )
     }
