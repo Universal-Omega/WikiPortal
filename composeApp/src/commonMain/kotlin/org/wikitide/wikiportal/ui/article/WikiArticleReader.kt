@@ -14,6 +14,7 @@ import com.multiplatform.webview.web.WebViewNavigator
 import com.multiplatform.webview.web.rememberWebViewState
 import io.ktor.http.URLBuilder
 import io.ktor.http.decodeURLQueryComponent
+import io.ktor.client.statement.request
 import kotlin.io.encoding.Base64
 import kotlinx.coroutines.delay
 import org.wikitide.wikiportal.data.model.AuthDomains
