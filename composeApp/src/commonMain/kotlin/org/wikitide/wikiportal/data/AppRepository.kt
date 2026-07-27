@@ -76,6 +76,9 @@ class AppRepository(
     private val _openLinksExternally = MutableStateFlow(false)
     val openLinksExternally: StateFlow<Boolean> = _openLinksExternally
 
+    private val _confirmExternalNavigation = MutableStateFlow(true)
+    val confirmExternalNavigation: StateFlow<Boolean> = _confirmExternalNavigation
+
     private val _savedPages = MutableStateFlow<List<SavedPage>>(emptyList())
     val savedPages: StateFlow<List<SavedPage>> = _savedPages
 
@@ -178,6 +181,7 @@ class AppRepository(
             store.getSetting(SettingKeys.TEXT_SCALE)?.let { it.toFloatOrNull()?.let { f -> _textScale.value = f } }
             store.getSetting(SettingKeys.SHOW_IMAGES)?.let { _showImages.value = it.toBoolean() }
             store.getSetting(SettingKeys.OPEN_LINKS_EXTERNALLY)?.let { _openLinksExternally.value = it.toBoolean() }
+            store.getSetting(SettingKeys.CONFIRM_EXTERNAL_NAVIGATION)?.let { _confirmExternalNavigation.value = it.toBoolean() }
 
             _savedPages.value = store.savedPages()
             _history.value = store.history()
@@ -435,6 +439,11 @@ class AppRepository(
     fun setOpenLinksExternally(enabled: Boolean) {
         _openLinksExternally.value = enabled
         appScope.launch { store.setSetting(SettingKeys.OPEN_LINKS_EXTERNALLY, enabled.toString()) }
+    }
+
+    fun setConfirmExternalNavigation(enabled: Boolean) {
+        _confirmExternalNavigation.value = enabled
+        appScope.launch { store.setSetting(SettingKeys.CONFIRM_EXTERNAL_NAVIGATION, enabled.toString()) }
     }
 
     fun allWikisNow(): List<WikiSite> = _presetWikis.value + _customWikis.value
