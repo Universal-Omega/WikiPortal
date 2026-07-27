@@ -1,6 +1,8 @@
 package org.wikitide.wikiportal.ui.article
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -17,6 +19,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.MoreVert
@@ -27,6 +30,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -56,6 +60,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -573,6 +578,13 @@ private fun SingleArticleTab(
                 isRefreshing = isRefreshing,
                 modifier = Modifier.align(Alignment.TopCenter),
             )
+
+            if (pageState.isError) {
+                ArticleLoadErrorOverlay(
+                    message = pageState.errorMessage,
+                    onRetry = { navigator.reload() },
+                )
+            }
         }
     }
 
@@ -616,5 +628,44 @@ private fun SingleArticleTab(
                 TextButton(onClick = { pendingExternalUrl = null }) { Text("Stay here") }
             },
         )
+    }
+}
+
+/**
+ * Covers the whole tab when its main page failed to load, in place of
+ * whatever half-rendered error page the WebView itself would otherwise
+ * be showing underneath. [message] is the plain-language reason from
+ * friendlyLoadErrorMessage, not the raw platform error, which is
+ * logged separately for anyone who needs it.
+ */
+@Composable
+private fun ArticleLoadErrorOverlay(message: String, onRetry: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.padding(32.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.CloudOff,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
+            )
+            Button(onClick = onRetry) {
+                Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                Text("Retry", modifier = Modifier.padding(start = 8.dp))
+            }
+        }
     }
 }
