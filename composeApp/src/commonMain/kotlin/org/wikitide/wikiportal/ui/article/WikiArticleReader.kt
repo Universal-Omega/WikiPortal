@@ -115,35 +115,6 @@ fun WikiArticleReader(
     fun resolveMatchedSite(url: String): WikiSite? =
         if (AuthDomains.matches(url)) site else allWikis.firstOrNull { url.startsWith(it.baseUrl) }
 
-    // errorsForCurrentRequest is a SnapshotStateList that the WebView
-    // clears at the start of every fresh request and appends to as
-    // that request fails, so this collects it through snapshotFlow
-    // rather than keying a LaunchedEffect off it directly, since the
-    // list's own identity never changes, only its contents. A request
-    // that isn't for the main frame, a failed image or tracking pixel
-    // somewhere on an otherwise fine page, shouldn't blank out the
-    // whole reader, so only errors on the top-level navigation count
-    // here.
-    LaunchedEffect(offlineHtml) {
-        if (offlineHtml != null) return@LaunchedEffect
-        snapshotFlow { webViewState.errorsForCurrentRequest.toList() }.collect { errors ->
-            val mainFrameError = errors.lastOrNull { it.isForMainFrame != false }
-            if (mainFrameError != null) {
-                AppLog.e(
-                    "WikiArticleReader",
-                    "Load failed for URL: code=${mainFrameError.code}, ${mainFrameError.description}",
-                )
-                lastKnown.value = lastKnown.value.copy(
-                    isLoading = false,
-                    progress = 100,
-                    isError = true,
-                    errorMessage = friendlyLoadErrorMessage(mainFrameError),
-                )
-                onStateChanged(lastKnown.value)
-            }
-        }
-    }
-
     LaunchedEffect(webViewState.pageTitle, webViewState.loadingState, webViewState.lastLoadedUrl, historyNavTrigger) {
         val loading = webViewState.loadingState
         val url = webViewState.lastLoadedUrl
