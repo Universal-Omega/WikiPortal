@@ -119,6 +119,7 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, repository
     fun toggleExpanded(folderId: String) { expandedFolders[folderId] = !isExpanded(folderId) }
 
     val presetsByFolder = remember(presetWikis) { presetWikis.groupBy { it.folderId } }
+    val ungroupedPresetWikis = presetsByFolder[null] ?: emptyList()
     val listState = rememberLazyListState()
 
     // A local copy of the custom folder order, mutated live while a
@@ -200,6 +201,14 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, repository
             contentPadding = PaddingValues(vertical = 8.dp),
         ) {
             item { GroupLabel("Featured wikis") }
+            items(ungroupedPresetWikis, key = { it.id }) { wiki ->
+                WikiRow(
+                    wiki, wiki.id == activeWiki.id,
+                    onClick = { repository.setActiveWiki(wiki); onBack() },
+                    onEditSkin = { editingSkinForId = wiki.id },
+                    repository = repository,
+                )
+            }
             PresetFolders.all.forEach { folder ->
                 val wikisInFolder = presetsByFolder[folder.id].orEmpty()
                 if (wikisInFolder.isEmpty()) return@forEach
@@ -433,10 +442,10 @@ private fun FolderHeaderRow(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.pointerInput(folder.id) {
                     detectDragGesturesAfterLongPress(
-                        onDragStart = { onDragStart.invoke() },
-                        onDrag = { change, delta -> change.consume(); onDrag.invoke(delta.y) },
-                        onDragEnd = { onDragEnd.invoke() },
-                        onDragCancel = { onDragEnd.invoke() },
+                        onDragStart = { onDragStart() },
+                        onDrag = { change, delta -> change.consume(); onDrag(delta.y) },
+                        onDragEnd = { onDragEnd() },
+                        onDragCancel = { onDragEnd() },
                     )
                 },
             )
