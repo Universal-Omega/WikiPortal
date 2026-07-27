@@ -433,10 +433,10 @@ private fun FolderHeaderRow(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.pointerInput(folder.id) {
                     detectDragGesturesAfterLongPress(
-                        onDragStart = { onDragStart?.invoke() },
-                        onDrag = { change, delta -> change.consume(); onDrag?.invoke(delta.y) },
-                        onDragEnd = { onDragEnd?.invoke() },
-                        onDragCancel = { onDragEnd?.invoke() },
+                        onDragStart = { onDragStart.invoke() },
+                        onDrag = { change, delta -> change.consume(); onDrag.invoke(delta.y) },
+                        onDragEnd = { onDragEnd.invoke() },
+                        onDragCancel = { onDragEnd.invoke() },
                     )
                 },
             )
