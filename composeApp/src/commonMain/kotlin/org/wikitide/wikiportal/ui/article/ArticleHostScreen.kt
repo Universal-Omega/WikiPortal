@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Tab
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.CircularProgressIndicator
@@ -34,6 +35,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
@@ -47,6 +49,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,6 +65,7 @@ import com.multiplatform.webview.request.WebRequestInterceptResult
 import com.multiplatform.webview.web.NativeWebView
 import com.multiplatform.webview.web.WebViewNavigator
 import com.multiplatform.webview.web.rememberWebViewNavigator
+import io.ktor.http.Url
 import org.koin.compose.koinInject
 import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.TabsRepository
@@ -147,7 +151,22 @@ private fun SingleArticleTab(
     val initialTitle = remember(tab.id) { tab.title }
     val textScale by repository.textScale.collectAsState()
     val offlineKeys by repository.offlineKeys.collectAsState()
+    val confirmExternalNavigation by repository.confirmExternalNavigation.collectAsState()
     val scope = rememberCoroutineScope()
+
+    // A link the WebView tried to load that points somewhere outside
+    // every wiki this app knows about, waiting on the person to decide
+    // whether to actually follow it. Null means no such prompt is
+    // showing. See the RequestInterceptor below and the AlertDialog
+    // near the end of this composable.
+    var pendingExternalUrl by remember(tab.id) { mutableStateOf<String?>(null) }
+
+    // Read through rememberUpdatedState rather than as a remember(site)
+    // key, so toggling the setting mid-session is picked up by the
+    // interceptor right away without tearing down and recreating the
+    // navigator, which owns the WebView's actual navigation history.
+    val confirmExternalNavigationState = rememberUpdatedState(confirmExternalNavigation)
+    val allWikisState = rememberUpdatedState(allWikis)
 
     val navigator = rememberWebViewNavigator(
         requestInterceptor = remember(site) {
@@ -159,7 +178,14 @@ private fun SingleArticleTab(
                     val url = request.url
                     if (url.contains("useskin=${site.skin}")) return WebRequestInterceptResult.Allow
                     if (url.startsWith("data:")) return WebRequestInterceptResult.Allow
-                    if (!url.startsWith(site.baseUrl)) return WebRequestInterceptResult.Allow
+                    if (!url.startsWith(site.baseUrl)) {
+                        val isKnownWiki = allWikisState.value.any { url.startsWith(it.baseUrl) }
+                        if (!isKnownWiki && confirmExternalNavigationState.value) {
+                            pendingExternalUrl = url
+                            return WebRequestInterceptResult.Reject
+                        }
+                        return WebRequestInterceptResult.Allow
+                    }
                     if (!looksLikeArticleRequest(url, site)) return WebRequestInterceptResult.Allow
                     val rewritten = withAppSkin(url, site) ?: return WebRequestInterceptResult.Allow
                     scope.launch { navigator.loadUrl(rewritten) }
@@ -494,5 +520,25 @@ private fun SingleArticleTab(
         }
 
         isSavingOffline = false
+    }
+
+    pendingExternalUrl?.let { url ->
+        val host = runCatching { Url(url).host }.getOrNull()?.ifBlank { null }
+        AlertDialog(
+            onDismissRequest = { pendingExternalUrl = null },
+            title = { Text("Leave ${site.name}?") },
+            text = { Text("This link goes to ${host ?: "an outside site"}, not ${site.name}.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        pendingExternalUrl = null
+                        scope.launch { navigator.loadUrl(url) }
+                    },
+                ) { Text("Continue") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingExternalUrl = null }) { Text("Stay here") }
+            },
+        )
     }
 }
