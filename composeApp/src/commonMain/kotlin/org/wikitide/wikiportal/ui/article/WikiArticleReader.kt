@@ -63,10 +63,12 @@ fun WikiArticleReader(
     onStateChanged: (WikiPageState) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val initialUrl = when {
-        offlineHtml != null -> "data:text/html;charset=utf-8;base64," + Base64.encode(offlineHtml.encodeToByteArray())
-        restoreUrl != null -> restoreUrl
-        else -> site.articleUrl(title)
+    val initialUrl = remember {
+        when {
+            offlineHtml != null -> "data:text/html;charset=utf-8;base64," + Base64.encode(offlineHtml.encodeToByteArray())
+            restoreUrl != null -> restoreUrl
+            else -> site.articleUrl(title)
+        }
     }
 
     val webViewState = rememberWebViewState(initialUrl)
@@ -140,18 +142,6 @@ fun WikiArticleReader(
                 val liveUrl = rawUrl.trim().removeSurrounding("\"").ifBlank { null } ?: url
                 val matchedSite = liveUrl?.let { u -> resolveMatchedSite(u) }
                 val isAuth = liveUrl?.let { AuthDomains.matches(it) } == true
-
-                // A login POST, or a 2FA step after it, can land here
-                // on a url that never carries useskin, since neither a
-                // form submission nor a server-side redirect passes
-                // back through ArticleHostScreen's interceptor to add
-                // it. Forcing a fresh load with the skin attached does
-                // pass through that interceptor normally, since this
-                // is a genuine new request rather than one of those.
-                if (isAuth && liveUrl != null && !liveUrl.contains("useskin=${site.skin}")) {
-                    withAppSkin(liveUrl, site)?.let { navigator.loadUrl(it) }
-                    return@evaluateJavaScript
-                }
 
                 if (matchedSite != null && !isAuth) {
                     val extractedTitle = extractCanonicalTitle(liveUrl, matchedSite)
