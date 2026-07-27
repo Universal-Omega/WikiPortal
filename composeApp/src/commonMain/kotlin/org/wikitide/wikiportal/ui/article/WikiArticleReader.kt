@@ -120,7 +120,7 @@ fun WikiArticleReader(
             // this keeps the last known title rather than guessing from
             // pageTitle.
             val extractedTitle = extractCanonicalTitle(url, matchedSite)
-            val isAwaitingSkinRewrite = matchedSite.id == site.id && !url.contains("useskin=${site.skin}")
+            val isAwaitingSkinRewrite = matchedSite.id == site.id && !url.contains("useskin=${site.skin}") && isLoading
             val canonicalTitle = extractedTitle?.takeUnless { isAwaitingSkinRewrite }
             lastKnown.value = lastKnown.value.copy(
                 title = canonicalTitle ?: lastKnown.value.title,
