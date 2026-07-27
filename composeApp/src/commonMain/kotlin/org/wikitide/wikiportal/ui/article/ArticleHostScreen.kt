@@ -154,8 +154,6 @@ private fun SingleArticleTab(
     val confirmExternalNavigation by repository.confirmExternalNavigation.collectAsState()
     val scope = rememberCoroutineScope()
 
-    var pageState by remember(tab.id) { mutableStateOf(WikiPageState(title = initialTitle, canonicalTitle = initialTitle, displaySiteName = site.name)) }
-
     // A link the WebView tried to load that points somewhere outside
     // every wiki this app knows about, waiting on the person to decide
     // whether to actually follow it. Null means no such prompt is
@@ -169,14 +167,19 @@ private fun SingleArticleTab(
     // interceptor as a fresh request.
     var approvedExternalUrl by remember(tab.id) { mutableStateOf<String?>(null) }
 
+    // Whether the tab's live navigation, as decided by this
+    // interceptor's own past calls, currently sits outside every saved
+    // wiki.
+    var isOnExternalSite by remember(tab.id) { mutableStateOf(false) }
+
     // Read through rememberUpdatedState rather than as a remember(site)
     // key, so toggling the setting mid-session is picked up by the
     // interceptor right away without tearing down and recreating the
     // navigator, which owns the WebView's actual navigation history.
     val confirmExternalNavigationState = rememberUpdatedState(confirmExternalNavigation)
     val allWikisState = rememberUpdatedState(allWikis)
-    val pageStateState = rememberUpdatedState(pageState)
     val approvedExternalUrlState = rememberUpdatedState(approvedExternalUrl)
+    val isOnExternalSiteState = rememberUpdatedState(isOnExternalSite)
 
     val navigator = rememberWebViewNavigator(
         requestInterceptor = remember(site) {
@@ -189,12 +192,9 @@ private fun SingleArticleTab(
                     if (url.startsWith("data:")) return WebRequestInterceptResult.Allow
                     val targetSite = allWikisState.value.firstOrNull { url.startsWith(it.baseUrl) }
                     if (targetSite == null) {
-                        val currentUrl = pageStateState.value.url
-                        val isCurrentlyOnExternalSite = currentUrl.isNotBlank() &&
-                            allWikisState.value.none { currentUrl.startsWith(it.baseUrl) }
-
-                        val alreadyDecided = url == approvedExternalUrlState.value || isCurrentlyOnExternalSite
+                        val alreadyDecided = url == approvedExternalUrlState.value || isOnExternalSiteState.value
                         if (alreadyDecided || !confirmExternalNavigationState.value) {
+                            isOnExternalSite = true
                             return WebRequestInterceptResult.Allow
                         }
 
@@ -202,6 +202,7 @@ private fun SingleArticleTab(
                         return WebRequestInterceptResult.Reject
                     }
 
+                    isOnExternalSite = false
                     if (url.contains("useskin=${targetSite.skin}")) return WebRequestInterceptResult.Allow
                     if (!looksLikeArticleRequest(url, targetSite)) return WebRequestInterceptResult.Allow
                     val rewritten = withAppSkin(url, targetSite) ?: return WebRequestInterceptResult.Allow
@@ -234,6 +235,7 @@ private fun SingleArticleTab(
         if (isActive) tabsRepository.setActiveTabCanGoBack(navigator.canGoBack)
     }
 
+    var pageState by remember(tab.id) { mutableStateOf(WikiPageState(title = initialTitle, canonicalTitle = initialTitle, displaySiteName = site.name)) }
     var pageSummary by remember(tab.id) { mutableStateOf<PageSummaryDto?>(null) }
     var offlineHtml by remember(tab.id) { mutableStateOf<String?>(null) }
     var isSavingOffline by remember(tab.id) { mutableStateOf(false) }
