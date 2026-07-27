@@ -147,13 +147,7 @@ data class WikiFolder(
     val isCustom: Boolean = false,
 )
 
-/**
- * Folders the app ships with, one per wiki farm this app has built in
- * support for, so [PresetWikis] can grow with more Miraheze or Wikimedia
- * wikis over time without the picker turning into one long flat list.
- * Adding a new preset under an existing farm is then just another
- * WikiSite with this folder's id, nothing else needs to change.
- */
+/** We don't use these right now, but may eventually */
 object PresetFolders {
     val MIRAHEZE = WikiFolder(id = "folder-miraheze", name = "Miraheze")
     val WIKIMEDIA = WikiFolder(id = "folder-wikimedia", name = "Wikimedia")
@@ -188,28 +182,28 @@ object PresetWikis {
         description = "Central coordination wiki for the Miraheze wiki farm",
         baseUrl = "https://meta.miraheze.org",
         skin = "citizen",
-        folderId = PresetFolders.MIRAHEZE.id,
+        // folderId = PresetFolders.MIRAHEZE.id,
     )
     val WIKIPEDIA_EN = WikiSite(
         id = "wikipedia-en",
         name = "Wikipedia",
         description = "The Free Encyclopedia",
         baseUrl = "https://en.wikipedia.org",
-        folderId = PresetFolders.WIKIMEDIA.id,
+        // folderId = PresetFolders.WIKIMEDIA.id,
     )
     val WIKTIONARY_EN = WikiSite(
         id = "wiktionary-en",
         name = "Wiktionary",
         description = "The Free Dictionary",
         baseUrl = "https://en.wiktionary.org",
-        folderId = PresetFolders.WIKIMEDIA.id,
+        // folderId = PresetFolders.WIKIMEDIA.id,
     )
     val WIKIBOOKS_EN = WikiSite(
         id = "wikibooks-en",
         name = "Wikibooks",
         description = "Open-content textbooks",
         baseUrl = "https://en.wikibooks.org",
-        folderId = PresetFolders.WIKIMEDIA.id,
+        // folderId = PresetFolders.WIKIMEDIA.id,
     )
 
     val all: List<WikiSite> = listOf(
