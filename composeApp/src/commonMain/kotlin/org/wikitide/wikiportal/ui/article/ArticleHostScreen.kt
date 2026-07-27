@@ -219,6 +219,8 @@ private fun SingleArticleTab(
         },
     )
 
+    var historyNavTrigger by remember(tab.id) { mutableStateOf(0) }
+
     // Registered once, at tab creation, keyed by tab.id and not isActive.
     // See TabsRepository's comment on backHandlers for why this must not
     // be tied to activation timing.
@@ -226,6 +228,7 @@ private fun SingleArticleTab(
         tabsRepository.registerBackHandler(tab.id) {
             if (navigator.canGoBack) {
                 navigator.navigateBack()
+                historyNavTrigger++
                 true
             } else {
                 false
@@ -356,7 +359,7 @@ private fun SingleArticleTab(
                             }
 
                             if (navigator.canGoForward) {
-                                IconButton(onClick = { navigator.navigateForward() }) {
+                                IconButton(onClick = { navigator.navigateForward(); historyNavTrigger++ }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Forward")
                                 }
                             }
@@ -495,6 +498,7 @@ private fun SingleArticleTab(
                 textScale = textScale,
                 offlineHtml = offlineHtml,
                 allWikis = allWikis,
+                historyNavTrigger = historyNavTrigger,
                 onWebViewReady = { nativeWebViewRef = it },
                 onStateChanged = { newState -> pageState = newState },
                 modifier = Modifier.fillMaxSize(),
