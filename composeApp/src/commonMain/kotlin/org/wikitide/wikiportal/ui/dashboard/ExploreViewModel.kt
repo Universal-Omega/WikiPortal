@@ -127,7 +127,8 @@ class ExploreViewModel(
                 wikimediaPageviewsApi.getTopArticles(wikimediaProject).getOrNull()
                     ?.map { TrendingArticle(title = it.article.replace('_', ' '), views = it.views) }
             } else {
-                matomoAnalyticsApi.getTopPages(wiki).getOrNull()?.map { TrendingArticle(title = it.title, views = it.views) }
+                matomoAnalyticsApi.getTopPages(wiki).getOrNull()
+                    ?.map { TrendingArticle(title = it.title, views = it.views, url = it.url.takeIf { u -> u.isNotBlank() }) }
             }
             // This only applies if we're still looking at the same
             // wiki. It guards against a slow trending fetch landing
