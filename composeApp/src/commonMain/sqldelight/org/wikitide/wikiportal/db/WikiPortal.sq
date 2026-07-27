@@ -26,18 +26,35 @@ CREATE TABLE IF NOT EXISTS Wiki (
     isCustom INTEGER AS Boolean NOT NULL DEFAULT 1,
     availableSkins TEXT AS List<SkinOption>,
     skinIsUserSet INTEGER AS Boolean NOT NULL DEFAULT 0,
-    mainPageTitle TEXT
+    mainPageTitle TEXT,
+    folderId TEXT
 );
 
 upsertWiki:
-INSERT OR REPLACE INTO Wiki(id, name, description, baseUrl, scriptPath, skin, articlePathPrefix, faviconUrl, isCustom, availableSkins, skinIsUserSet, mainPageTitle)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO Wiki(id, name, description, baseUrl, scriptPath, skin, articlePathPrefix, faviconUrl, isCustom, availableSkins, skinIsUserSet, mainPageTitle, folderId)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 deleteWiki:
 DELETE FROM Wiki WHERE id = ?;
 
 selectAllWikis:
 SELECT * FROM Wiki ORDER BY name ASC;
+
+CREATE TABLE IF NOT EXISTS Folder (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    sortOrder INTEGER NOT NULL DEFAULT 0
+);
+
+upsertFolder:
+INSERT OR REPLACE INTO Folder(id, name, sortOrder)
+VALUES (?, ?, ?);
+
+deleteFolder:
+DELETE FROM Folder WHERE id = ?;
+
+selectAllFolders:
+SELECT * FROM Folder ORDER BY sortOrder ASC;
 
 CREATE TABLE IF NOT EXISTS SavedPage (
     wikiId TEXT NOT NULL,
