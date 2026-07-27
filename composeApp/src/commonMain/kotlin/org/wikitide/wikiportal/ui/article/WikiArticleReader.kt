@@ -5,11 +5,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.runtime.snapshotFlow
 import com.multiplatform.webview.web.LoadingState
 import com.multiplatform.webview.web.NativeWebView
 import com.multiplatform.webview.web.WebView
-import com.multiplatform.webview.web.WebViewError
 import com.multiplatform.webview.web.WebViewNavigator
 import com.multiplatform.webview.web.rememberWebViewState
 import io.ktor.http.URLBuilder
@@ -18,7 +16,6 @@ import kotlin.io.encoding.Base64
 import kotlinx.coroutines.delay
 import org.wikitide.wikiportal.data.model.AuthDomains
 import org.wikitide.wikiportal.data.model.WikiSite
-import org.wikitide.wikiportal.util.AppLog
 
 /** Snapshot of what the reader is currently showing, reported up to [ArticleHostScreen]. */
 data class WikiPageState(
@@ -30,10 +27,6 @@ data class WikiPageState(
     val url: String = "",
     val isLoading: Boolean = true,
     val progress: Int = 0,
-    /** True when the main page request itself failed, not a subresource like an image or script. */
-    val isError: Boolean = false,
-    /** Plain-language reason for [isError], safe to show directly in the UI. The technical detail goes to AppLog instead. */
-    val errorMessage: String = "",
 )
 
 @Composable
@@ -120,13 +113,6 @@ fun WikiArticleReader(
         val url = webViewState.lastLoadedUrl
         val progress = (loading as? LoadingState.Loading)?.let { (it.progress * 100).toInt() } ?: 100
         val isLoading = loading is LoadingState.Loading
-
-        // A fresh request is underway, so whatever error was showing
-        // before, if any, no longer applies. The block above will set
-        // isError again on its own if this new attempt also fails.
-        if (isLoading && lastKnown.value.isError) {
-            lastKnown.value = lastKnown.value.copy(isError = false, errorMessage = "")
-        }
 
         if (offlineHtml != null) {
             lastKnown.value = lastKnown.value.copy(
@@ -269,31 +255,6 @@ fun withAppSkin(url: String, site: WikiSite): String? = runCatching {
     }
     builder.buildString()
 }.getOrNull()
-
-/**
- * Turns a [WebViewError], whose code and description come straight
- * from the platform's own networking stack and vary by OS, into
- * something a person can actually read and act on. This matches on
- * substrings in the lowercased description rather than the numeric
- * code, since the same failure reports a different code on Android,
- * iOS, and desktop, but the description text tends to name the actual
- * problem, "net::ERR_NAME_NOT_RESOLVED", "timed out", and so on,
- * consistently enough across platforms to be worth matching against.
- * The full original code and description still go to AppLog, see the
- * caller, for anyone who needs the real detail.
- */
-private fun friendlyLoadErrorMessage(error: WebViewError): String {
-    val text = error.description.lowercase()
-    return when {
-        "internet" in text || "disconnect" in text || "offline" in text -> "You're offline. Check your connection and try again."
-        "host" in text || "resolv" in text || "dns" in text -> "Can't find that site. Check the address and try again."
-        "timed out" in text || "timeout" in text -> "This page took too long to respond."
-        "ssl" in text || "cert" in text || "security" in text -> "This site's connection couldn't be verified."
-        "refused" in text || "connect" in text -> "Couldn't connect to this site."
-        "redirect" in text -> "This page redirected too many times."
-        else -> "This page couldn't load."
-    }
-}
 
 private fun decodeTitle(raw: String): String {
     val spaced = raw.replace("_", " ")
