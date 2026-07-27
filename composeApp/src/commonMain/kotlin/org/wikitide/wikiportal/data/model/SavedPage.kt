@@ -10,4 +10,5 @@ data class SavedPage(
     val extract: String = "",
     val thumbnailUrl: String? = null,
     val timestampEpochMillis: Long = 0L,
+    val url: String? = null,
 )
