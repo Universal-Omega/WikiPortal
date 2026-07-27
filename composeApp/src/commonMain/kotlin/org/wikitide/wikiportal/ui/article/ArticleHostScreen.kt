@@ -335,7 +335,8 @@ private fun SingleArticleTab(
         summarizedTitle = currentTitle
         pageSummary = freshSummary
         tabsRepository.updateTab(
-            tab.id, currentTitle, freshSummary?.thumbnail?.source, pageState.displaySiteName.orEmpty(), freshSummary?.extract, pageState.url,
+            tab.id, currentTitle, freshSummary?.thumbnail?.source, pageState.displaySiteName.orEmpty(), freshSummary?.extract,
+            pageState.url, clearSummary = isOffSiteContent,
         )
         repository.recordVisit(
             SavedPage(
