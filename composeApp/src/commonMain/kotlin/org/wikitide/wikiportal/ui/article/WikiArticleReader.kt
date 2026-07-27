@@ -56,6 +56,7 @@ fun WikiArticleReader(
      * needed.
      */
     allWikis: List<WikiSite>,
+    historyNavTrigger: Int = 0,
     onWebViewReady: (NativeWebView) -> Unit = {},
     onStateChanged: (WikiPageState) -> Unit,
     modifier: Modifier = Modifier,
@@ -103,7 +104,7 @@ fun WikiArticleReader(
     fun resolveMatchedSite(url: String): WikiSite? =
         if (AuthDomains.matches(url)) site else allWikis.firstOrNull { url.startsWith(it.baseUrl) }
 
-    LaunchedEffect(webViewState.pageTitle, webViewState.loadingState, webViewState.lastLoadedUrl) {
+    LaunchedEffect(webViewState.pageTitle, webViewState.loadingState, webViewState.lastLoadedUrl, historyNavTrigger) {
         val loading = webViewState.loadingState
         val url = webViewState.lastLoadedUrl
         val progress = (loading as? LoadingState.Loading)?.let { (it.progress * 100).toInt() } ?: 100
@@ -136,7 +137,8 @@ fun WikiArticleReader(
             navigator.evaluateJavaScript("window.location.href") { rawUrl ->
                 val liveUrl = rawUrl.trim().removeSurrounding("\"").ifBlank { null } ?: url
                 val matchedSite = liveUrl?.let { u -> resolveMatchedSite(u) }
-                if (matchedSite != null) {
+                val isAuth = liveUrl?.let { AuthDomains.matches(it) } == true
+                if (matchedSite != null && !isAuth) {
                     val extractedTitle = extractCanonicalTitle(liveUrl, matchedSite)
                     lastKnown.value = lastKnown.value.copy(
                         title = extractedTitle ?: lastKnown.value.title,
@@ -156,7 +158,7 @@ fun WikiArticleReader(
                         lastKnown.value = lastKnown.value.copy(
                             title = cleaned.ifBlank { lastKnown.value.title },
                             canonicalTitle = cleaned.ifBlank { lastKnown.value.canonicalTitle },
-                            displaySiteName = null,
+                            displaySiteName = matchedSite?.name,
                             url = liveUrl ?: lastKnown.value.url,
                             isLoading = false,
                             progress = 100,
