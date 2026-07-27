@@ -165,16 +165,24 @@ class TabsRepository(
      * the current page doesn't match any known wiki, rather than the
      * tab's original site.
      */
-    fun updateTab(tabId: String, title: String, thumbnailUrl: String?, wikiName: String, extract: String? = null, currentUrl: String? = null) {
+    fun updateTab(
+        tabId: String,
+        title: String,
+        thumbnailUrl: String?,
+        wikiName: String,
+        extract: String? = null,
+        currentUrl: String? = null,
+        clearSummary: Boolean = false,
+    ) {
         var updatedTab: ArticleTab? = null
         _tabs.update { list ->
             list.map {
                 if (it.id == tabId) {
                     it.copy(
                         title = title,
-                        thumbnailUrl = thumbnailUrl ?: it.thumbnailUrl,
+                        thumbnailUrl = if (clearSummary) null else thumbnailUrl ?: it.thumbnailUrl,
                         wikiName = wikiName,
-                        extract = extract ?: it.extract,
+                        extract = if (clearSummary) null else extract ?: it.extract,
                         currentUrl = currentUrl ?: it.currentUrl,
                     ).also { updated -> updatedTab = updated }
                 } else {
