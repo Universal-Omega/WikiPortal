@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WikiPortal - Universal MediaWiki Client</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            color: #24292e;
+            background-color: #fafbfc;
+        }
+        header {
+            text-align: center;
+            padding: 40px 0;
+            border-bottom: 1px solid #e1e4e8;
+        }
+        .logo {
+            font-size: 3rem;
+            font-weight: 800;
+            color: #0366d6;
+            margin: 0;
+        }
+        .tagline {
+            font-size: 1.25rem;
+            color: #586069;
+            margin-top: 10px;
+        }
+        .badge {
+            display: inline-block;
+            background-color: #fff5b1;
+            color: #735c0f;
+            padding: 4px 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border-radius: 20px;
+            border: 1px solid #e2b42c;
+            margin-top: 15px;
+        }
+        main {
+            padding: 40px 0;
+        }
+        h2 {
+            color: #24292e;
+            border-bottom: 1px solid #eaecef;
+            padding-bottom: 0.3em;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 10px;
+        }
+        footer {
+            margin-top: 60px;
+            padding-top: 20px;
+            border-top: 1px solid #e1e4e8;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #586069;
+        }
+        footer a {
+            color: #0366d6;
+            text-decoration: none;
+            margin: 0 10px;
+        }
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 class="logo">WikiPortal</h1>
+        <p class="tagline">A Universal MediaWiki Client</p>
+        <span class="badge">Alpha Release</span>
+    </header>
+
+    <main>
+        <h2>About WikiPortal</h2>
+        <p>WikiPortal is an open, localized client application designed to streamline how you browse, interact with, and manage community wiki ecosystems. By serving as a focused wrapper for major MediaWiki networks (including Miraheze, Fandom, Wikimedia, and independent hosts), WikiPortal brings a clean, optimized reading environment straight to your mobile device.</p>
+
+        <h2>Current Development Status</h2>
+        <p>The application is currently in its <strong>alpha testing phase</strong>. Core workflows are actively being engineered, expanded, and refined. Because it is an early-stage utility tool, you may encounter layout inconsistencies, performance adjustments, or features under active development.</p>
+
+        <h2>Key Architecture Details</h2>
+        <ul>
+            <li><strong>Zero Remote Backend:</strong> WikiPortal functions strictly as a localized client framework. There are no external analytics servers, tracking pipelines, or third-party cloud data collection databases attached to the application layer.</li>
+            <li><strong>Localized Auths:</strong> Custom implementations (such as client-side OAuth2 workflows) capture and preserve your login tokens entirely within the sandboxed secure storage of your local device.</li>
+            <li><strong>Open Web Sandbox:</strong> Website navigation and community browsing environments run inside isolated web layout engines, meaning your interaction logs and sessions remain under the direct governance of the host wiki platforms themselves.</li>
+        </ul>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 WikiPortal Project. All rights reserved.</p>
+        <p>
+            <a href="privacy">Privacy Policy</a> | 
+            <a href="https://github.com/Universal-Omega/WikiPortal" target="_blank" rel="noopener">GitHub Project</a>
+        </p>
+    </footer>
+
+</body>
+</html>
+
