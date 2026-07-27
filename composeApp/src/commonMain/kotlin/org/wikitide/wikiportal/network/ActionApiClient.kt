@@ -4,6 +4,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
+import org.wikitide.wikiportal.util.AppLog
 
 /**
  * A shared transport for MediaWiki's classic query-string Action API,
@@ -47,7 +48,7 @@ class ActionApiClient(
         }
         response
     }.onFailure {
-        println("Ktor: ActionApiClient.get($url, $params) failed: ${it::class.simpleName}: ${it.message}")
+        AppLog.e("ActionApiClient", "get($url, $params) failed", it)
     }
 }
 
