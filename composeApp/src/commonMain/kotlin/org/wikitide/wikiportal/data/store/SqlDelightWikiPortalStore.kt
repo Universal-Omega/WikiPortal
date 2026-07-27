@@ -9,6 +9,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.wikitide.wikiportal.data.model.ArticleTab
 import org.wikitide.wikiportal.data.model.SavedPage
+import org.wikitide.wikiportal.data.model.WikiFolder
 import org.wikitide.wikiportal.data.model.WikiSite
 import org.wikitide.wikiportal.db.Wiki
 import org.wikitide.wikiportal.db.WikiPortalDatabase
@@ -74,6 +75,7 @@ class SqlDelightWikiPortalStore(private val driver: SqlDriver) : WikiPortalStore
                 availableSkins = it.availableSkins,
                 skinIsUserSet = it.skinIsUserSet,
                 mainPageTitle = it.mainPageTitle,
+                folderId = it.folderId,
             )
         }
     }
@@ -83,13 +85,30 @@ class SqlDelightWikiPortalStore(private val driver: SqlDriver) : WikiPortalStore
         queries.upsertWiki(
             site.id, site.name, site.description, site.baseUrl, site.scriptPath, site.skin,
             site.articlePathPrefix, site.discoveredFaviconUrl, site.isCustom, site.availableSkins, site.skinIsUserSet,
-            site.mainPageTitle,
+            site.mainPageTitle, site.folderId,
         )
     }
 
     override suspend fun removeWiki(id: String) {
         ensureSchema()
         queries.deleteWiki(id)
+    }
+
+    override suspend fun allFolders(): List<WikiFolder> {
+        ensureSchema()
+        return queries.selectAllFolders().awaitAsList().map {
+            WikiFolder(id = it.id, name = it.name, isCustom = true)
+        }
+    }
+
+    override suspend fun upsertFolder(folder: WikiFolder, sortOrder: Int) {
+        ensureSchema()
+        queries.upsertFolder(folder.id, folder.name, sortOrder.toLong())
+    }
+
+    override suspend fun removeFolder(id: String) {
+        ensureSchema()
+        queries.deleteFolder(id)
     }
 
     override suspend fun savedPages(): List<SavedPage> {
