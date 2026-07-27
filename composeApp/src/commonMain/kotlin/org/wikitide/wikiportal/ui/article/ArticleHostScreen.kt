@@ -206,6 +206,8 @@ private fun SingleArticleTab(
                         return WebRequestInterceptResult.Reject
                     }
 
+                    navigator.evaluateJavaScript("window.alert(${targetSite.skin});")
+
                     isOnExternalSite = false
                     if (url.contains("useskin=${targetSite.skin}")) return WebRequestInterceptResult.Allow
                     // looksLikeArticleRequest only recognizes this site's
