@@ -61,6 +61,7 @@ import org.wikitide.wikiportal.data.TabsRepository
 import org.wikitide.wikiportal.navigation.AddWikiRoute
 import org.wikitide.wikiportal.navigation.ArticleRoute
 import org.wikitide.wikiportal.navigation.DashboardRoute
+import org.wikitide.wikiportal.navigation.LogsRoute
 import org.wikitide.wikiportal.navigation.Route
 import org.wikitide.wikiportal.navigation.SavedRoute
 import org.wikitide.wikiportal.navigation.SettingsRoute
@@ -71,6 +72,7 @@ import org.wikitide.wikiportal.ui.dashboard.DashboardScreen
 import org.wikitide.wikiportal.ui.navigation.SystemBackInterceptor
 import org.wikitide.wikiportal.ui.saved.SavedScreen
 import org.wikitide.wikiportal.ui.settings.AddWikiScreen
+import org.wikitide.wikiportal.ui.settings.LogsScreen
 import org.wikitide.wikiportal.ui.settings.SettingsScreen
 import org.wikitide.wikiportal.ui.settings.WikiPickerScreen
 import org.wikitide.wikiportal.ui.tabs.TabsListScreen
@@ -235,7 +237,10 @@ fun WikiPortalApp(onDarkThemeResolved: (Boolean) -> Unit = {}) {
                                 SavedScreen(onArticleClick = { wikiId, title -> openArticle(wikiId, title) })
                             }
                             SettingsRoute -> NavEntry(key) {
-                                SettingsScreen(onOpenWikiPicker = { navigateTo(WikiPickerRoute) })
+                                SettingsScreen(
+                                    onOpenWikiPicker = { navigateTo(WikiPickerRoute) },
+                                    onOpenLogs = { navigateTo(LogsRoute) },
+                                )
                             }
                             WikiPickerRoute -> NavEntry(key) {
                                 WikiPickerScreen(
@@ -245,6 +250,9 @@ fun WikiPortalApp(onDarkThemeResolved: (Boolean) -> Unit = {}) {
                             }
                             AddWikiRoute -> NavEntry(key) {
                                 AddWikiScreen(onDone = { backStack.removeLastOrNull() })
+                            }
+                            LogsRoute -> NavEntry(key) {
+                                LogsScreen(onBack = { backStack.removeLastOrNull() })
                             }
                             ArticleRoute -> NavEntry(key) {
                                 ArticleHostScreen(
