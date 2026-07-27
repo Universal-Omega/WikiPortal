@@ -207,7 +207,7 @@ private fun SingleArticleTab(
                     }
 
                     isOnExternalSite = false
-                    // if (url.contains("useskin=${targetSite.skin}")) return WebRequestInterceptResult.Allow
+                    if (url.contains("useskin=${targetSite.skin}")) return WebRequestInterceptResult.Allow
                     // looksLikeArticleRequest only recognizes this site's
                     // own article URL shapes, which an auth host's login
                     // and callback pages don't match at all, so that
