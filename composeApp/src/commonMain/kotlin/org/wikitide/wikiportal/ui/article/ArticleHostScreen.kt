@@ -311,6 +311,7 @@ private fun SingleArticleTab(
             isRefreshing = false
             pullToRefreshState.animateToHidden()
         }
+        if (isOnExternalSite || AuthDomains.matches(pageState.url)) return@LaunchedEffect
         if (currentTitle == summarizedTitle) return@LaunchedEffect
         // Fetch first, then fill in both pageSummary and the tab record
         // with the result.
@@ -382,6 +383,7 @@ private fun SingleArticleTab(
                         val displayedTitle = when {
                             siteName == null -> pageState.title.ifBlank { currentTitle }
                             currentTitle.equals(siteName, ignoreCase = true) -> siteName
+                            currentTitle.endsWith("- $siteName", ignoreCase = true) -> currentTitle
                             else -> "$currentTitle - $siteName"
                         }
                         Text(
