@@ -69,6 +69,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import kotlin.math.roundToInt
@@ -447,7 +448,7 @@ private fun FolderHeaderRow(
         )
         Icon(Icons.Filled.Folder, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         Column(Modifier.weight(1f)) {
-            Text(folder.name, style = MaterialTheme.typography.titleMedium)
+            Text(folder.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
                 if (count == 1) "1 wiki" else "$count wikis",
                 style = MaterialTheme.typography.bodySmall,
@@ -620,8 +621,9 @@ private fun MoveToFolderDialog(
             if (creatingNew) {
                 OutlinedTextField(
                     value = newFolderName,
-                    onValueChange = { newFolderName = it },
+                    onValueChange = { newFolderName = it.replace("\n", "") },
                     label = { Text("Folder name") },
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
             } else {
@@ -640,7 +642,7 @@ private fun MoveToFolderDialog(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             RadioButton(selected = wiki.folderId == folder.id, onClick = { onSelectFolder(folder.id) })
-                            Text(folder.name, modifier = Modifier.padding(start = 4.dp))
+                            Text(folder.name, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 4.dp))
                         }
                     }
                     Row(
@@ -682,8 +684,9 @@ private fun FolderNameDialog(
         text = {
             OutlinedTextField(
                 value = name,
-                onValueChange = { name = it },
+                onValueChange = { name = it.replace("\n", "") },
                 label = { Text("Folder name") },
+                singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
         },
