@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Tab
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.CircularProgressIndicator
@@ -34,6 +35,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
@@ -47,6 +49,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,10 +65,12 @@ import com.multiplatform.webview.request.WebRequestInterceptResult
 import com.multiplatform.webview.web.NativeWebView
 import com.multiplatform.webview.web.WebViewNavigator
 import com.multiplatform.webview.web.rememberWebViewNavigator
+import io.ktor.http.Url
 import org.koin.compose.koinInject
 import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.TabsRepository
 import org.wikitide.wikiportal.data.model.ArticleTab
+import org.wikitide.wikiportal.data.model.AuthDomains
 import org.wikitide.wikiportal.data.model.SavedPage
 import org.wikitide.wikiportal.network.MediaWikiApi
 import org.wikitide.wikiportal.network.PageSummaryDto
@@ -147,7 +152,34 @@ private fun SingleArticleTab(
     val initialTitle = remember(tab.id) { tab.title }
     val textScale by repository.textScale.collectAsState()
     val offlineKeys by repository.offlineKeys.collectAsState()
+    val confirmExternalNavigation by repository.confirmExternalNavigation.collectAsState()
     val scope = rememberCoroutineScope()
+
+    // A link the WebView tried to load that points somewhere outside
+    // every wiki this app knows about, waiting on the person to decide
+    // whether to actually follow it. Null means no such prompt is
+    // showing. See the RequestInterceptor below and the AlertDialog
+    // near the end of this composable.
+    var pendingExternalUrl by remember(tab.id) { mutableStateOf<String?>(null) }
+
+    // Whether the tab's live navigation currently sits outside every
+    // saved wiki. Seeded from the tab's own saved currentUrl on
+    // resume, so a tab reopened straight into an external page starts
+    // out already knowing that, rather than assuming it's on site
+    // until the next navigation proves otherwise.
+    var isOnExternalSite by remember(tab.id) {
+        mutableStateOf(
+            tab.currentUrl?.let { url -> !AuthDomains.matches(url) && allWikis.none { url.startsWith(it.baseUrl) } } ?: false,
+        )
+    }
+
+    // Read through rememberUpdatedState rather than as a remember(site)
+    // key, so toggling the setting mid-session is picked up by the
+    // interceptor right away without tearing down and recreating the
+    // navigator, which owns the WebView's actual navigation history.
+    val confirmExternalNavigationState = rememberUpdatedState(confirmExternalNavigation)
+    val allWikisState = rememberUpdatedState(allWikis)
+    val isOnExternalSiteState = rememberUpdatedState(isOnExternalSite)
 
     val navigator = rememberWebViewNavigator(
         requestInterceptor = remember(site) {
@@ -157,17 +189,44 @@ private fun SingleArticleTab(
                     navigator: WebViewNavigator,
                 ): WebRequestInterceptResult {
                     val url = request.url
-                    if (url.contains("useskin=${site.skin}")) return WebRequestInterceptResult.Allow
                     if (url.startsWith("data:")) return WebRequestInterceptResult.Allow
-                    if (!url.startsWith(site.baseUrl)) return WebRequestInterceptResult.Allow
-                    if (!looksLikeArticleRequest(url, site)) return WebRequestInterceptResult.Allow
-                    val rewritten = withAppSkin(url, site) ?: return WebRequestInterceptResult.Allow
+                    val isAuthRequest = AuthDomains.matches(url)
+                    val targetSite = when {
+                        isAuthRequest -> site
+                        else -> allWikisState.value.firstOrNull { url.startsWith(it.baseUrl) }
+                    }
+
+                    if (targetSite == null) {
+                        if (isOnExternalSiteState.value || !confirmExternalNavigationState.value) {
+                            isOnExternalSite = true
+                            return WebRequestInterceptResult.Allow
+                        }
+
+                        pendingExternalUrl = url
+                        return WebRequestInterceptResult.Reject
+                    }
+
+                    isOnExternalSite = false
+                    if (url.contains("useskin=${targetSite.skin}")) return WebRequestInterceptResult.Allow
+                    // looksLikeArticleRequest only recognizes this site's
+                    // own article URL shapes, which an auth host's login
+                    // and callback pages don't match at all, so that
+                    // check is skipped for those. There isn't a wide
+                    // variety of request types to worry about missing
+                    // there the way there is on the wiki's own domain,
+                    // where skipping it would risk rewriting API calls
+                    // and static assets that have no business carrying a
+                    // skin param.
+                    if (!isAuthRequest && !looksLikeArticleRequest(url, targetSite)) return WebRequestInterceptResult.Allow
+                    val rewritten = withAppSkin(url, targetSite) ?: return WebRequestInterceptResult.Allow
                     scope.launch { navigator.loadUrl(rewritten) }
                     return WebRequestInterceptResult.Reject
                 }
             }
         },
     )
+
+    var historyNavTrigger by remember(tab.id) { mutableStateOf(0) }
 
     // Registered once, at tab creation, keyed by tab.id and not isActive.
     // See TabsRepository's comment on backHandlers for why this must not
@@ -176,6 +235,7 @@ private fun SingleArticleTab(
         tabsRepository.registerBackHandler(tab.id) {
             if (navigator.canGoBack) {
                 navigator.navigateBack()
+                historyNavTrigger++
                 true
             } else {
                 false
@@ -191,7 +251,25 @@ private fun SingleArticleTab(
         if (isActive) tabsRepository.setActiveTabCanGoBack(navigator.canGoBack)
     }
 
-    var pageState by remember(tab.id) { mutableStateOf(WikiPageState(title = initialTitle, canonicalTitle = initialTitle, displaySiteName = site.name)) }
+    var pageState by remember(tab.id) {
+        mutableStateOf(
+            WikiPageState(title = initialTitle, canonicalTitle = initialTitle, displaySiteName = site.name, url = tab.currentUrl.orEmpty()),
+        )
+    }
+
+    // The interceptor above only ever sees genuinely new top-level
+    // requests, so it correctly flips isOnExternalSite back to false
+    // whenever a link takes the tab to a known wiki. It never sees the
+    // system back gesture or the "Refresh" menu item, though, since
+    // navigator.navigateBack() and navigator.reload() replay existing
+    // history rather than issuing a fresh request.
+    LaunchedEffect(pageState.url, pageState.isLoading) {
+        if (pageState.isLoading) return@LaunchedEffect
+        val settledUrl = pageState.url
+        if (settledUrl.isBlank()) return@LaunchedEffect
+        isOnExternalSite = allWikis.none { settledUrl.startsWith(it.baseUrl) } && !AuthDomains.matches(settledUrl)
+    }
+
     var pageSummary by remember(tab.id) { mutableStateOf<PageSummaryDto?>(null) }
     var offlineHtml by remember(tab.id) { mutableStateOf<String?>(null) }
     var isSavingOffline by remember(tab.id) { mutableStateOf(false) }
@@ -245,13 +323,20 @@ private fun SingleArticleTab(
             pullToRefreshState.animateToHidden()
         }
         if (currentTitle == summarizedTitle) return@LaunchedEffect
-        // Fetch first, then fill in both pageSummary and the tab record
-        // with the result.
-        val freshSummary = api.getPageSummary(site, currentTitle).getOrNull()
+        val isOffSiteContent = isOnExternalSite || AuthDomains.matches(pageState.url)
+        // getPageSummary assumes currentTitle is a real article on
+        // site, which isn't true for an auth page or an external link
+        // followed in this tab, so that call is skipped for those.
+        // The tab and history are still updated either way, using
+        // pageState.url as the actual address to return to, rather
+        // than reconstructing one from title and wikiId that would
+        // 404 on a page that was never really an article here.
+        val freshSummary = if (isOffSiteContent) null else api.getPageSummary(site, currentTitle).getOrNull()
         summarizedTitle = currentTitle
         pageSummary = freshSummary
         tabsRepository.updateTab(
             tab.id, currentTitle, freshSummary?.thumbnail?.source, pageState.displaySiteName.orEmpty(), freshSummary?.extract,
+            pageState.url, clearSummary = isOffSiteContent,
         )
         repository.recordVisit(
             SavedPage(
@@ -261,6 +346,7 @@ private fun SingleArticleTab(
                 extract = pageSummary?.extract.orEmpty(),
                 thumbnailUrl = pageSummary?.thumbnail?.source,
                 timestampEpochMillis = nowEpochMillis(),
+                url = pageState.url,
             ),
         )
     }
@@ -292,7 +378,7 @@ private fun SingleArticleTab(
                             }
 
                             if (navigator.canGoForward) {
-                                IconButton(onClick = { navigator.navigateForward() }) {
+                                IconButton(onClick = { navigator.navigateForward(); historyNavTrigger++ }) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Forward")
                                 }
                             }
@@ -305,9 +391,21 @@ private fun SingleArticleTab(
                         // in this tab, just show the page's own raw
                         // title, the same way an ordinary browser would.
                         // There is no reconstructed suffix for a site we
-                        // don't have a name for.
+                        // don't have a name for. A page whose title is
+                        // already exactly the site's name, for example a
+                        // wiki's own main page sharing the wiki's name,
+                        // skips the suffix entirely rather than
+                        // repeating it, e.g. "MediaWiki" rather than
+                        // "MediaWiki - MediaWiki".
+                        val siteName = pageState.displaySiteName
+                        val displayedTitle = when {
+                            siteName == null -> pageState.title.ifBlank { currentTitle }
+                            currentTitle.equals(siteName, ignoreCase = true) -> siteName
+                            currentTitle.endsWith("- $siteName", ignoreCase = true) -> currentTitle
+                            else -> "$currentTitle - $siteName"
+                        }
                         Text(
-                            text = pageState.displaySiteName?.let { "$currentTitle - $it" } ?: pageState.title.ifBlank { currentTitle },
+                            text = displayedTitle,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             style = MaterialTheme.typography.titleMedium,
@@ -356,6 +454,7 @@ private fun SingleArticleTab(
                                             extract = pageSummary?.extract.orEmpty(),
                                             thumbnailUrl = pageSummary?.thumbnail?.source,
                                             timestampEpochMillis = nowEpochMillis(),
+                                            url = pageState.url,
                                         ),
                                     )
                                 },
@@ -420,6 +519,8 @@ private fun SingleArticleTab(
                 textScale = textScale,
                 offlineHtml = offlineHtml,
                 allWikis = allWikis,
+                historyNavTrigger = historyNavTrigger,
+                restoreUrl = tab.currentUrl,
                 onWebViewReady = { nativeWebViewRef = it },
                 onStateChanged = { newState -> pageState = newState },
                 modifier = Modifier.fillMaxSize(),
@@ -494,5 +595,26 @@ private fun SingleArticleTab(
         }
 
         isSavingOffline = false
+    }
+
+    pendingExternalUrl?.let { url ->
+        val host = runCatching { Url(url).host }.getOrNull()?.ifBlank { null }
+        AlertDialog(
+            onDismissRequest = { pendingExternalUrl = null },
+            title = { Text("Leave ${site.name}?") },
+            text = { Text("This link goes to ${host ?: "an outside site"}, not ${site.name}.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        pendingExternalUrl = null
+                        isOnExternalSite = true
+                        scope.launch { navigator.loadUrl(url) }
+                    },
+                ) { Text("Continue") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingExternalUrl = null }) { Text("Stay here") }
+            },
+        )
     }
 }

@@ -40,6 +40,7 @@ fun SettingsScreen(onOpenWikiPicker: () -> Unit, repository: AppRepository = koi
     val textScale by repository.textScale.collectAsState()
     val showImages by repository.showImages.collectAsState()
     val openLinksExternally by repository.openLinksExternally.collectAsState()
+    val confirmExternalNavigation by repository.confirmExternalNavigation.collectAsState()
 
     Column(Modifier.fillMaxSize()) {
         TopAppBar(
@@ -109,6 +110,14 @@ fun SettingsScreen(onOpenWikiPicker: () -> Unit, repository: AppRepository = koi
                     subtitle = "Always open article links outside the app instead of in the reader",
                     checked = openLinksExternally,
                     onCheckedChange = repository::setOpenLinksExternally,
+                )
+            }
+            item {
+                SwitchRow(
+                    title = "Confirm before leaving a site",
+                    subtitle = "Ask before a tab loads a link to a site outside your wikis",
+                    checked = confirmExternalNavigation,
+                    onCheckedChange = repository::setConfirmExternalNavigation,
                 )
             }
 

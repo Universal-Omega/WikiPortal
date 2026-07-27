@@ -63,12 +63,13 @@ CREATE TABLE IF NOT EXISTS SavedPage (
     extract TEXT NOT NULL,
     thumbnailUrl TEXT,
     savedAtEpochMillis INTEGER NOT NULL,
+    url TEXT,
     PRIMARY KEY (wikiId, title)
 );
 
 upsertSavedPage:
-INSERT OR REPLACE INTO SavedPage(wikiId, wikiName, title, extract, thumbnailUrl, savedAtEpochMillis)
-VALUES (?, ?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO SavedPage(wikiId, wikiName, title, extract, thumbnailUrl, savedAtEpochMillis, url)
+VALUES (?, ?, ?, ?, ?, ?, ?);
 
 deleteSavedPage:
 DELETE FROM SavedPage WHERE wikiId = ? AND title = ?;
@@ -86,12 +87,13 @@ CREATE TABLE IF NOT EXISTS HistoryEntry (
     extract TEXT NOT NULL DEFAULT '',
     thumbnailUrl TEXT,
     visitedAtEpochMillis INTEGER NOT NULL,
+    url TEXT,
     PRIMARY KEY (wikiId, title)
 );
 
 upsertHistoryEntry:
-INSERT OR REPLACE INTO HistoryEntry(wikiId, wikiName, title, extract, thumbnailUrl, visitedAtEpochMillis)
-VALUES (?, ?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO HistoryEntry(wikiId, wikiName, title, extract, thumbnailUrl, visitedAtEpochMillis, url)
+VALUES (?, ?, ?, ?, ?, ?, ?);
 
 selectRecentHistory:
 SELECT * FROM HistoryEntry ORDER BY visitedAtEpochMillis DESC LIMIT :limit;
@@ -132,12 +134,13 @@ CREATE TABLE IF NOT EXISTS OpenTab (
     title TEXT NOT NULL,
     thumbnailUrl TEXT,
     extract TEXT,
-    createdAtEpochMillis INTEGER NOT NULL
+    createdAtEpochMillis INTEGER NOT NULL,
+    currentUrl TEXT
 );
 
 upsertOpenTab:
-INSERT OR REPLACE INTO OpenTab(id, wikiId, wikiName, title, thumbnailUrl, extract, createdAtEpochMillis)
-VALUES (?, ?, ?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO OpenTab(id, wikiId, wikiName, title, thumbnailUrl, extract, createdAtEpochMillis, currentUrl)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
 
 deleteOpenTab:
 DELETE FROM OpenTab WHERE id = ?;

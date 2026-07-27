@@ -16,7 +16,8 @@ data class TrendingArticle(val title: String, val views: Long?, val url: String?
  */
 private val WIKIMEDIA_SUFFIXES = listOf(
     ".wikipedia.org", ".wiktionary.org", ".wikibooks.org", ".wikiquote.org",
-    ".wikisource.org", ".wikinews.org", ".wikiversity.org", ".wikivoyage.org", ".wikidata.org",
+    ".wikisource.org", ".wikinews.org", ".wikiversity.org", ".wikivoyage.org",
+    ".wikidata.org", "mediawiki.org",
 )
 
 /**

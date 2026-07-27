@@ -121,6 +121,7 @@ class SqlDelightWikiPortalStore(private val driver: SqlDriver) : WikiPortalStore
                 extract = it.extract,
                 thumbnailUrl = it.thumbnailUrl,
                 timestampEpochMillis = it.savedAtEpochMillis,
+                url = it.url,
             )
         }
     }
@@ -136,7 +137,7 @@ class SqlDelightWikiPortalStore(private val driver: SqlDriver) : WikiPortalStore
             queries.deleteSavedPage(page.wikiId, page.title)
         } else {
             queries.upsertSavedPage(
-                page.wikiId, page.wikiName, page.title, page.extract, page.thumbnailUrl, page.timestampEpochMillis,
+                page.wikiId, page.wikiName, page.title, page.extract, page.thumbnailUrl, page.timestampEpochMillis, page.url,
             )
         }
     }
@@ -151,13 +152,14 @@ class SqlDelightWikiPortalStore(private val driver: SqlDriver) : WikiPortalStore
                 extract = it.extract,
                 thumbnailUrl = it.thumbnailUrl,
                 timestampEpochMillis = it.visitedAtEpochMillis,
+                url = it.url,
             )
         }
     }
 
     override suspend fun recordVisit(page: SavedPage) {
         ensureSchema()
-        queries.upsertHistoryEntry(page.wikiId, page.wikiName, page.title, page.extract, page.thumbnailUrl, page.timestampEpochMillis)
+        queries.upsertHistoryEntry(page.wikiId, page.wikiName, page.title, page.extract, page.thumbnailUrl, page.timestampEpochMillis, page.url)
     }
 
     override suspend fun clearHistory() {
@@ -209,6 +211,7 @@ class SqlDelightWikiPortalStore(private val driver: SqlDriver) : WikiPortalStore
                 thumbnailUrl = it.thumbnailUrl,
                 extract = it.extract,
                 createdAtEpochMillis = it.createdAtEpochMillis,
+                currentUrl = it.currentUrl,
             )
         }
     }
@@ -216,7 +219,7 @@ class SqlDelightWikiPortalStore(private val driver: SqlDriver) : WikiPortalStore
     override suspend fun upsertOpenTab(tab: ArticleTab) {
         ensureSchema()
         queries.upsertOpenTab(
-            tab.id, tab.wikiId, tab.wikiName, tab.title, tab.thumbnailUrl, tab.extract, tab.createdAtEpochMillis,
+            tab.id, tab.wikiId, tab.wikiName, tab.title, tab.thumbnailUrl, tab.extract, tab.createdAtEpochMillis, tab.currentUrl,
         )
     }
 

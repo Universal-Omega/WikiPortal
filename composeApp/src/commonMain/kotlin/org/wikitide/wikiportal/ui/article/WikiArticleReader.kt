@@ -13,6 +13,8 @@ import com.multiplatform.webview.web.rememberWebViewState
 import io.ktor.http.URLBuilder
 import io.ktor.http.decodeURLQueryComponent
 import kotlin.io.encoding.Base64
+import kotlinx.coroutines.delay
+import org.wikitide.wikiportal.data.model.AuthDomains
 import org.wikitide.wikiportal.data.model.WikiSite
 
 /** Snapshot of what the reader is currently showing, reported up to [ArticleHostScreen]. */
@@ -54,14 +56,19 @@ fun WikiArticleReader(
      * needed.
      */
     allWikis: List<WikiSite>,
+    historyNavTrigger: Int = 0,
+    /** The tab's last known live address, see ArticleTab.currentUrl. Null for a freshly-opened tab. */
+    restoreUrl: String? = null,
     onWebViewReady: (NativeWebView) -> Unit = {},
     onStateChanged: (WikiPageState) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val initialUrl = if (offlineHtml != null) {
-        "data:text/html;charset=utf-8;base64," + Base64.encode(offlineHtml.encodeToByteArray())
-    } else {
-        site.articleUrl(title)
+    val initialUrl = remember {
+        when {
+            offlineHtml != null -> "data:text/html;charset=utf-8;base64," + Base64.encode(offlineHtml.encodeToByteArray())
+            restoreUrl != null -> restoreUrl
+            else -> site.articleUrl(title)
+        }
     }
 
     val webViewState = rememberWebViewState(initialUrl)
@@ -91,7 +98,17 @@ fun WikiArticleReader(
         mutableStateOf(WikiPageState(title = title, canonicalTitle = title, displaySiteName = site.name, url = initialUrl))
     }
 
-    LaunchedEffect(webViewState.pageTitle, webViewState.loadingState, webViewState.lastLoadedUrl) {
+    // A shared-login host, see AuthDomains, is not a wiki this app has
+    // saved in its own right, but a detour on the way back to whichever
+    // saved wiki sent the person there. Resolving it straight to site
+    // here, rather than leaving it unmatched, means it gets treated as
+    // that same wiki for title tracking below, the same way it does in
+    // ArticleHostScreen's RequestInterceptor for skin and confirmation
+    // handling.
+    fun resolveMatchedSite(url: String): WikiSite? =
+        if (AuthDomains.matches(url)) site else allWikis.firstOrNull { url.startsWith(it.baseUrl) }
+
+    LaunchedEffect(webViewState.pageTitle, webViewState.loadingState, webViewState.lastLoadedUrl, historyNavTrigger) {
         val loading = webViewState.loadingState
         val url = webViewState.lastLoadedUrl
         val progress = (loading as? LoadingState.Loading)?.let { (it.progress * 100).toInt() } ?: 100
@@ -110,7 +127,60 @@ fun WikiArticleReader(
             return@LaunchedEffect
         }
 
-        val matchedSite = url?.let { u -> allWikis.firstOrNull { u.startsWith(it.baseUrl) } }
+        // Cross-site, unmatched, content has no URL-based title
+        // extraction to fall back on. This asks the DOM directly
+        // through evaluateJavaScript once loading has actually
+        // finished. That call is async, so there is a real gap
+        // between "finished loading" and "we know the real title."
+        // During that gap, and during ordinary mid-load progress
+        // updates, only isLoading, progress, and url are updated
+        // below. The title fields stay whatever they last genuinely
+        // were until the JS lookup resolves.
+        if (loading is LoadingState.Finished) {
+            delay(150)
+            navigator.evaluateJavaScript("window.location.href") { rawUrl ->
+                val liveUrl = rawUrl.trim().removeSurrounding("\"").ifBlank { null } ?: url
+                val matchedSite = liveUrl?.let { u -> resolveMatchedSite(u) }
+                val isAuth = liveUrl?.let { AuthDomains.matches(it) } == true
+
+                if (matchedSite != null && !isAuth) {
+                    val extractedTitle = extractCanonicalTitle(liveUrl, matchedSite)
+                    lastKnown.value = lastKnown.value.copy(
+                        title = extractedTitle ?: lastKnown.value.title,
+                        canonicalTitle = extractedTitle ?: lastKnown.value.canonicalTitle,
+                        displaySiteName = matchedSite.name,
+                        url = liveUrl,
+                        isLoading = false,
+                        progress = 100,
+                    )
+                    onStateChanged(lastKnown.value)
+                } else {
+                    // Cross-site, unmatched, content has no URL-based
+                    // title extraction to fall back on, so this asks
+                    // the DOM directly instead.
+                    navigator.evaluateJavaScript("document.title") { rawTitle ->
+                        val cleaned = rawTitle.trim().removeSurrounding("\"")
+                        lastKnown.value = lastKnown.value.copy(
+                            title = cleaned.ifBlank { lastKnown.value.title },
+                            canonicalTitle = cleaned.ifBlank { lastKnown.value.canonicalTitle },
+                            displaySiteName = matchedSite?.name,
+                            url = liveUrl ?: lastKnown.value.url,
+                            isLoading = false,
+                            progress = 100,
+                        )
+                        onStateChanged(lastKnown.value)
+                    }
+                }
+            }
+            return@LaunchedEffect
+        }
+
+        // Still loading. A best-effort, responsive update from whatever
+        // this state currently reports, so the progress bar and title
+        // don't sit frozen mid-navigation. The Finished branch above,
+        // not this one, is what commits the real, final answer once a
+        // load actually settles.
+        val matchedSite = url?.let { u -> resolveMatchedSite(u) }
 
         if (matchedSite != null) {
             // Same site, or a different known wiki. This derives the
@@ -120,6 +190,11 @@ fun WikiArticleReader(
             // this keeps the last known title rather than guessing from
             // pageTitle.
             val extractedTitle = extractCanonicalTitle(url, matchedSite)
+            // While a same-site navigation is still in flight, the
+            // interceptor in ArticleHostScreen is about to reject this
+            // request and reload it with useskin attached, so committing
+            // this title now would just flash the wrong one for a
+            // moment.
             val isAwaitingSkinRewrite = matchedSite.id == site.id && !url.contains("useskin=${site.skin}")
             val canonicalTitle = extractedTitle?.takeUnless { isAwaitingSkinRewrite }
             lastKnown.value = lastKnown.value.copy(
@@ -132,36 +207,12 @@ fun WikiArticleReader(
             )
             onStateChanged(lastKnown.value)
         } else if (url != null) {
-            // Cross-site, unmatched, content has no URL-based title
-            // extraction to fall back on. This asks the DOM directly
-            // through evaluateJavaScript once loading has actually
-            // finished. That call is async, so there is a real gap
-            // between "finished loading" and "we know the real title."
-            // During that gap, and during ordinary mid-load progress
-            // updates, only isLoading, progress, and url are updated
-            // below. The title fields stay whatever they last genuinely
-            // were until the JS lookup resolves.
-            if (loading is LoadingState.Finished) {
-                navigator.evaluateJavaScript("document.title") { result ->
-                    val cleaned = result.trim().removeSurrounding("\"")
-                    lastKnown.value = lastKnown.value.copy(
-                        title = cleaned.ifBlank { lastKnown.value.title },
-                        canonicalTitle = cleaned.ifBlank { lastKnown.value.canonicalTitle },
-                        displaySiteName = null,
-                        url = url,
-                        isLoading = false,
-                        progress = 100,
-                    )
-                    onStateChanged(lastKnown.value)
-                }
-            } else {
-                lastKnown.value = lastKnown.value.copy(
-                    url = url,
-                    isLoading = isLoading,
-                    progress = progress,
-                )
-                onStateChanged(lastKnown.value)
-            }
+            lastKnown.value = lastKnown.value.copy(
+                url = url,
+                isLoading = isLoading,
+                progress = progress,
+            )
+            onStateChanged(lastKnown.value)
         }
     }
 
