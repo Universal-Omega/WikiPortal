@@ -12,7 +12,6 @@ import com.multiplatform.webview.web.WebView
 import com.multiplatform.webview.web.WebViewError
 import com.multiplatform.webview.web.WebViewNavigator
 import com.multiplatform.webview.web.rememberWebViewState
-import io.ktor.client.statement.request
 import io.ktor.http.URLBuilder
 import io.ktor.http.decodeURLQueryComponent
 import kotlin.io.encoding.Base64
@@ -128,11 +127,11 @@ fun WikiArticleReader(
     LaunchedEffect(offlineHtml) {
         if (offlineHtml != null) return@LaunchedEffect
         snapshotFlow { webViewState.errorsForCurrentRequest.toList() }.collect { errors ->
-            val mainFrameError = errors.lastOrNull { it.request?.isForMainFrame != false }
+            val mainFrameError = errors.lastOrNull { it.isForMainFrame != false }
             if (mainFrameError != null) {
                 AppLog.e(
                     "WikiArticleReader",
-                    "Load failed for ${mainFrameError.request?.url ?: initialUrl}: code=${mainFrameError.code}, ${mainFrameError.description}",
+                    "Load failed for URL: code=${mainFrameError.code}, ${mainFrameError.description}",
                 )
                 lastKnown.value = lastKnown.value.copy(
                     isLoading = false,
