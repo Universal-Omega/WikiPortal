@@ -7,7 +7,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlin.random.Random
 import org.wikitide.wikiportal.data.model.PresetWikis
 import org.wikitide.wikiportal.data.model.SavedPage
 import org.wikitide.wikiportal.data.model.ThemeMode
@@ -15,6 +14,7 @@ import org.wikitide.wikiportal.data.model.WikiFolder
 import org.wikitide.wikiportal.data.model.WikiSite
 import org.wikitide.wikiportal.data.store.SettingKeys
 import org.wikitide.wikiportal.data.store.WikiPortalStore
+import kotlin.random.Random
 
 /**
  * A reactive layer over [WikiPortalStore]. The store itself is a plain
@@ -382,6 +382,20 @@ class AppRepository(
             store.removeFolder(folderId)
             orphaned.forEach { store.upsertWiki(it) }
         }
+    }
+
+    /**
+     * Persists a new order for the person's custom folders after a drag
+     * reorder in WikiPickerScreen. [orderedIds] is expected to already
+     * be the full set of custom folder ids in their new order. Any id
+     * that no longer matches a real folder, for example one deleted in
+     * another session, is just skipped rather than treated as an error.
+     */
+    fun reorderFolders(orderedIds: List<String>) {
+        val byId = _customFolders.value.associateBy { it.id }
+        val reordered = orderedIds.mapNotNull { byId[it] }
+        _customFolders.value = reordered
+        appScope.launch { reordered.forEachIndexed { index, folder -> store.upsertFolder(folder, index) } }
     }
 
     /**
