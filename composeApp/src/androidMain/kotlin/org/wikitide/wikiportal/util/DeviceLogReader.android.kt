@@ -6,22 +6,37 @@ import kotlinx.coroutines.withContext
 
 /**
  * threadtime lines look like:
- * 07-27 21:49:12.345  1234  1234 E Ktor    : some message here
+ * 07-27 21:49:12.345  1234  1234 E WikiPortal    : [Ktor] some message
  * The pid and tid columns are dropped since callers only care about
  * time, level, tag, and the message itself.
  */
 private val threadTimeLine = Regex("""^(\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\.\d{3})\s+\d+\s+\d+\s+([VDIWEF])\s+([^:]*):\s?(.*)$""")
 
+/** Recovers the real tag AppLog was called with, see platformLog's "[tag] message" convention. */
+private val appLogBracket = Regex("""^\[([^]]+)]\s?(.*)$""")
+
 private fun parseThreadTimeLine(line: String): LogEntry? {
     val match = threadTimeLine.matchEntire(line) ?: return null
-    val (time, levelChar, tag, message) = match.destructured
+    val (time, levelChar, rawTag, rawMessage) = match.destructured
     val level = when (levelChar) {
         "V", "D" -> LogLevel.DEBUG
         "I" -> LogLevel.INFO
         "W" -> LogLevel.WARN
         else -> LogLevel.ERROR
     }
-    return LogEntry(timestampEpochMillis = 0L, level = level, tag = tag.trim(), message = message, displayTime = time)
+    val androidTag = rawTag.trim()
+    val isAppSource = androidTag == ANDROID_LOG_TAG
+    val bracketMatch = if (isAppSource) appLogBracket.matchEntire(rawMessage) else null
+    val displayTag = bracketMatch?.groupValues?.get(1) ?: androidTag
+    val displayMessage = bracketMatch?.groupValues?.get(2) ?: rawMessage
+    return LogEntry(
+        timestampEpochMillis = 0L,
+        level = level,
+        tag = displayTag,
+        message = displayMessage,
+        displayTime = time,
+        isAppSource = isAppSource,
+    )
 }
 
 actual suspend fun readDeviceLogs(maxLines: Int): List<LogEntry> = withContext(Dispatchers.IO) {
