@@ -2,6 +2,7 @@ package org.wikitide.wikiportal.data.store
 
 import org.wikitide.wikiportal.data.model.ArticleTab
 import org.wikitide.wikiportal.data.model.SavedPage
+import org.wikitide.wikiportal.data.model.WikiFolder
 import org.wikitide.wikiportal.data.model.WikiSite
 
 /**
@@ -35,6 +36,18 @@ interface WikiPortalStore {
     suspend fun allStoredWikis(): List<WikiSite>
     suspend fun upsertWiki(site: WikiSite)
     suspend fun removeWiki(id: String)
+
+    /**
+     * Folders the person created themselves to organize their custom
+     * wikis, ordered the way they were created in. This does not
+     * include [PresetFolders], which are not stored rows at all, just
+     * fixed objects the app already knows about. Which wiki sits in
+     * which folder is not stored here either. That lives on the wiki
+     * row itself, see [WikiSite.folderId].
+     */
+    suspend fun allFolders(): List<WikiFolder>
+    suspend fun upsertFolder(folder: WikiFolder, sortOrder: Int)
+    suspend fun removeFolder(id: String)
 
     suspend fun savedPages(): List<SavedPage>
     suspend fun isSaved(wikiId: String, title: String): Boolean
