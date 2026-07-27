@@ -46,7 +46,7 @@ fun <T : HttpClientEngineConfig> HttpClientConfig<T>.configureMediaWikiClient() 
         level = LogLevel.INFO
     }
     defaultRequest {
-        header(HttpHeaders.UserAgent, "WikiPortal/${BuildKonfig.VERSION_NAME} (https://wikitide.org)")
+        header(HttpHeaders.UserAgent, "WikiPortal/${BuildKonfig.VERSION_NAME} (https://wikiportal.app)")
     }
 }
 
