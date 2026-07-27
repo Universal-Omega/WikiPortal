@@ -2,6 +2,7 @@ package org.wikitide.wikiportal.ui.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,17 +20,19 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.DriveFileMove
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CreateNewFolder
-import androidx.compose.material.icons.filled.DriveFileMove
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Public
@@ -60,11 +63,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import kotlin.math.roundToInt
 import coil3.compose.AsyncImage
 import org.koin.compose.koinInject
@@ -112,8 +118,65 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, repository
     fun toggleExpanded(folderId: String) { expandedFolders[folderId] = !isExpanded(folderId) }
 
     val presetsByFolder = remember(presetWikis) { presetWikis.groupBy { it.folderId } }
+    val listState = rememberLazyListState()
+
+    // A local copy of the custom folder order, mutated live while a
+    // drag is in progress so the list visibly reorders as the finger
+    // moves, and only written back to the repository once the drag
+    // ends. Falls back to whatever the repository has whenever nothing
+    // is being dragged, so external changes, for example a folder
+    // deleted from another dialog, are still picked up.
+    var localCustomFolders by remember { mutableStateOf(customFolders) }
+    var draggingFolderId by remember { mutableStateOf<String?>(null) }
+    var dragOffsetY by remember { mutableStateOf(0f) }
+    LaunchedEffect(customFolders) {
+        if (draggingFolderId == null) localCustomFolders = customFolders
+    }
     val customByFolder = remember(customWikis) { customWikis.groupBy { it.folderId } }
     val ungroupedCustomWikis = customByFolder[null] ?: emptyList()
+
+    fun onFolderDragStart(folderId: String) {
+        draggingFolderId = folderId
+        dragOffsetY = 0f
+    }
+
+    fun onFolderDragEnd() {
+        draggingFolderId = null
+        dragOffsetY = 0f
+        repository.reorderFolders(localCustomFolders.map { it.id })
+    }
+
+    // Moves the dragged folder one slot at a time as the accumulated
+    // drag distance crosses the midpoint of the neighbor in that
+    // direction, the same rule most drag to reorder lists use. This
+    // reads actual on screen positions from the LazyColumn's own
+    // layout info, keyed by the same "folder-<id>" key each header item
+    // uses below, rather than assuming a fixed row height, since a
+    // folder's own height differs depending on whether it is expanded.
+    fun onFolderDrag(folderId: String, deltaY: Float) {
+        dragOffsetY += deltaY
+        val order = localCustomFolders
+        val currentIndex = order.indexOfFirst { it.id == folderId }
+        if (currentIndex < 0) return
+        val draggedInfo = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == "folder-$folderId" } ?: return
+        val draggedCenter = draggedInfo.offset + draggedInfo.size / 2f + dragOffsetY
+
+        val neighborIndex = when {
+            dragOffsetY < 0 && currentIndex > 0 -> currentIndex - 1
+            dragOffsetY > 0 && currentIndex < order.lastIndex -> currentIndex + 1
+            else -> return
+        }
+        val neighborInfo = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == "folder-${order[neighborIndex].id}" } ?: return
+        val neighborCenter = neighborInfo.offset + neighborInfo.size / 2f
+        val crossedNeighbor = if (neighborIndex > currentIndex) draggedCenter > neighborCenter else draggedCenter < neighborCenter
+        if (crossedNeighbor) {
+            val reordered = order.toMutableList()
+            val moved = reordered.removeAt(currentIndex)
+            reordered.add(neighborIndex, moved)
+            localCustomFolders = reordered
+            dragOffsetY -= (neighborCenter - (draggedInfo.offset + draggedInfo.size / 2f))
+        }
+    }
 
     Scaffold(
         contentWindowInsets = WindowInsets(0.dp),
@@ -131,6 +194,7 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, repository
         },
     ) { innerPadding ->
         LazyColumn(
+            state = listState,
             modifier = Modifier.padding(innerPadding).fillMaxSize(),
             contentPadding = PaddingValues(vertical = 8.dp),
         ) {
@@ -150,7 +214,7 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, repository
                 )
             }
 
-            if (customWikis.isNotEmpty() || customFolders.isNotEmpty()) {
+            if (customWikis.isNotEmpty() || localCustomFolders.isNotEmpty()) {
                 item { GroupLabel("Your wikis") }
                 items(ungroupedCustomWikis, key = { it.id }) { wiki ->
                     WikiRow(
@@ -162,7 +226,7 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, repository
                         repository = repository,
                     )
                 }
-                customFolders.forEach { folder ->
+                localCustomFolders.forEach { folder ->
                     val wikisInFolder = customByFolder[folder.id].orEmpty()
                     folderSection(
                         folder = folder,
@@ -177,6 +241,11 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, repository
                         onMoveWikiToFolder = { wiki -> movingWikiId = wiki.id },
                         onRenameFolder = { renamingFolder = folder },
                         onDeleteFolder = { deletingFolder = folder },
+                        isDragging = draggingFolderId == folder.id,
+                        dragOffsetY = dragOffsetY,
+                        onDragStart = { onFolderDragStart(folder.id) },
+                        onDrag = { delta -> onFolderDrag(folder.id, delta) },
+                        onDragEnd = { onFolderDragEnd() },
                     )
                 }
             }
@@ -226,7 +295,7 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, repository
     movingWiki?.let { wiki ->
         MoveToFolderDialog(
             wiki = wiki,
-            folders = customFolders,
+            folders = localCustomFolders,
             onDismiss = { movingWikiId = null },
             onSelectFolder = { folderId ->
                 repository.moveWikiToFolder(wiki.id, folderId)
@@ -276,8 +345,9 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, repository
 /**
  * Renders one folder as a collapsible header followed, when expanded,
  * by its wikis. Shared between preset folders, see [PresetFolders], and
- * the person's own custom folders, with rename and delete only wired up
- * for the latter through [onRenameFolder] and [onDeleteFolder], since a
+ * the person's own custom folders, with rename, delete, and drag
+ * reorder only wired up for the latter, through [onRenameFolder],
+ * [onDeleteFolder], and [onDragStart]/[onDrag]/[onDragEnd], since a
  * preset folder is not the person's to reorganize.
  */
 private fun LazyListScope.folderSection(
@@ -293,6 +363,11 @@ private fun LazyListScope.folderSection(
     onMoveWikiToFolder: ((WikiSite) -> Unit)? = null,
     onRenameFolder: (() -> Unit)? = null,
     onDeleteFolder: (() -> Unit)? = null,
+    isDragging: Boolean = false,
+    dragOffsetY: Float = 0f,
+    onDragStart: (() -> Unit)? = null,
+    onDrag: ((Float) -> Unit)? = null,
+    onDragEnd: (() -> Unit)? = null,
 ) {
     item(key = "folder-${folder.id}") {
         FolderHeaderRow(
@@ -302,6 +377,11 @@ private fun LazyListScope.folderSection(
             onToggle = onToggle,
             onRename = onRenameFolder,
             onDelete = onDeleteFolder,
+            isDragging = isDragging,
+            dragOffsetY = dragOffsetY,
+            onDragStart = onDragStart,
+            onDrag = onDrag,
+            onDragEnd = onDragEnd,
         )
     }
     if (expanded) {
@@ -327,19 +407,45 @@ private fun FolderHeaderRow(
     onToggle: () -> Unit,
     onRename: (() -> Unit)?,
     onDelete: (() -> Unit)?,
+    isDragging: Boolean,
+    dragOffsetY: Float,
+    onDragStart: (() -> Unit)?,
+    onDrag: ((Float) -> Unit)?,
+    onDragEnd: (() -> Unit)?,
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    val draggable = onDragStart != null && onDrag != null && onDragEnd != null
     Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle).padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer { translationY = if (isDragging) dragOffsetY else 0f }
+            .zIndex(if (isDragging) 1f else 0f)
+            .clickable(onClick = onToggle)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
+        if (draggable) {
+            Icon(
+                Icons.Filled.DragHandle,
+                contentDescription = "Drag to reorder ${folder.name}",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.pointerInput(folder.id) {
+                    detectDragGesturesAfterLongPress(
+                        onDragStart = { onDragStart?.invoke() },
+                        onDrag = { change, delta -> change.consume(); onDrag?.invoke(delta.y) },
+                        onDragEnd = { onDragEnd?.invoke() },
+                        onDragCancel = { onDragEnd?.invoke() },
+                    )
+                },
+            )
+        }
         Icon(
-            if (expanded) Icons.Filled.KeyboardArrowDown else Icons.Filled.KeyboardArrowRight,
+            if (expanded) Icons.Filled.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Icon(Icons.Filled.Folder, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+        Icon(Icons.Filled.Folder, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         Column(Modifier.weight(1f)) {
             Text(folder.name, style = MaterialTheme.typography.titleMedium)
             Text(
@@ -371,7 +477,7 @@ private fun GroupLabel(text: String) {
     Text(
         text = text,
         style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
     )
 }
@@ -392,7 +498,14 @@ private fun GroupLabel(text: String) {
  * here. That full refresh still happens exactly when it is actually
  * needed, when activating a wiki or opening its skin dialog below, and
  * is skipped by refreshFaviconOnly automatically once it has, since the
- * full refresh already covers favicon as a side effect. 
+ * full refresh already covers favicon as a side effect.
+ *
+ * Every action past picking the wiki itself, changing its skin, moving
+ * it to a folder, removing it, sits behind one overflow menu rather
+ * than as separate icons in a row. Four icon buttons side by side next
+ * to a favicon and two lines of text was cramped enough to be hard to
+ * tap accurately, and most of those actions are rare compared to just
+ * tapping the row to switch wikis.
  */
 @Composable
 private fun WikiRow(
@@ -406,6 +519,7 @@ private fun WikiRow(
     indented: Boolean = false,
 ) {
     LaunchedEffect(wiki.id) { repository.refreshFaviconOnly(wiki) }
+    var showMenu by remember { mutableStateOf(false) }
 
     Row(
         modifier = Modifier
@@ -437,16 +551,31 @@ private fun WikiRow(
             )
         }
         if (selected) Icon(Icons.Filled.Check, contentDescription = "Selected", tint = MaterialTheme.colorScheme.primary)
-        if (onMoveToFolder != null) {
-            IconButton(onClick = onMoveToFolder) {
-                Icon(Icons.Filled.DriveFileMove, contentDescription = "Move ${wiki.name} to a folder")
+        Box {
+            IconButton(onClick = { showMenu = true }) {
+                Icon(Icons.Filled.MoreVert, contentDescription = "Options for ${wiki.name}")
             }
-        }
-        IconButton(onClick = onEditSkin) {
-            Icon(Icons.Filled.Palette, contentDescription = "Change skin for ${wiki.name}")
-        }
-        if (onRemove != null) {
-            IconButton(onClick = onRemove) { Icon(Icons.Filled.Close, contentDescription = "Remove wiki") }
+            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                DropdownMenuItem(
+                    text = { Text("Change skin") },
+                    leadingIcon = { Icon(Icons.Filled.Palette, contentDescription = null) },
+                    onClick = { showMenu = false; onEditSkin() },
+                )
+                if (onMoveToFolder != null) {
+                    DropdownMenuItem(
+                        text = { Text("Move to folder") },
+                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.DriveFileMove, contentDescription = null) },
+                        onClick = { showMenu = false; onMoveToFolder() },
+                    )
+                }
+                if (onRemove != null) {
+                    DropdownMenuItem(
+                        text = { Text("Remove") },
+                        leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null) },
+                        onClick = { showMenu = false; onRemove() },
+                    )
+                }
+            }
         }
     }
 }
