@@ -26,3 +26,6 @@ data object AddWikiRoute : Route
 
 @Serializable
 data object ArticleRoute : Route
+
+@Serializable
+data object LogsRoute : Route
