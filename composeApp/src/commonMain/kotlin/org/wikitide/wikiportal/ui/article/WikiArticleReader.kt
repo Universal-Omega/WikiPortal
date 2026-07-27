@@ -110,8 +110,49 @@ fun WikiArticleReader(
             return@LaunchedEffect
         }
 
-        val matchedSite = url?.let { u -> allWikis.firstOrNull { u.startsWith(it.baseUrl) } }
+        // Cross-site, unmatched, content has no URL-based title
+        // extraction to fall back on. This asks the DOM directly
+        // through evaluateJavaScript once loading has actually
+        // finished. That call is async, so there is a real gap
+        // between "finished loading" and "we know the real title."
+        // During that gap, and during ordinary mid-load progress
+        // updates, only isLoading, progress, and url are updated
+        // below. The title fields stay whatever they last genuinely
+        // were until the JS lookup resolves.
+        if (loading is LoadingState.Finished) {
+            navigator.evaluateJavaScript("window.location.href") { rawUrl ->
+                val liveUrl = rawUrl.trim().removeSurrounding("\"").ifBlank { null } ?: url
+                val matchedSite = liveUrl?.let { u -> allWikis.firstOrNull { u.startsWith(it.baseUrl) } }
+                if (matchedSite != null) {
+                    val extractedTitle = extractCanonicalTitle(liveUrl, matchedSite)
+                    lastKnown.value = lastKnown.value.copy(
+                        title = extractedTitle ?: lastKnown.value.title,
+                        canonicalTitle = extractedTitle ?: lastKnown.value.canonicalTitle,
+                        displaySiteName = matchedSite.name,
+                        url = liveUrl,
+                        isLoading = false,
+                        progress = 100,
+                    )
+                    onStateChanged(lastKnown.value)
+                } else {
+                    navigator.evaluateJavaScript("document.title") { rawTitle ->
+                        val cleaned = rawTitle.trim().removeSurrounding("\"")
+                        lastKnown.value = lastKnown.value.copy(
+                            title = cleaned.ifBlank { lastKnown.value.title },
+                            canonicalTitle = cleaned.ifBlank { lastKnown.value.canonicalTitle },
+                            displaySiteName = null,
+                            url = liveUrl ?: lastKnown.value.url,
+                            isLoading = false,
+                            progress = 100,
+                        )
+                        onStateChanged(lastKnown.value)
+                    }
+                }
+            }
+            return@LaunchedEffect
+        }
 
+        val matchedSite = url?.let { u -> allWikis.firstOrNull { u.startsWith(it.baseUrl) } }
         if (matchedSite != null) {
             // Same site, or a different known wiki. This derives the
             // title from the URL, which has proven reliable around
@@ -120,7 +161,7 @@ fun WikiArticleReader(
             // this keeps the last known title rather than guessing from
             // pageTitle.
             val extractedTitle = extractCanonicalTitle(url, matchedSite)
-            val isAwaitingSkinRewrite = matchedSite.id == site.id && !url.contains("useskin=${site.skin}") && isLoading
+            val isAwaitingSkinRewrite = matchedSite.id == site.id && !url.contains("useskin=${site.skin}")
             val canonicalTitle = extractedTitle?.takeUnless { isAwaitingSkinRewrite }
             lastKnown.value = lastKnown.value.copy(
                 title = canonicalTitle ?: lastKnown.value.title,
@@ -132,36 +173,12 @@ fun WikiArticleReader(
             )
             onStateChanged(lastKnown.value)
         } else if (url != null) {
-            // Cross-site, unmatched, content has no URL-based title
-            // extraction to fall back on. This asks the DOM directly
-            // through evaluateJavaScript once loading has actually
-            // finished. That call is async, so there is a real gap
-            // between "finished loading" and "we know the real title."
-            // During that gap, and during ordinary mid-load progress
-            // updates, only isLoading, progress, and url are updated
-            // below. The title fields stay whatever they last genuinely
-            // were until the JS lookup resolves.
-            if (loading is LoadingState.Finished) {
-                navigator.evaluateJavaScript("document.title") { result ->
-                    val cleaned = result.trim().removeSurrounding("\"")
-                    lastKnown.value = lastKnown.value.copy(
-                        title = cleaned.ifBlank { lastKnown.value.title },
-                        canonicalTitle = cleaned.ifBlank { lastKnown.value.canonicalTitle },
-                        displaySiteName = null,
-                        url = url,
-                        isLoading = false,
-                        progress = 100,
-                    )
-                    onStateChanged(lastKnown.value)
-                }
-            } else {
-                lastKnown.value = lastKnown.value.copy(
-                    url = url,
-                    isLoading = isLoading,
-                    progress = progress,
-                )
-                onStateChanged(lastKnown.value)
-            }
+            lastKnown.value = lastKnown.value.copy(
+                url = url,
+                isLoading = isLoading,
+                progress = progress,
+            )
+            onStateChanged(lastKnown.value)
         }
     }
 
