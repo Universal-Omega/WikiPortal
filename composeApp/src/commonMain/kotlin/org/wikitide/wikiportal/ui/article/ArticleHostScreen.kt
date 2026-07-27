@@ -167,6 +167,9 @@ private fun SingleArticleTab(
     // interceptor as a fresh request.
     var approvedExternalUrl by remember(tab.id) { mutableStateOf<String?>(null) }
 
+    var lastDeclinedUrl by remember(tab.id) { mutableStateOf<String?>(null) }
+    var lastDeclinedAtMillis by remember(tab.id) { mutableStateOf(0L) }
+
     // Whether the tab's live navigation, as decided by this
     // interceptor's own past calls, currently sits outside every saved
     // wiki.
@@ -180,6 +183,8 @@ private fun SingleArticleTab(
     val allWikisState = rememberUpdatedState(allWikis)
     val approvedExternalUrlState = rememberUpdatedState(approvedExternalUrl)
     val isOnExternalSiteState = rememberUpdatedState(isOnExternalSite)
+    val lastDeclinedUrlState = rememberUpdatedState(lastDeclinedUrl)
+    val lastDeclinedAtMillisState = rememberUpdatedState(lastDeclinedAtMillis)
 
     val navigator = rememberWebViewNavigator(
         requestInterceptor = remember(site) {
@@ -196,6 +201,12 @@ private fun SingleArticleTab(
                         if (alreadyDecided || !confirmExternalNavigationState.value) {
                             isOnExternalSite = true
                             return WebRequestInterceptResult.Allow
+                        }
+
+                        val isDuplicateOfRecentDecline = url == lastDeclinedUrlState.value &&
+                            nowEpochMillis() - lastDeclinedAtMillisState.value < 800L
+                        if (isDuplicateOfRecentDecline) {
+                            return WebRequestInterceptResult.Reject
                         }
 
                         pendingExternalUrl = url
@@ -542,8 +553,13 @@ private fun SingleArticleTab(
 
     pendingExternalUrl?.let { url ->
         val host = runCatching { Url(url).host }.getOrNull()?.ifBlank { null }
+        val decline = {
+            pendingExternalUrl = null
+            lastDeclinedUrl = url
+            lastDeclinedAtMillis = nowEpochMillis()
+        }
         AlertDialog(
-            onDismissRequest = { pendingExternalUrl = null },
+            onDismissRequest = decline,
             title = { Text("Leave ${site.name}?") },
             text = { Text("This link goes to ${host ?: "an outside site"}, not ${site.name}.") },
             confirmButton = {
@@ -556,7 +572,7 @@ private fun SingleArticleTab(
                 ) { Text("Continue") }
             },
             dismissButton = {
-                TextButton(onClick = { pendingExternalUrl = null }) { Text("Stay here") }
+                TextButton(onClick = decline) { Text("Stay here") }
             },
         )
     }
