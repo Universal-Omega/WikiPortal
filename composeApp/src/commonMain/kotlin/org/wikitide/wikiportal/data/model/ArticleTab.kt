@@ -11,6 +11,10 @@ package org.wikitide.wikiportal.data.model
  * TabsListScreen. Both are null until the backfill fetch in
  * ArticleHostScreen resolves, which happens once per title change.
  * Being briefly null on a freshly-opened tab is expected, not a bug.
+ * currentUrl is the tab's actual live address, used to reopen it
+ * exactly where it was, since title alone isn't enough to rebuild a
+ * url for a page that isn't really an article on wikiId, like an
+ * auth flow or an external link followed in the tab.
  */
 data class ArticleTab(
     val id: String,
@@ -20,4 +24,5 @@ data class ArticleTab(
     val thumbnailUrl: String? = null,
     val extract: String? = null,
     val createdAtEpochMillis: Long,
+    val currentUrl: String? = null,
 )
