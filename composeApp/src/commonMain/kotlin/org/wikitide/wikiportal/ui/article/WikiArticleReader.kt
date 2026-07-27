@@ -57,14 +57,16 @@ fun WikiArticleReader(
      */
     allWikis: List<WikiSite>,
     historyNavTrigger: Int = 0,
+    /** The tab's last known live address, see ArticleTab.currentUrl. Null for a freshly-opened tab. */
+    restoreUrl: String? = null,
     onWebViewReady: (NativeWebView) -> Unit = {},
     onStateChanged: (WikiPageState) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val initialUrl = if (offlineHtml != null) {
-        "data:text/html;charset=utf-8;base64," + Base64.encode(offlineHtml.encodeToByteArray())
-    } else {
-        site.articleUrl(title)
+    val initialUrl = when {
+        offlineHtml != null -> "data:text/html;charset=utf-8;base64," + Base64.encode(offlineHtml.encodeToByteArray())
+        restoreUrl != null -> restoreUrl
+        else -> site.articleUrl(title)
     }
 
     val webViewState = rememberWebViewState(initialUrl)
