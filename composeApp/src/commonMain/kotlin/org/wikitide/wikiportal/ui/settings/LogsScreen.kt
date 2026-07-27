@@ -110,7 +110,12 @@ fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
 
     fun copyToClipboard(text: String) {
         scope.launch {
-            clipboard.setClipEntry(AnnotatedString(text).toClipEntry())
+            clipboard.setClipEntry(
+                ClipData.newPlainText(
+                    "plain text",
+                    AnnotatedString(text).convertToCharSequence()
+                 ).toClipEntry()
+            )
             snackbarHostState.showSnackbar("Copied")
         }
     }
