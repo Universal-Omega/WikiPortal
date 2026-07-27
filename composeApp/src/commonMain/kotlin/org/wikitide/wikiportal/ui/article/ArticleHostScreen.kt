@@ -70,6 +70,7 @@ import org.koin.compose.koinInject
 import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.TabsRepository
 import org.wikitide.wikiportal.data.model.ArticleTab
+import org.wikitide.wikiportal.data.model.AuthDomains
 import org.wikitide.wikiportal.data.model.SavedPage
 import org.wikitide.wikiportal.network.MediaWikiApi
 import org.wikitide.wikiportal.network.PageSummaryDto
@@ -182,7 +183,12 @@ private fun SingleArticleTab(
                 ): WebRequestInterceptResult {
                     val url = request.url
                     if (url.startsWith("data:")) return WebRequestInterceptResult.Allow
-                    val targetSite = allWikisState.value.firstOrNull { url.startsWith(it.baseUrl) }
+                    val isAuthRequest = AuthDomains.matches(url)
+                    val targetSite = when {
+                        isAuthRequest -> site
+                        else -> allWikisState.value.firstOrNull { url.startsWith(it.baseUrl) }
+                    }
+
                     if (targetSite == null) {
                         if (isOnExternalSiteState.value || !confirmExternalNavigationState.value) {
                             isOnExternalSite = true
@@ -195,7 +201,16 @@ private fun SingleArticleTab(
 
                     isOnExternalSite = false
                     if (url.contains("useskin=${targetSite.skin}")) return WebRequestInterceptResult.Allow
-                    if (!looksLikeArticleRequest(url, targetSite)) return WebRequestInterceptResult.Allow
+                    // looksLikeArticleRequest only recognizes this site's
+                    // own article URL shapes, which an auth host's login
+                    // and callback pages don't match at all, so that
+                    // check is skipped for those. There isn't a wide
+                    // variety of request types to worry about missing
+                    // there the way there is on the wiki's own domain,
+                    // where skipping it would risk rewriting API calls
+                    // and static assets that have no business carrying a
+                    // skin param.
+                    if (!isAuthRequest && !looksLikeArticleRequest(url, targetSite)) return WebRequestInterceptResult.Allow
                     val rewritten = withAppSkin(url, targetSite) ?: return WebRequestInterceptResult.Allow
                     scope.launch { navigator.loadUrl(rewritten) }
                     return WebRequestInterceptResult.Reject
