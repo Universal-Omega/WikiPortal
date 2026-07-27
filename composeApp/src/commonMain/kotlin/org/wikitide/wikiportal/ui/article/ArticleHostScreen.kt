@@ -163,8 +163,15 @@ private fun SingleArticleTab(
     var pendingExternalUrl by remember(tab.id) { mutableStateOf<String?>(null) }
 
     // Whether the tab's live navigation currently sits outside every
-    // saved wiki.
-    var isOnExternalSite by remember(tab.id) { mutableStateOf(false) }
+    // saved wiki. Seeded from the tab's own saved currentUrl on
+    // resume, so a tab reopened straight into an external page starts
+    // out already knowing that, rather than assuming it's on site
+    // until the next navigation proves otherwise.
+    var isOnExternalSite by remember(tab.id) {
+        mutableStateOf(
+            tab.currentUrl?.let { url -> !AuthDomains.matches(url) && allWikis.none { url.startsWith(it.baseUrl) } } ?: false,
+        )
+    }
 
     // Read through rememberUpdatedState rather than as a remember(site)
     // key, so toggling the setting mid-session is picked up by the
@@ -244,7 +251,11 @@ private fun SingleArticleTab(
         if (isActive) tabsRepository.setActiveTabCanGoBack(navigator.canGoBack)
     }
 
-    var pageState by remember(tab.id) { mutableStateOf(WikiPageState(title = initialTitle, canonicalTitle = initialTitle, displaySiteName = site.name)) }
+    var pageState by remember(tab.id) {
+        mutableStateOf(
+            WikiPageState(title = initialTitle, canonicalTitle = initialTitle, displaySiteName = site.name, url = tab.currentUrl.orEmpty()),
+        )
+    }
 
     // The interceptor above only ever sees genuinely new top-level
     // requests, so it correctly flips isOnExternalSite back to false
@@ -256,7 +267,7 @@ private fun SingleArticleTab(
         if (pageState.isLoading) return@LaunchedEffect
         val settledUrl = pageState.url
         if (settledUrl.isBlank()) return@LaunchedEffect
-        isOnExternalSite = allWikis.none { settledUrl.startsWith(it.baseUrl) }
+        isOnExternalSite = allWikis.none { settledUrl.startsWith(it.baseUrl) } && !AuthDomains.matches(settledUrl)
     }
 
     var pageSummary by remember(tab.id) { mutableStateOf<PageSummaryDto?>(null) }
@@ -311,15 +322,20 @@ private fun SingleArticleTab(
             isRefreshing = false
             pullToRefreshState.animateToHidden()
         }
-        if (isOnExternalSite || AuthDomains.matches(pageState.url)) return@LaunchedEffect
         if (currentTitle == summarizedTitle) return@LaunchedEffect
-        // Fetch first, then fill in both pageSummary and the tab record
-        // with the result.
-        val freshSummary = api.getPageSummary(site, currentTitle).getOrNull()
+        val isOffSiteContent = isOnExternalSite || AuthDomains.matches(pageState.url)
+        // getPageSummary assumes currentTitle is a real article on
+        // site, which isn't true for an auth page or an external link
+        // followed in this tab, so that call is skipped for those.
+        // The tab and history are still updated either way, using
+        // pageState.url as the actual address to return to, rather
+        // than reconstructing one from title and wikiId that would
+        // 404 on a page that was never really an article here.
+        val freshSummary = if (isOffSiteContent) null else api.getPageSummary(site, currentTitle).getOrNull()
         summarizedTitle = currentTitle
         pageSummary = freshSummary
         tabsRepository.updateTab(
-            tab.id, currentTitle, freshSummary?.thumbnail?.source, pageState.displaySiteName.orEmpty(), freshSummary?.extract,
+            tab.id, currentTitle, freshSummary?.thumbnail?.source, pageState.displaySiteName.orEmpty(), freshSummary?.extract, pageState.url,
         )
         repository.recordVisit(
             SavedPage(
@@ -329,6 +345,7 @@ private fun SingleArticleTab(
                 extract = pageSummary?.extract.orEmpty(),
                 thumbnailUrl = pageSummary?.thumbnail?.source,
                 timestampEpochMillis = nowEpochMillis(),
+                url = pageState.url,
             ),
         )
     }
@@ -436,6 +453,7 @@ private fun SingleArticleTab(
                                             extract = pageSummary?.extract.orEmpty(),
                                             thumbnailUrl = pageSummary?.thumbnail?.source,
                                             timestampEpochMillis = nowEpochMillis(),
+                                            url = pageState.url,
                                         ),
                                     )
                                 },
@@ -501,6 +519,7 @@ private fun SingleArticleTab(
                 offlineHtml = offlineHtml,
                 allWikis = allWikis,
                 historyNavTrigger = historyNavTrigger,
+                restoreUrl = tab.currentUrl,
                 onWebViewReady = { nativeWebViewRef = it },
                 onStateChanged = { newState -> pageState = newState },
                 modifier = Modifier.fillMaxSize(),
