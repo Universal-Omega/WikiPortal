@@ -354,9 +354,20 @@ private fun SingleArticleTab(
                         // in this tab, just show the page's own raw
                         // title, the same way an ordinary browser would.
                         // There is no reconstructed suffix for a site we
-                        // don't have a name for.
+                        // don't have a name for. A page whose title is
+                        // already exactly the site's name, for example a
+                        // wiki's own main page sharing the wiki's name,
+                        // skips the suffix entirely rather than
+                        // repeating it, e.g. "MediaWiki" rather than
+                        // "MediaWiki - MediaWiki".
+                        val siteName = pageState.displaySiteName
+                        val displayedTitle = when {
+                            siteName == null -> pageState.title.ifBlank { currentTitle }
+                            currentTitle.equals(siteName, ignoreCase = true) -> siteName
+                            else -> "$currentTitle - $siteName"
+                        }
                         Text(
-                            text = pageState.displaySiteName?.let { "$currentTitle - $it" } ?: pageState.title.ifBlank { currentTitle },
+                            text = displayedTitle,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             style = MaterialTheme.typography.titleMedium,
