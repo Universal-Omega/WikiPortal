@@ -12,8 +12,9 @@ import com.multiplatform.webview.web.WebViewNavigator
 import com.multiplatform.webview.web.rememberWebViewState
 import io.ktor.http.URLBuilder
 import io.ktor.http.decodeURLQueryComponent
-import kotlin.io.encoding.Base64
+import kotlinx.coroutines.delay
 import org.wikitide.wikiportal.data.model.WikiSite
+import kotlin.io.encoding.Base64
 
 /** Snapshot of what the reader is currently showing, reported up to [ArticleHostScreen]. */
 data class WikiPageState(
@@ -120,6 +121,7 @@ fun WikiArticleReader(
         // below. The title fields stay whatever they last genuinely
         // were until the JS lookup resolves.
         if (loading is LoadingState.Finished) {
+            delay(150)
             navigator.evaluateJavaScript("window.location.href") { rawUrl ->
                 val liveUrl = rawUrl.trim().removeSurrounding("\"").ifBlank { null } ?: url
                 val matchedSite = liveUrl?.let { u -> allWikis.firstOrNull { u.startsWith(it.baseUrl) } }
