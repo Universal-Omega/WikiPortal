@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        h1 { border-bottom: 2px solid #eaecef; padding-bottom: 0.3em; }
+        h2 { margin-top: 24px; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }
+        .highlight-box {
+            background-color: #f6f8fa;
+            border-left: 4px solid #0366d6;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Privacy Policy</h1>
+    <p><strong>Last Updated:</strong> July 26, 2026</p>
+
+    <p>This Privacy Policy governs your use of our mobile application (the "Application"). The Application acts as a localized wrapper and client utility to browse and interface with third-party community wiki platforms.</p>
+
+    <div class="highlight-box">
+        <strong>Core Transparency Summary:</strong> We value your privacy above all else. This Application does not use external tracking SDKs, does not serve native advertisements, and completely lacks a backend infrastructure. We do not collect, intercept, or remotely store any of your data.
+    </div>
+
+    <h2>1. Data Collection and Transmission (Off-Device)</h2>
+    <p>The Application does not transmit any user data off your device to servers owned or managed by the Developer. It complies fully with the Google Play definition of zero data collection.</p>
+
+    <h2>2. Local Processing and Token Storage</h2>
+    <p>To enable extended functionality and session persistence, the Application includes an implementation that utilizes external OAuth2 web authentication protocols. All data handled by this subsystem is subjected to strict on-device isolation:</p>
+    <ul>
+        <li><strong>Authentication Tokens:</strong> Access tokens and refresh tokens generated via the third-party OAuth2 workflow are captured directly via safe intent callbacks and stored exclusively within the device's secure local storage (e.g., local sandboxed preferences).</li>
+        <li><strong>No External Harvesting:</strong> These local authentication tokens are utilized purely to authenticate client-side API requests to the respective wiki architectures. They are never captured, logged, read, or transmitted to any server outside of the target platform's infrastructure.</li>
+    </ul>
+
+    <h2>3. WebBrowsing & Third-Party Environments (WebViews)</h2>
+    <p>The Application utilizes standard WebView frame containers to render web interfaces. When you interact with a wiki community or clear its security protocols, your web-browsing activities are processed as open web navigation:</p>
+    <ul>
+        <li><strong>Website Terms:</strong> All browsing contexts, cookie generations, and session logs handled within the WebView are governed directly by the Terms of Use and Privacy Policies of the target domain hosts (e.g., Miraheze, Fandom, Wikimedia).</li>
+        <li><strong>Isolation:</strong> The Application does not intercept or track form entries, passwords, or navigation histories processed inside this third-party web view.</li>
+    </ul>
+
+    <h2>4. Children's Privacy</h2>
+    <p>The Application does not knowingly target or accommodate children under the age of 13, aligning with the regulatory restrictions of both major online environments and third-party wiki network terms. No children's personal information is systematically collected or handled.</p>
+
+    <h2>5. Data Deletion and Access Control</h2>
+    <p>Because all configuration credentials and tokens are entirely localized, you retain absolute authority over your records. You can completely erase all tokens, saved settings, and local cached data at any time by executing a clear-cache directive or uninstalling the application using standard device management tools.</p>
+
+    <h2>6. Contact Us</h2>
+    <p>If you have any questions regarding this localized system setup or privacy implementation, you can reach out via our open source repository project channels.</p>
+
+</body>
+</html>
