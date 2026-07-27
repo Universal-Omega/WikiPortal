@@ -48,8 +48,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboard
-import androidx.compose.ui.platform.toClipEntry
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -78,7 +77,7 @@ fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
     var appOnly by remember { mutableStateOf(true) }
     var visibleLevels by remember { mutableStateOf(LogLevel.entries.toSet()) }
     val scope = rememberCoroutineScope()
-    val clipboard = LocalClipboard.current
+    val clipboard = LocalClipboardManager.current
     val snackbarHostState = remember { SnackbarHostState() }
 
     fun exitSelection() {
@@ -109,15 +108,8 @@ fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
         list.joinToString("\n") { entry -> "${entry.displayTime ?: formatLogTime(entry.timestampEpochMillis)}  ${entry.level.name}  ${entry.tag}: ${entry.message}" }
 
     fun copyToClipboard(text: String) {
-        scope.launch {
-            clipboard.setClipEntry(
-                ClipData.newPlainText(
-                    "plain text",
-                    AnnotatedString(text).convertToCharSequence()
-                 ).toClipEntry()
-            )
-            snackbarHostState.showSnackbar("Copied")
-        }
+        clipboard.setText(AnnotatedString(text))
+        scope.launch { snackbarHostState.showSnackbar("Copied") }
     }
 
     Scaffold(
