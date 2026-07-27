@@ -348,7 +348,10 @@ private fun FeedTabContent(
                             modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
                         )
                     }
-                    TextButton(onClick = onOpenWikiPicker) { Text("Switch wiki") }
+                    Row {
+                        TextButton(onClick = onRefresh) { Text("Retry") }
+                        TextButton(onClick = onOpenWikiPicker) { Text("Switch wiki") }
+                    }
                 }
             }
             else -> LazyColumn(
