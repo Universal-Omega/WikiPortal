@@ -12,8 +12,27 @@ data class LogEntry(
     val level: LogLevel,
     val tag: String,
     val message: String,
+    /**
+     * Preformatted time text to show as-is, used when this entry came
+     * from a source that already reports a human-readable time, for
+     * example Android's own logcat, rather than a raw epoch this app
+     * recorded itself. Falls back to formatting [timestampEpochMillis]
+     * when null.
+     */
+    val displayTime: String? = null,
 )
 
+/**
+ * A small in-memory record of what the app has been doing this
+ * session. On Android, readDeviceLogs pulls the real thing straight
+ * out of logcat, so this buffer mostly just backs platformLog's own
+ * mirroring there. On iOS, desktop, and the web build, where there's
+ * no equivalent shell-accessible per-app log to shell out to,
+ * readDeviceLogs falls back to reading this buffer directly, so it's
+ * still the actual source of truth for the Logs screen on those
+ * platforms. Capped at MAX_ENTRIES so a long session doesn't grow
+ * this without bound, oldest entries drop off first.
+ */
 object AppLog {
     private const val MAX_ENTRIES = 1000
     private const val DEFAULT_TAG = "WikiPortal"
