@@ -20,6 +20,16 @@ data class LogEntry(
      * when null.
      */
     val displayTime: String? = null,
+    /**
+     * True when this line actually came from an AppLog.d/i/w/e call,
+     * as opposed to some other system-generated line that happened to
+     * get swept up in a --pid filtered logcat dump, for example
+     * ActivityManager noting this app was brought to the foreground.
+     * Every entry in AppLog's own buffer is app-sourced by
+     * construction, this only varies for entries DeviceLogReader
+     * parses back out of Android's real logcat.
+     */
+    val isAppSource: Boolean = true,
 )
 
 /**
