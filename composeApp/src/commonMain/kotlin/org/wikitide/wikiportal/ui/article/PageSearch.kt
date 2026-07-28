@@ -64,6 +64,7 @@ if (!window.__wpSearchReady) {
       if (
         el.tagName === 'BUTTON' ||
         el.tagName === 'LABEL' ||
+        el.tagName === 'SUMMARY' ||
         role === 'button' ||
         role === 'menuitem' ||
         role === 'menu' ||
