@@ -150,7 +150,7 @@ sqldelight {
         create("WikiPortalDatabase") {
             packageName.set("org.wikitide.wikiportal.db")
             generateAsync.set(true)
-            dialect("app.cash.sqldelight:sqlite-3-38-dialect:2.3.2")
+            dialect(libs.sqldelight.dialect)
         }
     }
 }
