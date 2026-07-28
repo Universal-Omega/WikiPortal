@@ -41,6 +41,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -59,6 +60,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import org.wikitide.wikiportal.util.AppLog
 import org.wikitide.wikiportal.util.LogEntry
 import org.wikitide.wikiportal.util.LogExporter
 import org.wikitide.wikiportal.util.LogLevel
@@ -69,7 +71,8 @@ import kotlin.time.Clock
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
-    var entries by remember { mutableStateOf<List<LogEntry>>(emptyList()) }
+    val appEntries by AppLog.entries.collectAsState()
+    var deviceEntries by remember { mutableStateOf<List<LogEntry>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var selectionMode by remember { mutableStateOf(false) }
     var selectedIndices by remember { mutableStateOf(setOf<Int>()) }
@@ -85,22 +88,28 @@ fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
         selectedIndices = emptySet()
     }
 
+    // Only "All" actually needs a fresh device-log dump; App only reads
+    // AppLog.entries reactively above and never touches this. Still
+    // safe, and simplest, to refresh this unconditionally, so it's
+    // ready the moment someone switches to "All".
     suspend fun load() {
         isLoading = true
-        entries = readDeviceLogs()
+        deviceEntries = readDeviceLogs()
         isLoading = false
         exitSelection()
     }
 
     LaunchedEffect(Unit) { load() }
 
-    // Newest entries land at the end of readDeviceLogs's own list, so
+    // Newest entries land at the end of each source's own list, so
     // this reverses to read newest-first, then applies whatever the
-    // filter chips currently say. Changing a filter reflows which
-    // indices point at which row, so any in-progress selection is
-    // cleared rather than risk it silently pointing at the wrong line.
-    val displayed = remember(entries, appOnly, visibleLevels) {
-        entries.asReversed().filter { (!appOnly || it.isAppSource) && it.level in visibleLevels }
+    // filter chips currently say. Changing a filter, or which source
+    // is active, reflows which indices point at which row, so any
+    // in-progress selection is cleared rather than risk it silently
+    // pointing at the wrong line.
+    val displayed = remember(appEntries, deviceEntries, appOnly, visibleLevels) {
+        val source = if (appOnly) appEntries else deviceEntries
+        source.asReversed().filter { (!appOnly || it.isAppSource) && it.level in visibleLevels }
     }
     LaunchedEffect(appOnly, visibleLevels) { exitSelection() }
 
@@ -199,7 +208,7 @@ fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
             }
             displayed.isEmpty() -> Box(Modifier.fillMaxSize().padding(innerPadding).padding(20.dp)) {
                 Text(
-                    if (entries.isEmpty()) "Nothing logged yet this session." else "Nothing matches the current filters.",
+                    if ((if (appOnly) appEntries else deviceEntries).isEmpty()) "Nothing logged yet this session." else "Nothing matches the current filters.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
