@@ -140,6 +140,27 @@ if (!window.__wpSearchReady) {
     });
   };
 
+  window.__wpIsChrome = function(startEl) {
+    var el = startEl;
+    while (el && el !== document.body) {
+      var tag = el.tagName;
+      var role = el.getAttribute ? el.getAttribute('role') : null;
+      if (
+        tag === 'NAV' ||
+        tag === 'HEADER' ||
+        tag === 'FOOTER' ||
+        role === 'navigation' ||
+        role === 'banner' ||
+        role === 'contentinfo' ||
+        role === 'search'
+      ) {
+        return true;
+      }
+      el = el.parentElement;
+    }
+    return false;
+  };
+
   window.__wpRun = function(query) {
     window.__wpPauseObserver();
     window.__wpClearInternal();
@@ -156,6 +177,7 @@ if (!window.__wpSearchReady) {
         if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'MARK' || tag === 'NOSCRIPT') return NodeFilter.FILTER_REJECT;
         if (!node.nodeValue || node.nodeValue.toLowerCase().indexOf(needle) === -1) return NodeFilter.FILTER_SKIP;
         if (parent && window.__wpIsControl(parent)) return NodeFilter.FILTER_REJECT;
+        if (parent && window.__wpIsChrome(parent)) return NodeFilter.FILTER_REJECT;
         if (parent && window.__wpIsExcluded(parent)) return NodeFilter.FILTER_REJECT;
         return NodeFilter.FILTER_ACCEPT;
       },
