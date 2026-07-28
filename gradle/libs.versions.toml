@@ -8,6 +8,7 @@ androidxSqlite = "2.7.0"
 buildkonfigGradlePlugin = "0.22.0"
 coil = "3.5.0"
 composeMaterial3 = "1.11.0-alpha07"
+composeMaterialIconsExtended = "1.7.3"
 composeMultiplatform = "1.11.1"
 jetbrainsLifecycle = "2.11.0"
 jetbrainsNavigation3 = "1.1.1"
@@ -19,6 +20,10 @@ kotlinxSerialization = "1.11.0"
 ktor = "3.5.1"
 sqldelight = "2.3.2"
 webviewMultiplatform = "2.0.3"
+
+# npm dependencies
+copyWebpackPlugin = "14.0.0"
+sqlJs = "1.14.1"
 
 jvmTarget = "17"
 minSdk = "26"
@@ -37,6 +42,7 @@ coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" 
 coil-network-ktor3 = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
 
 compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "composeMultiplatform" }
+compose-material-icons-extended = { module = "org.jetbrains.compose.material:material-icons-extended", version.ref = "composeMaterialIconsExtended" }
 compose-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "composeMaterial3" }
 compose-resources  = { module = "org.jetbrains.compose.components:components-resources", version.ref = "composeMultiplatform" }
 compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "composeMultiplatform" }
@@ -74,7 +80,7 @@ ktor-serialization-json = { module = "io.ktor:ktor-serialization-kotlinx-json", 
 sqldelight-android-driver = { module = "app.cash.sqldelight:android-driver", version.ref = "sqldelight" }
 sqldelight-async-extensions = { module = "app.cash.sqldelight:async-extensions", version.ref = "sqldelight" }
 sqldelight-coroutines = { module = "app.cash.sqldelight:coroutines-extensions", version.ref = "sqldelight" }
-sqldelight-dialect-sqlite-338 = { module = "app.cash.sqldelight:sqlite-3-38-dialect", version.ref = "sqldelight" }
+sqldelight-dialect = { module = "app.cash.sqldelight:sqlite-3-38-dialect", version.ref = "sqldelight" }
 sqldelight-native-driver = { module = "app.cash.sqldelight:native-driver", version.ref = "sqldelight" }
 sqldelight-runtime = { module = "app.cash.sqldelight:runtime", version.ref = "sqldelight" }
 sqldelight-sqlite-driver = { module = "app.cash.sqldelight:sqlite-driver", version.ref = "sqldelight" }
