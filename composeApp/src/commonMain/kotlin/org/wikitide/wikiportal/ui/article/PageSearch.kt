@@ -21,8 +21,26 @@ if (!window.__wpSearchReady) {
   window.__wpSearchReady = true;
   window.__wpMatches = [];
   window.__wpActive = -1;
+  window.__wpDirty = false;
+  window.__wpObserver = null;
 
-  window.__wpClear = function() {
+  window.__wpPauseObserver = function() {
+    if (window.__wpObserver) window.__wpObserver.disconnect();
+  };
+
+  window.__wpResumeObserver = function() {
+    if (!window.__wpObserver) {
+      window.__wpObserver = new MutationObserver(function() { window.__wpDirty = true; });
+    }
+    window.__wpObserver.observe(document.body, {
+      attributes: true,
+      childList: true,
+      subtree: true,
+      attributeFilter: ['style', 'class', 'hidden', 'open', 'aria-expanded', 'aria-hidden'],
+    });
+  };
+
+  window.__wpClearInternal = function() {
     window.__wpMatches.forEach(function(mark) {
       var parent = mark.parentNode;
       if (!parent) return;
@@ -31,6 +49,31 @@ if (!window.__wpSearchReady) {
     });
     window.__wpMatches = [];
     window.__wpActive = -1;
+  };
+
+  window.__wpClear = function() {
+    window.__wpPauseObserver();
+    window.__wpClearInternal();
+    window.__wpResumeObserver();
+  };
+
+  window.__wpIsControl = function(startEl) {
+    var el = startEl;
+    while (el && el !== document.body) {
+      var role = el.getAttribute ? el.getAttribute('role') : null;
+      if (
+        el.tagName === 'BUTTON' ||
+        el.tagName === 'LABEL' ||
+        role === 'button' ||
+        role === 'menuitem' ||
+        role === 'menu' ||
+        (el.hasAttribute && (el.hasAttribute('aria-haspopup') || el.hasAttribute('aria-expanded')))
+      ) {
+        return true;
+      }
+      el = el.parentElement;
+    }
+    return false;
   };
 
   window.__wpFindBoundary = function(fromEl) {
@@ -98,8 +141,13 @@ if (!window.__wpSearchReady) {
   };
 
   window.__wpRun = function(query) {
-    window.__wpClear();
-    if (!query) return window.__wpReport();
+    window.__wpPauseObserver();
+    window.__wpClearInternal();
+    if (!query) {
+      window.__wpDirty = false;
+      window.__wpResumeObserver();
+      return window.__wpReport();
+    }
     var needle = query.toLowerCase();
     var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
       acceptNode: function(node) {
@@ -107,6 +155,7 @@ if (!window.__wpSearchReady) {
         var tag = parent ? parent.nodeName : '';
         if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'MARK' || tag === 'NOSCRIPT') return NodeFilter.FILTER_REJECT;
         if (!node.nodeValue || node.nodeValue.toLowerCase().indexOf(needle) === -1) return NodeFilter.FILTER_SKIP;
+        if (parent && window.__wpIsControl(parent)) return NodeFilter.FILTER_REJECT;
         if (parent && window.__wpIsExcluded(parent)) return NodeFilter.FILTER_REJECT;
         return NodeFilter.FILTER_ACCEPT;
       },
@@ -136,16 +185,22 @@ if (!window.__wpSearchReady) {
 
     window.__wpActive = window.__wpMatches.length > 0 ? 0 : -1;
     window.__wpPaint();
+    window.__wpDirty = false;
+    window.__wpResumeObserver();
     return window.__wpReport();
   };
 
   window.__wpStep = function(delta) {
     if (window.__wpMatches.length === 0) return window.__wpReport();
+    window.__wpPauseObserver();
     var count = window.__wpMatches.length;
     window.__wpActive = (window.__wpActive + delta + count) % count;
     window.__wpPaint();
+    window.__wpResumeObserver();
     return window.__wpReport();
   };
+
+  window.__wpResumeObserver();
 }
 """
 
@@ -185,3 +240,12 @@ suspend fun stepPageSearch(navigator: WebViewNavigator, forward: Boolean): PageS
 suspend fun clearPageSearch(navigator: WebViewNavigator) {
     navigator.evalForResult(SEARCH_RUNTIME_SCRIPT + "window.__wpClear(); window.__wpReport();")
 }
+
+/**
+ * Whether anything on the page has changed since the last search or step,
+ * a menu opening, content loading in, and so on. Cheap to call often since
+ * it just reads a flag rather than touching the DOM.
+ */
+suspend fun isPageSearchDirty(navigator: WebViewNavigator): Boolean =
+    navigator.evalForResult(SEARCH_RUNTIME_SCRIPT + "window.__wpDirty ? 'true' : 'false';")
+        .trim().removeSurrounding("\"") == "true"
