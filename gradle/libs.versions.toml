@@ -3,12 +3,12 @@
 [versions]
 androidGradlePlugin = "9.3.1"
 androidxActivityCompose = "1.13.0"
-androidxComposeMaterialIconsExtended = "1.7.3"
 androidxCore = "1.19.0"
 androidxSqlite = "2.7.0"
 buildkonfigGradlePlugin = "0.22.0"
 coil = "3.5.0"
 composeMaterial3 = "1.11.0-alpha07"
+composeMaterialIconsExtended = "1.7.3"
 composeMultiplatform = "1.11.1"
 jetbrainsLifecycle = "2.11.0"
 jetbrainsNavigation3 = "1.1.1"
@@ -31,7 +31,6 @@ versionName = "1.0.0"
 
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidxActivityCompose" }
-androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "androidxComposeMaterialIconsExtended" }
 androidx-core = { module = "androidx.core:core", version.ref = "androidxCore" }
 androidx-sqlite-framework = { module = "androidx.sqlite:sqlite-framework", version.ref = "androidxSqlite" }
 
@@ -39,6 +38,7 @@ coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" 
 coil-network-ktor3 = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
 
 compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "composeMultiplatform" }
+compose-material-icons-extended = { module = "org.jetbrains.compose.material:material-icons-extended", version.ref = "composeMaterialIconsExtended" }
 compose-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "composeMaterial3" }
 compose-resources  = { module = "org.jetbrains.compose.components:components-resources", version.ref = "composeMultiplatform" }
 compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "composeMultiplatform" }
