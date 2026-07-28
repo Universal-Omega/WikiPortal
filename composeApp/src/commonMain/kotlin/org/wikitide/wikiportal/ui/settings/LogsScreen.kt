@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -33,6 +34,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -79,6 +81,7 @@ fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
     var menuOpen by remember { mutableStateOf(false) }
     var appOnly by remember { mutableStateOf(true) }
     var visibleLevels by remember { mutableStateOf(LogLevel.entries.toSet()) }
+    var searchQuery by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
     val clipboard = LocalClipboardManager.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -103,15 +106,22 @@ fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
 
     // Newest entries land at the end of each source's own list, so
     // this reverses to read newest-first, then applies whatever the
-    // filter chips currently say. Changing a filter, or which source
+    // filter chips and search box currently say. Search matches
+    // against both the tag and the message, so searching "Ktor" finds
+    // everything from that source regardless of what each individual
+    // line says. Changing a filter, the search text, or which source
     // is active, reflows which indices point at which row, so any
     // in-progress selection is cleared rather than risk it silently
     // pointing at the wrong line.
-    val displayed = remember(appEntries, deviceEntries, appOnly, visibleLevels) {
+    val displayed = remember(appEntries, deviceEntries, appOnly, visibleLevels, searchQuery) {
         val source = if (appOnly) appEntries else deviceEntries
-        source.asReversed().filter { (!appOnly || it.isAppSource) && it.level in visibleLevels }
+        source.asReversed().filter { entry ->
+            (!appOnly || entry.isAppSource) &&
+                entry.level in visibleLevels &&
+                (searchQuery.isBlank() || entry.tag.contains(searchQuery, ignoreCase = true) || entry.message.contains(searchQuery, ignoreCase = true))
+        }
     }
-    LaunchedEffect(appOnly, visibleLevels) { exitSelection() }
+    LaunchedEffect(appOnly, visibleLevels, searchQuery) { exitSelection() }
 
     fun formatted(list: List<LogEntry>): String =
         list.joinToString("\n") { entry -> "${entry.displayTime ?: formatLogTime(entry.timestampEpochMillis)}  ${entry.level.name}  ${entry.tag}: ${entry.message}" }
@@ -190,6 +200,7 @@ fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
                     windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
                 )
                 if (!selectionMode) {
+                    SearchField(query = searchQuery, onQueryChange = { searchQuery = it })
                     FilterRow(
                         appOnly = appOnly,
                         onAppOnlyChange = { appOnly = it },
@@ -207,11 +218,12 @@ fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
                 CircularProgressIndicator()
             }
             displayed.isEmpty() -> Box(Modifier.fillMaxSize().padding(innerPadding).padding(20.dp)) {
-                Text(
-                    if ((if (appOnly) appEntries else deviceEntries).isEmpty()) "Nothing logged yet this session." else "Nothing matches the current filters.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                val message = when {
+                    (if (appOnly) appEntries else deviceEntries).isEmpty() -> "Nothing logged yet this session."
+                    searchQuery.isNotBlank() -> "No logs match \"$searchQuery\"."
+                    else -> "Nothing matches the current filters."
+                }
+                Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             else -> LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
@@ -220,6 +232,7 @@ fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
                 itemsIndexed(displayed) { index, entry ->
                     LogRow(
                         entry = entry,
+                        searchQuery = searchQuery,
                         selectionMode = selectionMode,
                         selected = index in selectedIndices,
                         onClick = {
@@ -236,6 +249,26 @@ fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
             }
         }
     }
+}
+
+@Composable
+private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+        placeholder = { Text("Search logs") },
+        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+        trailingIcon = {
+            if (query.isNotEmpty()) {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(Icons.Filled.Close, contentDescription = "Clear search")
+                }
+            }
+        },
+        singleLine = true,
+        shape = MaterialTheme.shapes.large,
+    )
 }
 
 @Composable
@@ -266,7 +299,7 @@ private fun FilterRow(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun LogRow(entry: LogEntry, selectionMode: Boolean, selected: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) {
+private fun LogRow(entry: LogEntry, searchQuery: String, selectionMode: Boolean, selected: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -285,7 +318,7 @@ private fun LogRow(entry: LogEntry, selectionMode: Boolean, selected: Boolean, o
                 color = levelColor(entry.level),
                 fontFamily = FontFamily.Monospace,
             )
-            Text(text = highlightedMessage(entry.message), style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
+            Text(text = highlightedMessage(entry.message, searchQuery), style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
         }
     }
 }
@@ -299,35 +332,49 @@ private fun levelColor(level: LogLevel) = when (level) {
 }
 
 // Matches, in order of precedence: a URL, a quoted string, a
-// CamelCase word ending in Exception or Error, then a bare number.
-// Group order below matters and mirrors the branches in
-// highlightedMessage. Positional groups, not named ones, since named
-// capture group support isn't consistent across every Kotlin
-// Multiplatform target this file compiles for, JVM, iOS, and wasmJs.
-private val highlightPattern = Regex(
-    "(https?://\\S+)" +
-        "|(\"[^\"]*\")" +
-        "|(\\b[A-Za-z][A-Za-z0-9]*(?:Exception|Error)\\b)" +
-        "|(\\b\\d+(?:\\.\\d+)?\\b)",
-)
+// CamelCase word ending in Exception or Error, a bare number, then
+// whatever's currently typed in the search box. Group order below
+// matters and mirrors the branches in highlightedMessage. Positional
+// groups, not named ones, since named capture group support isn't
+// consistent across every Kotlin Multiplatform target this file
+// compiles for, JVM, iOS, and wasmJs. The search text is escaped
+// before going into the pattern, since it's arbitrary person-typed
+// text, not something that should be interpreted as regex syntax; an
+// empty search uses (?!), a group that can never match, rather than
+// leaving group 5 out entirely, so the group count stays fixed at 5
+// whether or not a search is active.
+private fun buildHighlightPattern(searchQuery: String): Regex {
+    val searchAlternative = if (searchQuery.isNotBlank()) Regex.escape(searchQuery) else "(?!)"
+    return Regex(
+        "(https?://\\S+)" +
+            "|(\"[^\"]*\")" +
+            "|(\\b[A-Za-z][A-Za-z0-9]*(?:Exception|Error)\\b)" +
+            "|(\\b\\d+(?:\\.\\d+)?\\b)" +
+            "|($searchAlternative)",
+        RegexOption.IGNORE_CASE,
+    )
+}
 
 /**
  * A deliberately lightweight pass over a log message, not a real
  * tokenizer, just enough to make URLs, quoted values, exception type
  * names, and numbers visually pop out of a wall of monospace text the
- * way logcat viewers in an IDE typically do.
+ * way logcat viewers in an IDE typically do, plus a background
+ * highlight over whatever currently matches the search box.
  */
 @Composable
-private fun highlightedMessage(message: String): AnnotatedString {
+private fun highlightedMessage(message: String, searchQuery: String): AnnotatedString {
     val urlColor = MaterialTheme.colorScheme.primary
     val quotedColor = MaterialTheme.colorScheme.tertiary
     val exceptionColor = MaterialTheme.colorScheme.error
     val numberColor = MaterialTheme.colorScheme.secondary
     val plainColor = MaterialTheme.colorScheme.onSurface
+    val searchHighlight = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+    val pattern = remember(searchQuery) { buildHighlightPattern(searchQuery) }
 
     return buildAnnotatedString {
         var lastIndex = 0
-        for (match in highlightPattern.findAll(message)) {
+        for (match in pattern.findAll(message)) {
             if (match.range.first > lastIndex) {
                 withStyle(SpanStyle(color = plainColor)) { append(message.substring(lastIndex, match.range.first)) }
             }
@@ -336,7 +383,8 @@ private fun highlightedMessage(message: String): AnnotatedString {
                 groups[1] != null -> SpanStyle(color = urlColor, textDecoration = TextDecoration.Underline)
                 groups[2] != null -> SpanStyle(color = quotedColor)
                 groups[3] != null -> SpanStyle(color = exceptionColor, fontWeight = FontWeight.Bold)
-                else -> SpanStyle(color = numberColor)
+                groups[4] != null -> SpanStyle(color = numberColor)
+                else -> SpanStyle(color = plainColor, background = searchHighlight)
             }
             withStyle(style) { append(match.value) }
             lastIndex = match.range.last + 1
