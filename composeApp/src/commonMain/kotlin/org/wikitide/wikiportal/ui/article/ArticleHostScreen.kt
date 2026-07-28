@@ -46,12 +46,14 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -410,7 +412,74 @@ private fun SingleArticleTab(
         contentWindowInsets = WindowInsets(0.dp),
         topBar = {
             Column {
-                TopAppBar(
+                if (isSearchBarOpen) {
+                    TopAppBar(
+                        navigationIcon = {
+                            IconButton(
+                                onClick = {
+                                    isSearchBarOpen = false
+                                    searchQuery = ""
+                                    searchResult = PageSearchResult()
+                                    scope.launch { clearPageSearch(navigator) }
+                                },
+                            ) {
+                                Icon(Icons.Filled.Close, contentDescription = "Close search")
+                            }
+                        },
+                        title = {
+                            TextField(
+                                value = searchQuery,
+                                onValueChange = { searchQuery = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .focusRequester(searchFocusRequester),
+                                placeholder = { Text("Find on page") },
+                                singleLine = true,
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent,
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent,
+                                ),
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                                keyboardActions = KeyboardActions(
+                                    onSearch = { scope.launch { searchResult = stepPageSearch(navigator, forward = true) } },
+                                ),
+                            )
+                        },
+                        actions = {
+                            if (searchQuery.isNotBlank()) {
+                                Text(
+                                    text = if (searchResult.matchCount > 0) {
+                                        "${searchResult.activeIndex}/${searchResult.matchCount}"
+                                    } else {
+                                        "0/0"
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.padding(horizontal = 4.dp),
+                                )
+                            }
+
+                            IconButton(
+                                enabled = searchResult.matchCount > 0,
+                                onClick = { scope.launch { searchResult = stepPageSearch(navigator, forward = false) } },
+                            ) {
+                                Icon(Icons.Filled.KeyboardArrowUp, contentDescription = "Previous match")
+                            }
+
+                            IconButton(
+                                enabled = searchResult.matchCount > 0,
+                                onClick = { scope.launch { searchResult = stepPageSearch(navigator, forward = true) } },
+                            ) {
+                                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Next match")
+                            }
+                        },
+                        windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
+                    )
+
+                    LaunchedEffect(Unit) { searchFocusRequester.requestFocus() }
+                } else {
+                    TopAppBar(
                     navigationIcon = {
                         IconButton(
                             onClick = {
@@ -561,68 +630,7 @@ private fun SingleArticleTab(
                         }
                     },
                     windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
-                )
-
-                if (isSearchBarOpen) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        TextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            modifier = Modifier
-                                .weight(1f)
-                                .focusRequester(searchFocusRequester),
-                            placeholder = { Text("Find on page") },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                            keyboardActions = KeyboardActions(
-                                onSearch = { scope.launch { searchResult = stepPageSearch(navigator, forward = true) } },
-                            ),
-                        )
-
-                        if (searchQuery.isNotBlank()) {
-                            Text(
-                                text = if (searchResult.matchCount > 0) {
-                                    "${searchResult.activeIndex}/${searchResult.matchCount}"
-                                } else {
-                                    "0/0"
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.padding(horizontal = 8.dp),
-                            )
-                        }
-
-                        IconButton(
-                            enabled = searchResult.matchCount > 0,
-                            onClick = { scope.launch { searchResult = stepPageSearch(navigator, forward = false) } },
-                        ) {
-                            Icon(Icons.Filled.KeyboardArrowUp, contentDescription = "Previous match")
-                        }
-
-                        IconButton(
-                            enabled = searchResult.matchCount > 0,
-                            onClick = { scope.launch { searchResult = stepPageSearch(navigator, forward = true) } },
-                        ) {
-                            Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Next match")
-                        }
-
-                        IconButton(
-                            onClick = {
-                                isSearchBarOpen = false
-                                searchQuery = ""
-                                searchResult = PageSearchResult()
-                                scope.launch { clearPageSearch(navigator) }
-                            },
-                        ) {
-                            Icon(Icons.Filled.Close, contentDescription = "Close search")
-                        }
-                    }
-
-                    LaunchedEffect(Unit) { searchFocusRequester.requestFocus() }
+                    )
                 }
 
                 if (pageState.isLoading) {
