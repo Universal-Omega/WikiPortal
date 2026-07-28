@@ -261,12 +261,12 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, repository
             }
             item {
                 Row(
-                    modifier = Modifier.fillMaxWidth().clickable { showNewFolderDialog = true }.padding(horizontal = 20.dp, vertical = 16.dp),
+                    modifier = Modifier.fillMaxWidth().clickable(onClick = onAddCustomWiki).padding(horizontal = 20.dp, vertical = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(Icons.Filled.CreateNewFolder, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Filled.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Text(
-                        "New folder",
+                        "Add a wiki by URL",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(start = 12.dp),
@@ -275,12 +275,12 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, repository
             }
             item {
                 Row(
-                    modifier = Modifier.fillMaxWidth().clickable(onClick = onAddCustomWiki).padding(horizontal = 20.dp, vertical = 16.dp),
+                    modifier = Modifier.fillMaxWidth().clickable { showNewFolderDialog = true }.padding(horizontal = 20.dp, vertical = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(Icons.Filled.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Filled.CreateNewFolder, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Text(
-                        "Add a wiki by URL",
+                        "New folder",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(start = 12.dp),
