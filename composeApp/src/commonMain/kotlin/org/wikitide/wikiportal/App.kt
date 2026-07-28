@@ -152,13 +152,13 @@ fun WikiPortalApp(onDarkThemeResolved: (Boolean) -> Unit = {}) {
         // by both branches below instead of being recomputed in each one.
         val showNav = bottomDestinations.any { it.route == current }
         val openTabs by tabsRepository.tabs.collectAsState()
+        val entryProvider = koinEntryProvider<NavKey>()
 
         // NavDisplay itself is the same either way. Only the surrounding
         // chrome, a bottom bar or a side rail, differs between the two
         // branches below.
         val navDisplayContent = remember {
             movableContentOf { modifier: Modifier ->
-                val entryProvider = koinEntryProvider<NavKey>()
                 NavDisplay(
                     backStack = backStack,
                     onBack = { navigator.handleBack() },
