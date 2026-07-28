@@ -282,6 +282,11 @@ private fun SingleArticleTab(
         isOnExternalSite = allWikis.none { settledUrl.startsWith(it.baseUrl) } && !AuthDomains.matches(settledUrl)
     }
 
+    var isSearchBarOpen by remember(tab.id) { mutableStateOf(false) }
+    var searchQuery by remember(tab.id) { mutableStateOf("") }
+    var searchResult by remember(tab.id) { mutableStateOf(PageSearchResult()) }
+    val searchFocusRequester = remember(tab.id) { FocusRequester() }
+
     LaunchedEffect(isSearchBarOpen, searchQuery) {
         if (!isSearchBarOpen) return@LaunchedEffect
         if (searchQuery.isBlank()) {
@@ -307,10 +312,6 @@ private fun SingleArticleTab(
     var isSavingOffline by remember(tab.id) { mutableStateOf(false) }
     var isRefreshing by remember(tab.id) { mutableStateOf(false) }
     var isOverflowMenuOpen by remember(tab.id) { mutableStateOf(false) }
-    var isSearchBarOpen by remember(tab.id) { mutableStateOf(false) }
-    var searchQuery by remember(tab.id) { mutableStateOf("") }
-    var searchResult by remember(tab.id) { mutableStateOf(PageSearchResult()) }
-    val searchFocusRequester = remember(tab.id) { FocusRequester() }
     // The title a summary was last fetched for, so reactivating a tab
     // that hasn't navigated anywhere new doesn't re-fetch and re-record a
     // visit it already has.
