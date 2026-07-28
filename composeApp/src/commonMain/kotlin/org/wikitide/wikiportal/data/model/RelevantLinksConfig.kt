@@ -14,7 +14,7 @@ data class RelevantLinksSource(val category: String, val label: String)
 object RelevantLinksConfig {
     val sourceByWikiId: Map<String, RelevantLinksSource> = mapOf(
         PresetWikis.MIRAHEZE_META.id to RelevantLinksSource(
-            category = "Category:Requests for Comment",
+            category = "Category:Current Requests for Comment",
             label = "Open Requests for Comment",
         ),
     )
