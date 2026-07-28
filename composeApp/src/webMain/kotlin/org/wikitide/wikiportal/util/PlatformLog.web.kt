@@ -1,5 +1,7 @@
 package org.wikitide.wikiportal.util
 
+import kotlin.js.console
+
 actual fun platformLog(level: LogLevel, tag: String, message: String) {
     val line = "[$tag] $message"
     when (level) {
