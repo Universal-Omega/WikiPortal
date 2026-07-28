@@ -35,4 +35,4 @@ data object LogsRoute : Route
 // back stack count as tabs versus one-off screens like WikiPickerRoute
 // or ArticleRoute. Typed as NavKey rather than Route since that is what
 // the back stack itself holds, see Navigator.backStack.
-val bottomTabRoutes: List<NavKey> = listOf(DashboardRoute, TabsRoute, SavedRoute, SettingsRoute)
+val tabRoutes: List<NavKey> = listOf(DashboardRoute, TabsRoute, SavedRoute, SettingsRoute)
