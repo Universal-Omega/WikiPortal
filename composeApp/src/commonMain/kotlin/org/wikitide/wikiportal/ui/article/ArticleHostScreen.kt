@@ -297,13 +297,11 @@ private fun SingleArticleTab(
         searchResult = runPageSearch(navigator, searchQuery)
     }
 
-    // A reload or a fresh navigation wipes out the highlight spans along
-    // with the rest of the DOM, so the same query is re-applied once the
-    // new page settles rather than leaving the bar showing stale counts
-    // over unhighlighted text.
     LaunchedEffect(isSearchBarOpen, pageState.isLoading) {
-        if (!isSearchBarOpen || pageState.isLoading || searchQuery.isBlank()) return@LaunchedEffect
-        searchResult = runPageSearch(navigator, searchQuery)
+        if (!isSearchBarOpen || !pageState.isLoading) return@LaunchedEffect
+        isSearchBarOpen = false
+        searchQuery = ""
+        searchResult = PageSearchResult()
     }
 
     var pageSummary by remember(tab.id) { mutableStateOf<PageSummaryDto?>(null) }
