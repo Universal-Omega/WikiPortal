@@ -51,7 +51,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -67,6 +67,7 @@ import org.wikitide.wikiportal.util.LogEntry
 import org.wikitide.wikiportal.util.LogExporter
 import org.wikitide.wikiportal.util.LogLevel
 import org.wikitide.wikiportal.util.clearDeviceLogs
+import org.wikitide.wikiportal.util.copyPlainText
 import org.wikitide.wikiportal.util.readDeviceLogs
 import kotlin.time.Clock
 
@@ -83,7 +84,7 @@ fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
     var visibleLevels by remember { mutableStateOf(LogLevel.entries.toSet()) }
     var searchQuery by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
-    val clipboard = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
     val snackbarHostState = remember { SnackbarHostState() }
 
     fun exitSelection() {
@@ -127,8 +128,10 @@ fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
         list.joinToString("\n") { entry -> "${entry.displayTime ?: formatLogTime(entry.timestampEpochMillis)}  ${entry.level.name}  ${entry.tag}: ${entry.message}" }
 
     fun copyToClipboard(text: String) {
-        clipboard.setText(AnnotatedString(text))
-        scope.launch { snackbarHostState.showSnackbar("Copied") }
+        scope.launch {
+            val ok = copyPlainText(clipboard, text)
+            snackbarHostState.showSnackbar(if (ok) "Copied" else "Couldn't copy")
+        }
     }
 
     Scaffold(
