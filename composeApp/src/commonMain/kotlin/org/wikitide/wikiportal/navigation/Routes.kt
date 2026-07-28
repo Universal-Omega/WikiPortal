@@ -34,5 +34,5 @@ data object LogsRoute : Route
 // switchTab in Navigator uses this list to decide which entries in the
 // back stack count as tabs versus one-off screens like WikiPickerRoute
 // or ArticleRoute. Typed as NavKey rather than Route since that is what
-// the back stack itself holds, see the comment on Navigator.backStack.
+// the back stack itself holds, see Navigator.backStack.
 val bottomTabRoutes: List<NavKey> = listOf(DashboardRoute, TabsRoute, SavedRoute, SettingsRoute)
