@@ -33,13 +33,61 @@ if (!window.__wpSearchReady) {
     window.__wpActive = -1;
   };
 
+  window.__wpFindBoundary = function(fromEl) {
+    var el = fromEl;
+    while (el && el !== document.body) {
+      var isDetailsClosed = el.tagName === 'DETAILS' && !el.open;
+      var isUntilFound = el.getAttribute && el.getAttribute('hidden') === 'until-found';
+      if (isDetailsClosed || isUntilFound) return el;
+      el = el.parentElement;
+    }
+    return null;
+  };
+
+  window.__wpIsExcluded = function(startEl) {
+    var el = startEl;
+    while (el && el !== document.body) {
+      var boundary = window.__wpFindBoundary(el);
+      if (boundary) {
+        el = boundary.parentElement;
+        continue;
+      }
+      while (el && el !== document.body) {
+        var style = window.getComputedStyle(el);
+        if (
+          style.display === 'none' ||
+          style.visibility === 'hidden' ||
+          style.opacity === '0' ||
+          el.getClientRects().length === 0
+        ) {
+          return true;
+        }
+        el = el.parentElement;
+      }
+      return false;
+    }
+    return false;
+  };
+
+  window.__wpRevealAncestors = function(markEl) {
+    var el = markEl.parentElement;
+    while (el && el !== document.body) {
+      if (el.tagName === 'DETAILS' && !el.open) el.open = true;
+      if (el.getAttribute && el.getAttribute('hidden') === 'until-found') el.removeAttribute('hidden');
+      el = el.parentElement;
+    }
+  };
+
   window.__wpPaint = function() {
     window.__wpMatches.forEach(function(mark, i) {
       mark.style.backgroundColor = i === window.__wpActive ? '#ff9d2f' : '#ffe066';
       mark.style.color = '#000000';
     });
     var active = window.__wpMatches[window.__wpActive];
-    if (active) active.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    if (active) {
+      window.__wpRevealAncestors(active);
+      active.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
   };
 
   window.__wpReport = function() {
@@ -47,15 +95,6 @@ if (!window.__wpSearchReady) {
       matchCount: window.__wpMatches.length,
       activeIndex: window.__wpMatches.length > 0 ? window.__wpActive + 1 : 0,
     });
-  };
-
-  window.__wpIsHidden = function(el) {
-    while (el && el !== document.body) {
-      var style = window.getComputedStyle(el);
-      if (style.display === 'none' || style.visibility === 'hidden') return true;
-      el = el.parentElement;
-    }
-    return false;
   };
 
   window.__wpRun = function(query) {
@@ -68,7 +107,7 @@ if (!window.__wpSearchReady) {
         var tag = parent ? parent.nodeName : '';
         if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'MARK' || tag === 'NOSCRIPT') return NodeFilter.FILTER_REJECT;
         if (!node.nodeValue || node.nodeValue.toLowerCase().indexOf(needle) === -1) return NodeFilter.FILTER_SKIP;
-        if (parent && window.__wpIsHidden(parent)) return NodeFilter.FILTER_REJECT;
+        if (parent && window.__wpIsExcluded(parent)) return NodeFilter.FILTER_REJECT;
         return NodeFilter.FILTER_ACCEPT;
       },
     });
