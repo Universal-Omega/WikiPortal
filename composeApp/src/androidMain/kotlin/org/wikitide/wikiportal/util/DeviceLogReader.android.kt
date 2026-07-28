@@ -78,7 +78,7 @@ private fun mergeContinuations(rawLines: List<RawLine>): List<LogEntry> {
             timestampEpochMillis = 0L,
             level = raw.level,
             tag = tag,
-            message = message,
+            message = redactPii(message),
             displayTime = raw.time,
             isAppSource = isAppSource,
         )
