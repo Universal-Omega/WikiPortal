@@ -29,3 +29,10 @@ data object ArticleRoute : Route
 
 @Serializable
 data object LogsRoute : Route
+
+// The four destinations that live behind the bottom bar or nav rail.
+// switchTab in Navigator uses this list to decide which entries in the
+// back stack count as tabs versus one-off screens like WikiPickerRoute
+// or ArticleRoute. Typed as NavKey rather than Route since that is what
+// the back stack itself holds, see the comment on Navigator.backStack.
+val bottomTabRoutes: List<NavKey> = listOf(DashboardRoute, TabsRoute, SavedRoute, SettingsRoute)
