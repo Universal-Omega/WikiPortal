@@ -400,22 +400,14 @@ private fun SingleArticleTab(
             Column {
                 TopAppBar(
                     navigationIcon = {
-                        Row {
-                            IconButton(
-                                onClick = {
-                                    scope.launch {
-                                        capturePreviewAndRun(onBack)
-                                    }
-                                },
-                            ) {
-                                Icon(Icons.Filled.Close, contentDescription = "Close")
-                            }
-
-                            if (navigator.canGoForward) {
-                                IconButton(onClick = { navigator.navigateForward(); historyNavTrigger++ }) {
-                                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Forward")
+                        IconButton(
+                            onClick = {
+                                scope.launch {
+                                    capturePreviewAndRun(onBack)
                                 }
-                            }
+                            },
+                        ) {
+                            Icon(Icons.Filled.Close, contentDescription = "Close")
                         }
                     },
                     title = {
@@ -459,6 +451,12 @@ private fun SingleArticleTab(
                                 },
                             ) {
                                 Icon(Icons.Filled.Tab, contentDescription = "Tabs")
+                            }
+                        }
+
+                        if (navigator.canGoForward) {
+                            IconButton(onClick = { navigator.navigateForward(); historyNavTrigger++ }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Forward")
                             }
                         }
 
