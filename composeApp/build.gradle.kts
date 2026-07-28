@@ -93,6 +93,7 @@ kotlin {
             implementation(libs.sqldelight.async.extensions)
 
             implementation(libs.koin.compose)
+            implementation(libs.koin.compose.navigation3)
             implementation(libs.koin.compose.viewmodel)
             implementation(libs.koin.core)
 
