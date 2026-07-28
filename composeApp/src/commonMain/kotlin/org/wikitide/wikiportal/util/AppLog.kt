@@ -66,9 +66,10 @@ object AppLog {
     }
 
     private fun record(level: LogLevel, tag: String, message: String) {
-        val entry = LogEntry(Clock.System.now().toEpochMilliseconds(), level, tag, message)
+        val redacted = redactPii(message)
+        val entry = LogEntry(Clock.System.now().toEpochMilliseconds(), level, tag, redacted)
         _entries.update { current -> (current + entry).takeLast(MAX_ENTRIES) }
-        platformLog(level, tag, message)
+        platformLog(level, tag, redacted)
     }
 }
 
