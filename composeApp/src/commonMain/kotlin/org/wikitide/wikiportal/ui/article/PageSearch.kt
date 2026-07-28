@@ -81,7 +81,7 @@ if (!window.__wpSearchReady) {
     while (el && el !== document.body) {
       var isDetailsClosed = el.tagName === 'DETAILS' && !el.open;
       var isUntilFound = el.getAttribute && el.getAttribute('hidden') === 'until-found';
-      if (isDetailsClosed || isUntilFound) return el;
+      if ((isDetailsClosed || isUntilFound) && !window.__wpIsChrome(el)) return el;
       el = el.parentElement;
     }
     return null;
@@ -121,11 +121,12 @@ if (!window.__wpSearchReady) {
     }
   };
 
-  window.__wpPaint = function() {
+  window.__wpPaint = function(scrollToActive) {
     window.__wpMatches.forEach(function(mark, i) {
       mark.style.backgroundColor = i === window.__wpActive ? '#ff9d2f' : '#ffe066';
       mark.style.color = '#000000';
     });
+    if (!scrollToActive) return;
     var active = window.__wpMatches[window.__wpActive];
     if (active) {
       window.__wpRevealAncestors(active);
@@ -161,7 +162,7 @@ if (!window.__wpSearchReady) {
     return false;
   };
 
-  window.__wpRun = function(query) {
+  window.__wpRun = function(query, scrollToActive) {
     window.__wpPauseObserver();
     window.__wpClearInternal();
     if (!query) {
@@ -177,7 +178,6 @@ if (!window.__wpSearchReady) {
         if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'MARK' || tag === 'NOSCRIPT') return NodeFilter.FILTER_REJECT;
         if (!node.nodeValue || node.nodeValue.toLowerCase().indexOf(needle) === -1) return NodeFilter.FILTER_SKIP;
         if (parent && window.__wpIsControl(parent)) return NodeFilter.FILTER_REJECT;
-        if (parent && window.__wpIsChrome(parent)) return NodeFilter.FILTER_REJECT;
         if (parent && window.__wpIsExcluded(parent)) return NodeFilter.FILTER_REJECT;
         return NodeFilter.FILTER_ACCEPT;
       },
@@ -206,7 +206,7 @@ if (!window.__wpSearchReady) {
     });
 
     window.__wpActive = window.__wpMatches.length > 0 ? 0 : -1;
-    window.__wpPaint();
+    window.__wpPaint(scrollToActive !== false);
     window.__wpDirty = false;
     window.__wpResumeObserver();
     return window.__wpReport();
@@ -217,7 +217,7 @@ if (!window.__wpSearchReady) {
     window.__wpPauseObserver();
     var count = window.__wpMatches.length;
     window.__wpActive = (window.__wpActive + delta + count) % count;
-    window.__wpPaint();
+    window.__wpPaint(true);
     window.__wpResumeObserver();
     return window.__wpReport();
   };
@@ -251,8 +251,10 @@ private fun jsStringLiteral(value: String): String {
 }
 
 /** Highlights every match of [query] in the current page and jumps to the first one. */
-suspend fun runPageSearch(navigator: WebViewNavigator, query: String): PageSearchResult =
-    parseSearchResult(navigator.evalForResult(SEARCH_RUNTIME_SCRIPT + "window.__wpRun(${jsStringLiteral(query)});"))
+suspend fun runPageSearch(navigator: WebViewNavigator, query: String, scrollToActive: Boolean = true): PageSearchResult =
+    parseSearchResult(
+        navigator.evalForResult(SEARCH_RUNTIME_SCRIPT + "window.__wpRun(${jsStringLiteral(query)}, $scrollToActive);"),
+    )
 
 /** Moves to the next match, wrapping around to the first after the last. */
 suspend fun stepPageSearch(navigator: WebViewNavigator, forward: Boolean): PageSearchResult =
