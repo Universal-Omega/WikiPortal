@@ -304,6 +304,15 @@ private fun SingleArticleTab(
         searchResult = PageSearchResult()
     }
 
+    LaunchedEffect(isSearchBarOpen) {
+        while (isSearchBarOpen) {
+            delay(700)
+            if (searchQuery.isNotBlank() && isPageSearchDirty(navigator)) {
+                searchResult = runPageSearch(navigator, searchQuery)
+            }
+        }
+    }
+
     var pageSummary by remember(tab.id) { mutableStateOf<PageSummaryDto?>(null) }
     var offlineHtml by remember(tab.id) { mutableStateOf<String?>(null) }
     var isSavingOffline by remember(tab.id) { mutableStateOf(false) }
