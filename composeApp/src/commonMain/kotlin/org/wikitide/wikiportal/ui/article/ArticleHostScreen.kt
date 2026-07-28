@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -30,6 +31,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tab
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -38,6 +40,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -463,12 +466,6 @@ private fun SingleArticleTab(
                             }
                         }
 
-                        if (navigator.canGoForward) {
-                            IconButton(onClick = { navigator.navigateForward(); historyNavTrigger++ }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Forward")
-                            }
-                        }
-
                         IconButton(onClick = { isOverflowMenuOpen = true }) {
                             Icon(Icons.Filled.MoreVert, contentDescription = "More options")
                         }
@@ -476,13 +473,48 @@ private fun SingleArticleTab(
                         DropdownMenu(
                             expanded = isOverflowMenuOpen,
                             onDismissRequest = { isOverflowMenuOpen = false },
+                            shape = RoundedCornerShape(14.dp),
+                            shadowElevation = 6.dp,
                         ) {
+                            if (navigator.canGoForward) {
+                                DropdownMenuItem(
+                                    text = { Text("Forward") },
+                                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null) },
+                                    onClick = {
+                                        isOverflowMenuOpen = false
+                                        navigator.navigateForward()
+                                        historyNavTrigger++
+                                    },
+                                )
+                            }
+
+                            DropdownMenuItem(
+                                text = { Text("Refresh") },
+                                leadingIcon = { Icon(Icons.Filled.Refresh, contentDescription = null) },
+                                onClick = {
+                                    isOverflowMenuOpen = false
+                                    navigator.reload()
+                                },
+                            )
+
+                            DropdownMenuItem(
+                                text = { Text("Find on page") },
+                                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                                onClick = {
+                                    isOverflowMenuOpen = false
+                                    isSearchBarOpen = true
+                                },
+                            )
+
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
                             DropdownMenuItem(
                                 text = { Text(if (isSaved) "Unsave" else "Save for later") },
                                 leadingIcon = {
                                     Icon(
                                         imageVector = if (isSaved) Icons.Filled.Bookmark else Icons.Filled.BookmarkBorder,
                                         contentDescription = null,
+                                        tint = if (isSaved) MaterialTheme.colorScheme.primary else LocalContentColor.current,
                                     )
                                 },
                                 onClick = {
@@ -513,6 +545,7 @@ private fun SingleArticleTab(
                                         Icon(
                                             imageVector = if (isOfflineSaved) Icons.Filled.DownloadDone else Icons.Filled.Download,
                                             contentDescription = null,
+                                            tint = if (isOfflineSaved) MaterialTheme.colorScheme.primary else LocalContentColor.current,
                                         )
                                     }
                                 },
@@ -523,24 +556,6 @@ private fun SingleArticleTab(
                                     } else {
                                         isSavingOffline = true
                                     }
-                                },
-                            )
-
-                            DropdownMenuItem(
-                                text = { Text("Find on page") },
-                                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                                onClick = {
-                                    isOverflowMenuOpen = false
-                                    isSearchBarOpen = true
-                                },
-                            )
-
-                            DropdownMenuItem(
-                                text = { Text("Refresh") },
-                                leadingIcon = { Icon(Icons.Filled.Refresh, contentDescription = null) },
-                                onClick = {
-                                    isOverflowMenuOpen = false
-                                    navigator.reload()
                                 },
                             )
                         }
