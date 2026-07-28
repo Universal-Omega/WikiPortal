@@ -6,7 +6,7 @@ package org.wikitide.wikiportal.util
  * URL, header line, or error message this app might log: credentials
  * baked directly into a URL, common auth/session/token query and form
  * parameters, Authorization/Cookie header lines, bearer tokens, email
- * addresses, and IP addresses. Applied once, centrally, in
+ * addresses, and IPv4 and IPv6 addresses. Applied once, centrally, in
  * AppLog.record, so every entry that goes into the log buffer or out
  * to the platform's own console, Logcat included, is already redacted
  * before it's stored anywhere, rather than trying to scrub it back out
@@ -24,7 +24,9 @@ package org.wikitide.wikiportal.util
  * shape it wasn't written to expect. It deliberately does not touch
  * page titles or search queries a person types. Those are the actual
  * point of a log meant to help debug this app's own requests, not the
- * kind of information these patterns are aimed at.
+ * kind of information these patterns are aimed at. This is only
+ * designed to reduce the chances a user accidentally discloses
+ * PII in a public venue by posting the logs.
  */
 fun redactPii(text: String): String {
     var result = text
@@ -52,6 +54,18 @@ fun redactPii(text: String): String {
 
     // Email addresses.
     result = result.replace(Regex("""\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"""), "[REDACTED EMAIL]")
+
+    // IPv6, full 8-group form.
+    result = result.replace(
+        Regex("""(?<![0-9a-fA-F:])(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}(?![0-9a-fA-F:])"""),
+        "[REDACTED IP]",
+    )
+
+    // IPv6, compressed form using "::".
+    result = result.replace(
+        Regex("""(?<![0-9a-fA-F:.])[0-9a-fA-F:]*::[0-9a-fA-F:]*(?![0-9a-fA-F:.])"""),
+        "[REDACTED IP]",
+    )
 
     // IPv4 addresses.
     result = result.replace(Regex("""\b(?:\d{1,3}\.){3}\d{1,3}\b"""), "[REDACTED IP]")
