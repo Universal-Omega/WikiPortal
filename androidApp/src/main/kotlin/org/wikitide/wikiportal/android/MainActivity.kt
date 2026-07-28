@@ -6,12 +6,25 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.WindowCompat
 import org.wikitide.wikiportal.WikiPortalApp
+import org.wikitide.wikiportal.util.AndroidLogExportBridge
 
 class MainActivity : ComponentActivity() {
+    // Registered here, as a property, rather than lazily inside
+    // onCreate, since registerForActivityResult must be called before
+    // the Activity reaches the started state. AndroidLogExportBridge
+    // is what lets AndroidLogExporter, a plain suspend function with
+    // no Activity reference of its own, actually trigger this and get
+    // the chosen Uri back.
+    private val createDocumentLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("text/plain"),
+    ) { uri -> AndroidLogExportBridge.onDocumentCreated(uri) }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AndroidLogExportBridge.launcher = { suggestedName -> createDocumentLauncher.launch(suggestedName) }
         enableEdgeToEdge()
         // Without this, a side display cutout in landscape, for example
         // a punch-hole or notch camera on the long edge, makes the
