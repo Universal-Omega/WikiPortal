@@ -35,8 +35,9 @@ fun <T : HttpClientEngineConfig> HttpClientConfig<T>.configureMediaWikiClient() 
     expectSuccess = false
     install(ContentNegotiation) { json(mediaWikiJson) }
     install(HttpTimeout) {
-        requestTimeoutMillis = 20_000
-        connectTimeoutMillis = 15_000
+        connectTimeoutMillis = 5_000
+        requestTimeoutMillis = 30_000
+        socketTimeoutMillis = 15_000
     }
     install(Logging) {
         logger = object : Logger {
@@ -97,7 +98,11 @@ class MediaWikiApi(
     suspend fun getSiteInfo(site: WikiSite): Result<SiteInfoQuery?> =
         actionApi.get<SiteInfoResponse>(
             site.apiUrl,
-            mapOf("action" to "query", "meta" to "siteinfo", "siprop" to "general|skins|extensions"),
+            mapOf(
+                "action" to "query",
+                "meta" to "siteinfo",
+                "siprop" to "general|skins|extensions",
+            ),
         ).map { it.query }
 
     /**
@@ -162,7 +167,11 @@ class MediaWikiApi(
             ),
         ).map { it.query?.pages.orEmpty() }
 
-    suspend fun search(site: WikiSite, query: String, limit: Int = 20): Result<SearchResults> {
+    suspend fun search(
+        site: WikiSite,
+        query: String,
+        limit: Int = 20,
+    ): Result<SearchResults> {
         if (query.isBlank()) return Result.success(SearchResults(emptyList()))
         return actionApi.get<SearchPagesResponse>(
             site.apiUrl,
@@ -197,7 +206,11 @@ class MediaWikiApi(
      * about the call itself, only about which category, if any, a given
      * wiki has configured.
      */
-    suspend fun getCategoryMembers(site: WikiSite, category: String, limit: Int = 20): Result<List<String>> =
+    suspend fun getCategoryMembers(
+        site: WikiSite,
+        category: String,
+        limit: Int = 20,
+    ): Result<List<String>> =
         actionApi.get<CategoryMembersResponse>(
             site.apiUrl,
             mapOf(
@@ -231,7 +244,11 @@ class MediaWikiApi(
     suspend fun parsePage(site: WikiSite, title: String): Result<ParseResult?> =
         actionApi.get<ParseResponse>(
             site.apiUrl,
-            mapOf("action" to "parse", "page" to title, "prop" to "text|displaytitle"),
+            mapOf(
+                "action" to "parse",
+                "page" to title,
+                "prop" to "text|displaytitle",
+            ),
         ).map { it.parse }
 
     /**
