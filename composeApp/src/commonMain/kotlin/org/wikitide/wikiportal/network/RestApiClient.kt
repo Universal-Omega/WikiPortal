@@ -36,7 +36,10 @@ class RestApiClient(
      * for a default-valued response type, can silently produce an
      * empty "success" instead of a diagnosable failure.
      */
-    suspend inline fun <reified T> get(url: String, params: Map<String, Any?> = emptyMap()): Result<T> = runCatchingCancellable {
+    suspend inline fun <reified T> get(
+        url: String,
+        params: Map<String, Any?> = emptyMap(),
+    ): Result<T> = runCatchingCancellable {
         val httpResponse: HttpResponse = httpClient.get(url) {
             params.forEach { (key, value) -> if (value != null) parameter(key, value) }
         }
