@@ -99,7 +99,7 @@ fun SettingsScreen(onOpenWikiPicker: () -> Unit, onOpenLogs: () -> Unit, reposit
             item {
                 SwitchRow(
                     title = "Show images",
-                    subtitle = "Show thumbnails in Explore, Search, and Saved",
+                    subtitle = "Show thumbnails in Dashboard, Search, Tabs, and Saved",
                     checked = showImages,
                     onCheckedChange = repository::setShowImages,
                 )
