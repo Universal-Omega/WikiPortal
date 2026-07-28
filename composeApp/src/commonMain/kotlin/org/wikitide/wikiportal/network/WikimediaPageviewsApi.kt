@@ -18,7 +18,9 @@ data class WikimediaPageviewsArticle(
     val views: Long = 0,
 )
 
-class WikimediaPageviewsApi(private val restApi: RestApiClient) {
+class WikimediaPageviewsApi(
+    private val restApi: RestApiClient,
+) {
 
     suspend fun getTopArticles(
         project: String,
