@@ -6,6 +6,7 @@ import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.isSuccess
+import org.wikitide.wikiportal.util.AppLog
 
 /**
  * A shared transport for REST-style calls, both MediaWiki's own
@@ -44,6 +45,6 @@ class RestApiClient(
         }
         httpResponse.body<T>()
     }.onFailure {
-        println("Ktor: RestApiClient.get($url, $params) failed: ${it::class.simpleName}: ${it.message}")
+        AppLog.e("RestApiClient", "get($url, $params) failed", it)
     }
 }

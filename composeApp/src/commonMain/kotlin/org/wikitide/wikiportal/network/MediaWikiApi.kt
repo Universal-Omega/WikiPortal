@@ -19,6 +19,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import org.wikitide.wikiportal.BuildKonfig
 import org.wikitide.wikiportal.data.model.WikiSite
+import org.wikitide.wikiportal.util.AppLog
 
 val mediaWikiJson: Json = Json {
     ignoreUnknownKeys = true
@@ -40,7 +41,7 @@ fun <T : HttpClientEngineConfig> HttpClientConfig<T>.configureMediaWikiClient() 
     install(Logging) {
         logger = object : Logger {
             override fun log(message: String) {
-                println("Ktor: $message")
+                AppLog.d("Ktor", message)
             }
         }
         level = LogLevel.INFO
@@ -125,7 +126,7 @@ class MediaWikiApi(
         val html = httpClient.get(site.indexUrl).bodyAsText()
         parseFaviconFromHtml(html, site.baseUrl)
     }.onFailure {
-        println("Ktor: getFaviconUrlFromHtml(${site.indexUrl}) failed: ${it::class.simpleName}: ${it.message}")
+        AppLog.e("MediaWikiApi", "getFaviconUrlFromHtml(${site.indexUrl}) failed", it)
     }
 
     /**

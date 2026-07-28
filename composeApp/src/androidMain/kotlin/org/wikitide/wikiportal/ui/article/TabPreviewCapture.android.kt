@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import com.multiplatform.webview.web.NativeWebView
 import kotlinx.coroutines.suspendCancellableCoroutine
+import org.wikitide.wikiportal.util.AppLog
 import kotlin.coroutines.resume
 
 private const val MAX_PREVIEW_WIDTH_PX = 320
@@ -53,7 +54,7 @@ actual suspend fun captureTabPreview(nativeWebView: NativeWebView): ImageBitmap?
                     if (result == PixelCopy.SUCCESS) {
                         continuation.resume(bitmap.toThumbnail().asImageBitmap())
                     } else {
-                        println("TabPreview: PixelCopy failed with code $result")
+                        AppLog.w("TabPreview", "PixelCopy failed with code $result")
                         bitmap.recycle()
                         continuation.resume(null)
                     }
@@ -61,7 +62,7 @@ actual suspend fun captureTabPreview(nativeWebView: NativeWebView): ImageBitmap?
                 Handler(Looper.getMainLooper()),
             )
         } catch (e: Exception) {
-            println("TabPreview: capture failed: ${e::class.simpleName}: ${e.message}")
+            AppLog.e("TabPreview", "capture failed", e)
             if (continuation.isActive) {
                 continuation.resume(null)
             }

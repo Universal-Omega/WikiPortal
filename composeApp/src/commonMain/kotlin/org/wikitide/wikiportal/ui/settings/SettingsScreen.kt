@@ -33,7 +33,7 @@ import org.wikitide.wikiportal.data.model.ThemeMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(onOpenWikiPicker: () -> Unit, repository: AppRepository = koinInject()) {
+fun SettingsScreen(onOpenWikiPicker: () -> Unit, onOpenLogs: () -> Unit, repository: AppRepository = koinInject()) {
     val activeWiki by repository.activeWiki.collectAsState()
     val themeMode by repository.themeMode.collectAsState()
     val dynamicColor by repository.dynamicColor.collectAsState()
@@ -132,6 +132,13 @@ fun SettingsScreen(onOpenWikiPicker: () -> Unit, repository: AppRepository = koi
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+            }
+            item {
+                SettingsRow(
+                    title = "App logs",
+                    subtitle = "Recent app activity, useful when troubleshooting a problem",
+                    onClick = onOpenLogs,
+                )
             }
         }
     }

@@ -15,7 +15,9 @@ import org.wikitide.wikiportal.network.MediaWikiApi
 import org.wikitide.wikiportal.network.PageSummaryDto
 import org.wikitide.wikiportal.network.TrendingArticle
 import org.wikitide.wikiportal.network.WikimediaPageviewsApi
+import org.wikitide.wikiportal.network.friendlyNetworkErrorMessage
 import org.wikitide.wikiportal.network.wikimediaProjectDomain
+import org.wikitide.wikiportal.util.AppLog
 
 data class ExploreUiState(
     val wiki: WikiSite? = null,
@@ -93,7 +95,8 @@ class ExploreViewModel(
                     _articles.value = articles
                 }.onFailure { e ->
                     _articles.value = emptyList()
-                    _errorMessage.value = "${e::class.simpleName}: ${e.message}"
+                    AppLog.e("ExploreViewModel", "getRandomArticles failed for ${wiki.id}", e)
+                    _errorMessage.value = friendlyNetworkErrorMessage(e)
                 }
                 _isLoading.value = false
             }

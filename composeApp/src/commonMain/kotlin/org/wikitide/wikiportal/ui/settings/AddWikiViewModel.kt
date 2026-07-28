@@ -16,6 +16,7 @@ import org.wikitide.wikiportal.network.deriveUncuratedDefaultSkin
 import org.wikitide.wikiportal.network.deriveWikiDefaultSkin
 import org.wikitide.wikiportal.network.resolveDefaultSkin
 import org.wikitide.wikiportal.network.resolveFaviconUrl
+import org.wikitide.wikiportal.util.AppLog
 
 data class AddWikiUiState(
     val isChecking: Boolean = false,
@@ -117,14 +118,13 @@ class AddWikiViewModel(
             }
 
             if (resolvedSite == null || sitename == null) {
-                val debug = lastError?.let { "${it::class.simpleName}: ${it.message}" }
+                lastError?.let { AppLog.e("AddWiki", "Couldn't resolve a MediaWiki API at $resolvedBaseUrl", it) }
                 val message = buildString {
                     append("Couldn't find a MediaWiki API at that address.")
                     if (trimmedCustomPath.isBlank()) {
                         append(" Tried: ${COMMON_SCRIPT_PATHS.joinToString(", ") { it.ifBlank { "(root)" } }}.")
                         append(" If your wiki uses a different path, enter it above.")
                     }
-                    if (debug != null) append("\n\nDebug: $debug")
                 }
                 _state.value = AddWikiUiState(errorMessage = message, showScriptPathField = true)
             } else {
