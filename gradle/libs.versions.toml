@@ -21,6 +21,10 @@ ktor = "3.5.1"
 sqldelight = "2.3.2"
 webviewMultiplatform = "2.0.3"
 
+# npm dependencies
+copyWebpackPlugin = "14.0.0"
+sqlJs = "1.14.1"
+
 jvmTarget = "17"
 minSdk = "26"
 compileSdk = "37"
