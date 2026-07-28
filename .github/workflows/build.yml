@@ -29,11 +29,11 @@ jobs:
     - name: Run Gradle
       run: ./gradlew :androidApp:assembleDebug
 
-   # - name: Run Gradle wasmJs
-   #   run: ./gradlew :composeApp:wasmJsBrowserDistribution
+    - name: Run Gradle wasmJs
+      run: ./gradlew :composeApp:wasmJsBrowserDistribution
 
-    # - name: Run Gradle desktop
-    #  run: ./gradlew :composeApp:run
+    - name: Run Gradle desktop
+      run: ./gradlew :composeApp:run
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v7
@@ -41,11 +41,11 @@ jobs:
         name: pull-request-build
         path: "**/build/outputs/**"
 
-  #  - name: Upload Artifact Wasm
-  #    uses: actions/upload-artifact@v7
-  #    with:
-  #      name: pull-request-build-wasm
-  #      path: "**/build/dist/**"
+    - name: Upload Artifact Wasm
+      uses: actions/upload-artifact@v7
+      with:
+        name: pull-request-build-wasm
+        path: "**/build/dist/**"
 
   ios-framework:
     runs-on: macos-latest
