@@ -65,7 +65,7 @@ kotlin {
         }
 
         commonMain.dependencies {
-            implementation(compose.materialIconsExtended)
+            implementation(libs.androidx.compose.material.icons.extended)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
             implementation(libs.compose.resources)
