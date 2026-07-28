@@ -7,7 +7,11 @@ package org.wikitide.wikiportal.network
  * MatomoAnalytics extension for any wiki that actually has it
  * installed.
  */
-data class TrendingArticle(val title: String, val views: Long?, val url: String? = null)
+data class TrendingArticle(
+    val title: String,
+    val views: Long?,
+    val url: String? = null,
+)
 
 /**
  * Wikimedia project domains this app knows how to ask the Pageviews
@@ -15,9 +19,18 @@ data class TrendingArticle(val title: String, val views: Long?, val url: String?
  * project.
  */
 private val WIKIMEDIA_SUFFIXES = listOf(
-    ".wikipedia.org", ".wiktionary.org", ".wikibooks.org", ".wikiquote.org",
-    ".wikisource.org", ".wikinews.org", ".wikiversity.org", ".wikivoyage.org",
-    ".wikidata.org", "mediawiki.org",
+    ".wikibooks.org",
+    ".wikidata.org",
+    ".wikifunctions.org",
+    ".wikimedia.org",
+    ".wikinews.org",
+    ".wikipedia.org",
+    ".wikiquote.org",
+    ".wikiversity.org",
+    ".wikivoyage.org",
+    ".wiktionary.org",
+    "mediawiki.org",
+    "wikisource.org",
 )
 
 /**
