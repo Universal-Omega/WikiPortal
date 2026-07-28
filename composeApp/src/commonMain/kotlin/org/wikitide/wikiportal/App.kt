@@ -42,7 +42,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
-import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
@@ -56,26 +55,18 @@ import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.modules.subclassesOfSealed
 import org.koin.compose.koinInject
+import org.koin.compose.navigation3.koinEntryProvider
+import org.koin.core.annotation.KoinExperimentalAPI
 import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.TabsRepository
-import org.wikitide.wikiportal.navigation.AddWikiRoute
 import org.wikitide.wikiportal.navigation.ArticleRoute
 import org.wikitide.wikiportal.navigation.DashboardRoute
-import org.wikitide.wikiportal.navigation.LogsRoute
+import org.wikitide.wikiportal.navigation.Navigator
 import org.wikitide.wikiportal.navigation.Route
 import org.wikitide.wikiportal.navigation.SavedRoute
 import org.wikitide.wikiportal.navigation.SettingsRoute
 import org.wikitide.wikiportal.navigation.TabsRoute
-import org.wikitide.wikiportal.navigation.WikiPickerRoute
-import org.wikitide.wikiportal.ui.article.ArticleHostScreen
-import org.wikitide.wikiportal.ui.dashboard.DashboardScreen
 import org.wikitide.wikiportal.ui.navigation.SystemBackInterceptor
-import org.wikitide.wikiportal.ui.saved.SavedScreen
-import org.wikitide.wikiportal.ui.settings.AddWikiScreen
-import org.wikitide.wikiportal.ui.settings.LogsScreen
-import org.wikitide.wikiportal.ui.settings.SettingsScreen
-import org.wikitide.wikiportal.ui.settings.WikiPickerScreen
-import org.wikitide.wikiportal.ui.tabs.TabsListScreen
 import org.wikitide.wikiportal.ui.theme.WikiPortalTheme
 
 private data class BottomDestination(val route: Route, val label: String, val selected: ImageVector, val unselected: ImageVector)
@@ -128,6 +119,7 @@ private val navConfig = SavedStateConfiguration {
     }
 }
 
+@OptIn(KoinExperimentalAPI::class)
 @Composable
 fun WikiPortalApp(onDarkThemeResolved: (Boolean) -> Unit = {}) {
     // Coil3 caches images by default even without this setup, but adding
@@ -144,59 +136,13 @@ fun WikiPortalApp(onDarkThemeResolved: (Boolean) -> Unit = {}) {
 
     val repository = koinInject<AppRepository>()
     val tabsRepository = koinInject<TabsRepository>()
+    val navigator = koinInject<Navigator>()
     val themeMode by repository.themeMode.collectAsState()
     val dynamicColor by repository.dynamicColor.collectAsState()
 
     WikiPortalTheme(themeMode = themeMode, useDynamicColor = dynamicColor, onDarkThemeResolved = onDarkThemeResolved) {
         val backStack = rememberNavBackStack(navConfig, DashboardRoute)
-
-        fun navigateTo(route: Route) {
-            if (backStack.lastOrNull() != route) backStack.add(route)
-        }
-
-        fun switchTab(route: Route) {
-            val bottomRoutes = bottomDestinations.map { it.route }
-            val survivors = backStack.filter { it in bottomRoutes && it != route }
-            backStack.clear()
-            backStack.addAll(survivors + route)
-        }
-
-        /**
-         * Opens a reading tab for [wikiId] and [title], then makes sure
-         * we are on the Article destination. If that article is already
-         * open in another tab, found through findOpenTab, we just switch
-         * to that tab instead of opening a duplicate, the same way
-         * clicking an already-open tab works in a browser. A new tab is
-         * only created when no existing tab matches. ArticleRoute is a
-         * singleton, so navigateTo() does nothing if we are already
-         * there. Opening or switching to a tab from Dashboard or Saved
-         * only changes which tab TabsRepository considers active. It
-         * does not touch the nav back stack, so it never disposes or
-         * recreates an already-open tab's WebView.
-         */
-        fun openArticle(wikiId: String, title: String) {
-            val site = repository.allWikisNow().firstOrNull { it.id == wikiId } ?: repository.activeWiki.value
-            val existing = tabsRepository.findOpenTab(wikiId, title)
-            if (existing != null) {
-                tabsRepository.setActiveTab(existing.id)
-            } else {
-                tabsRepository.openTab(site, title)
-            }
-            navigateTo(ArticleRoute)
-        }
-
-        // The order here matters. First we close the tab switcher overlay
-        // if it is open. Then we let the active tab's own in-page history
-        // handle the back press, through tryGoBackInActiveTab.
-        fun handleBack() {
-            if (tabsRepository.isSwitcherOpen.value) {
-                tabsRepository.setSwitcherOpen(false)
-            } else if (tabsRepository.tryGoBackInActiveTab()) {
-                // The active tab's own history already handled this.
-            } else {
-                backStack.removeLastOrNull()
-            }
-        }
+        navigator.backStack = backStack
 
         val current = backStack.lastOrNull()
         // ArticleRoute is not one of the bottomDestinations on purpose, so
@@ -212,56 +158,16 @@ fun WikiPortalApp(onDarkThemeResolved: (Boolean) -> Unit = {}) {
         // branches below.
         val navDisplayContent = remember {
             movableContentOf { modifier: Modifier ->
+                val entryProvider = koinEntryProvider<NavKey>()
                 NavDisplay(
                     backStack = backStack,
-                    onBack = { handleBack() },
+                    onBack = { navigator.handleBack() },
                     modifier = modifier,
                     entryDecorators = listOf(
                         rememberSaveableStateHolderNavEntryDecorator(),
                         rememberViewModelStoreNavEntryDecorator(),
                     ),
-                    entryProvider = { key: NavKey ->
-                        when (key) {
-                            DashboardRoute -> NavEntry(key) {
-                                DashboardScreen(
-                                    onArticleClick = { wikiId, title -> openArticle(wikiId, title) },
-                                    onOpenWikiPicker = { navigateTo(WikiPickerRoute) },
-                                )
-                            }
-                            TabsRoute -> NavEntry(key) {
-                                TabsListScreen(
-                                    onOpenTab = { wikiId, title -> openArticle(wikiId, title) },
-                                )
-                            }
-                            SavedRoute -> NavEntry(key) {
-                                SavedScreen(onArticleClick = { wikiId, title -> openArticle(wikiId, title) })
-                            }
-                            SettingsRoute -> NavEntry(key) {
-                                SettingsScreen(
-                                    onOpenWikiPicker = { navigateTo(WikiPickerRoute) },
-                                    onOpenLogs = { navigateTo(LogsRoute) },
-                                )
-                            }
-                            WikiPickerRoute -> NavEntry(key) {
-                                WikiPickerScreen(
-                                    onBack = { backStack.removeLastOrNull() },
-                                    onAddCustomWiki = { navigateTo(AddWikiRoute) },
-                                )
-                            }
-                            AddWikiRoute -> NavEntry(key) {
-                                AddWikiScreen(onDone = { backStack.removeLastOrNull() })
-                            }
-                            LogsRoute -> NavEntry(key) {
-                                LogsScreen(onBack = { backStack.removeLastOrNull() })
-                            }
-                            ArticleRoute -> NavEntry(key) {
-                                ArticleHostScreen(
-                                    onBack = { backStack.removeLastOrNull() },
-                                )
-                            }
-                            else -> error("Unknown route: $key")
-                        }
-                    },
+                    entryProvider = entryProvider,
                 )
             }
         }
@@ -309,7 +215,7 @@ fun WikiPortalApp(onDarkThemeResolved: (Boolean) -> Unit = {}) {
                                     val isSelected = destination.route == current
                                     NavigationRailItem(
                                         selected = isSelected,
-                                        onClick = { switchTab(destination.route) },
+                                        onClick = { navigator.switchTab(destination.route) },
                                         icon = { DestinationIcon(destination, isSelected, openTabs.size) },
                                         label = { Text(destination.label) },
                                     )
@@ -350,7 +256,7 @@ fun WikiPortalApp(onDarkThemeResolved: (Boolean) -> Unit = {}) {
                                     val isSelected = destination.route == current
                                     NavigationBarItem(
                                         selected = isSelected,
-                                        onClick = { switchTab(destination.route) },
+                                        onClick = { navigator.switchTab(destination.route) },
                                         icon = { DestinationIcon(destination, isSelected, openTabs.size) },
                                         label = { Text(destination.label) },
                                     )
@@ -379,7 +285,7 @@ fun WikiPortalApp(onDarkThemeResolved: (Boolean) -> Unit = {}) {
         val activeTabCanGoBack by tabsRepository.activeTabCanGoBack.collectAsState()
         SystemBackInterceptor(
             enabled = backStack.lastOrNull() == ArticleRoute && (isSwitcherOpen || activeTabCanGoBack),
-            onBack = { handleBack() },
+            onBack = { navigator.handleBack() },
         )
     }
 }
