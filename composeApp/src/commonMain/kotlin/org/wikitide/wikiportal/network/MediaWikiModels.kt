@@ -23,7 +23,10 @@ interface ActionApiResponse {
 }
 
 @Serializable
-data class SiteInfoResponse(val query: SiteInfoQuery? = null, override val error: ApiErrorDto? = null) : ActionApiResponse
+data class SiteInfoResponse(
+    val query: SiteInfoQuery? = null,
+    override val error: ApiErrorDto? = null,
+) : ActionApiResponse
 
 @Serializable
 data class SiteInfoQuery(
@@ -33,7 +36,9 @@ data class SiteInfoQuery(
 )
 
 @Serializable
-data class ExtensionDto(val name: String? = null)
+data class ExtensionDto(
+    val name: String? = null,
+)
 
 @Serializable
 data class SiteGeneral(
@@ -65,10 +70,15 @@ data class SkinInfoDto(
 )
 
 @Serializable
-data class RandomPagesResponse(val query: RandomPagesQuery? = null, override val error: ApiErrorDto? = null) : ActionApiResponse
+data class RandomPagesResponse(
+    val query: RandomPagesQuery? = null,
+    override val error: ApiErrorDto? = null,
+) : ActionApiResponse
 
 @Serializable
-data class RandomPagesQuery(val pages: List<PageSummaryDto>? = null)
+data class RandomPagesQuery(
+    val pages: List<PageSummaryDto>? = null,
+)
 
 @Serializable
 data class PageSummaryDto(
@@ -79,10 +89,17 @@ data class PageSummaryDto(
 )
 
 @Serializable
-data class ThumbnailDto(val source: String, val width: Int = 0, val height: Int = 0)
+data class ThumbnailDto(
+    val source: String,
+    val width: Int = 0,
+    val height: Int = 0,
+)
 
 @Serializable
-data class SearchPagesResponse(val query: SearchPagesQuery? = null, override val error: ApiErrorDto? = null) : ActionApiResponse
+data class SearchPagesResponse(
+    val query: SearchPagesQuery? = null,
+    override val error: ApiErrorDto? = null,
+) : ActionApiResponse
 
 @Serializable
 data class SearchPagesQuery(
@@ -100,7 +117,10 @@ data class SearchInfoDto(
 )
 
 @Serializable
-data class ParseResponse(val parse: ParseResult? = null, override val error: ApiErrorDto? = null) : ActionApiResponse
+data class ParseResponse(
+    val parse: ParseResult? = null,
+    override val error: ApiErrorDto? = null,
+) : ActionApiResponse
 
 @Serializable
 data class ParseResult(
@@ -111,19 +131,35 @@ data class ParseResult(
 )
 
 @Serializable
-data class CategoryMembersResponse(val query: CategoryMembersQuery? = null, override val error: ApiErrorDto? = null) : ActionApiResponse
+data class CategoryMembersResponse(
+    val query: CategoryMembersQuery? = null,
+    override val error: ApiErrorDto? = null,
+) : ActionApiResponse
 
 @Serializable
-data class CategoryMembersQuery(val categorymembers: List<CategoryMemberDto> = emptyList())
+data class CategoryMembersQuery(
+    val categorymembers: List<CategoryMemberDto> = emptyList(),
+)
 
 @Serializable
-data class CategoryMemberDto(val pageid: Int = 0, val title: String = "", val ns: Int = 0)
+data class CategoryMemberDto(
+    val pageid: Int = 0,
+    val title: String = "",
+    val ns: Int = 0,
+)
 
 @Serializable
-data class RecentChangesResponse(val query: RecentChangesQuery? = null, override val error: ApiErrorDto? = null) : ActionApiResponse
+data class RecentChangesResponse(
+    val query: RecentChangesQuery? = null,
+    override val error: ApiErrorDto? = null,
+) : ActionApiResponse
 
 @Serializable
-data class RecentChangesQuery(val recentchanges: List<RecentChangeDto> = emptyList())
+data class RecentChangesQuery(
+    val recentchanges: List<RecentChangeDto> = emptyList(),
+)
 
 @Serializable
-data class RecentChangeDto(val title: String = "")
+data class RecentChangeDto(
+    val title: String = "",
+)
