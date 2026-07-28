@@ -9,6 +9,8 @@ import org.koin.dsl.module
 import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.TabsRepository
 import org.wikitide.wikiportal.data.WikiMetadataRefresher
+import org.wikitide.wikiportal.navigation.Navigator
+import org.wikitide.wikiportal.navigation.navigationModule
 import org.wikitide.wikiportal.network.ActionApiClient
 import org.wikitide.wikiportal.network.MatomoAnalyticsApi
 import org.wikitide.wikiportal.network.MediaWikiApi
@@ -39,6 +41,7 @@ val commonModule = module {
     single { WikiMetadataRefresher(get()) }
     single { AppRepository(get(), get(), get()) }
     single { TabsRepository(get(), get()) }
+    single { Navigator(get(), get()) }
 
     viewModel { ExploreViewModel(get(), get(), get(), get()) }
     viewModel { SearchViewModel(get(), get(), get()) }
@@ -46,4 +49,4 @@ val commonModule = module {
     viewModel { AddWikiViewModel(get(), get()) }
 }
 
-fun appModules(): List<Module> = listOf(commonModule, platformModule())
+fun appModules(): List<Module> = listOf(commonModule, navigationModule, platformModule())
