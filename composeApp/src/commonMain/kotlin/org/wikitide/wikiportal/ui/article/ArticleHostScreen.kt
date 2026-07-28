@@ -13,15 +13,21 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.DownloadDone
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tab
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -37,10 +43,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -76,6 +86,7 @@ import org.wikitide.wikiportal.data.model.SavedPage
 import org.wikitide.wikiportal.network.MediaWikiApi
 import org.wikitide.wikiportal.network.PageSummaryDto
 import org.wikitide.wikiportal.ui.tabs.TabsScreen
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
 
@@ -271,11 +282,35 @@ private fun SingleArticleTab(
         isOnExternalSite = allWikis.none { settledUrl.startsWith(it.baseUrl) } && !AuthDomains.matches(settledUrl)
     }
 
+    LaunchedEffect(isSearchBarOpen, searchQuery) {
+        if (!isSearchBarOpen) return@LaunchedEffect
+        if (searchQuery.isBlank()) {
+            searchResult = PageSearchResult()
+            clearPageSearch(navigator)
+            return@LaunchedEffect
+        }
+        delay(250)
+        searchResult = runPageSearch(navigator, searchQuery)
+    }
+
+    // A reload or a fresh navigation wipes out the highlight spans along
+    // with the rest of the DOM, so the same query is re-applied once the
+    // new page settles rather than leaving the bar showing stale counts
+    // over unhighlighted text.
+    LaunchedEffect(isSearchBarOpen, pageState.isLoading) {
+        if (!isSearchBarOpen || pageState.isLoading || searchQuery.isBlank()) return@LaunchedEffect
+        searchResult = runPageSearch(navigator, searchQuery)
+    }
+
     var pageSummary by remember(tab.id) { mutableStateOf<PageSummaryDto?>(null) }
     var offlineHtml by remember(tab.id) { mutableStateOf<String?>(null) }
     var isSavingOffline by remember(tab.id) { mutableStateOf(false) }
     var isRefreshing by remember(tab.id) { mutableStateOf(false) }
     var isOverflowMenuOpen by remember(tab.id) { mutableStateOf(false) }
+    var isSearchBarOpen by remember(tab.id) { mutableStateOf(false) }
+    var searchQuery by remember(tab.id) { mutableStateOf("") }
+    var searchResult by remember(tab.id) { mutableStateOf(PageSearchResult()) }
+    val searchFocusRequester = remember(tab.id) { FocusRequester() }
     // The title a summary was last fetched for, so reactivating a tab
     // that hasn't navigated anywhere new doesn't re-fetch and re-record a
     // visit it already has.
@@ -487,6 +522,15 @@ private fun SingleArticleTab(
                             )
 
                             DropdownMenuItem(
+                                text = { Text("Find on page") },
+                                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                                onClick = {
+                                    isOverflowMenuOpen = false
+                                    isSearchBarOpen = true
+                                },
+                            )
+
+                            DropdownMenuItem(
                                 text = { Text("Refresh") },
                                 leadingIcon = { Icon(Icons.Filled.Refresh, contentDescription = null) },
                                 onClick = {
@@ -498,6 +542,68 @@ private fun SingleArticleTab(
                     },
                     windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
                 )
+
+                if (isSearchBarOpen) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        TextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            modifier = Modifier
+                                .weight(1f)
+                                .focusRequester(searchFocusRequester),
+                            placeholder = { Text("Find on page") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                            keyboardActions = KeyboardActions(
+                                onSearch = { scope.launch { searchResult = stepPageSearch(navigator, forward = true) } },
+                            ),
+                        )
+
+                        if (searchQuery.isNotBlank()) {
+                            Text(
+                                text = if (searchResult.matchCount > 0) {
+                                    "${searchResult.activeIndex}/${searchResult.matchCount}"
+                                } else {
+                                    "0/0"
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(horizontal = 8.dp),
+                            )
+                        }
+
+                        IconButton(
+                            enabled = searchResult.matchCount > 0,
+                            onClick = { scope.launch { searchResult = stepPageSearch(navigator, forward = false) } },
+                        ) {
+                            Icon(Icons.Filled.KeyboardArrowUp, contentDescription = "Previous match")
+                        }
+
+                        IconButton(
+                            enabled = searchResult.matchCount > 0,
+                            onClick = { scope.launch { searchResult = stepPageSearch(navigator, forward = true) } },
+                        ) {
+                            Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Next match")
+                        }
+
+                        IconButton(
+                            onClick = {
+                                isSearchBarOpen = false
+                                searchQuery = ""
+                                searchResult = PageSearchResult()
+                                scope.launch { clearPageSearch(navigator) }
+                            },
+                        ) {
+                            Icon(Icons.Filled.Close, contentDescription = "Close search")
+                        }
+                    }
+
+                    LaunchedEffect(Unit) { searchFocusRequester.requestFocus() }
+                }
 
                 if (pageState.isLoading) {
                     LinearProgressIndicator(
