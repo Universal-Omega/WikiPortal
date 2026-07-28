@@ -35,7 +35,10 @@ class ActionApiClient(
      * cares whether a MediaWiki API is even there, can still inspect
      * the returned Result's exception.
      */
-    suspend inline fun <reified T : ActionApiResponse> get(url: String, params: Map<String, Any?>): Result<T> = runCatchingCancellable {
+    suspend inline fun <reified T : ActionApiResponse> get(
+        url: String,
+        params: Map<String, Any?>,
+    ): Result<T> = runCatchingCancellable {
         val response = httpClient.get(url) {
             params.forEach { (key, value) -> if (value != null) parameter(key, value) }
             parameter("format", "json")
