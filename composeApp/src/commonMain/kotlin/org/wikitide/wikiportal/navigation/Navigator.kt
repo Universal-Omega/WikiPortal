@@ -16,7 +16,7 @@ class Navigator(
     }
 
     fun switchTab(route: Route) {
-        val survivors = backStack.filter { it in bottomTabRoutes && it != route }
+        val survivors = backStack.filter { it in tabRoutes && it != route }
         backStack.clear()
         backStack.addAll(survivors + route)
     }
