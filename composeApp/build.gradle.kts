@@ -117,7 +117,7 @@ kotlin {
 
         wasmJsMain.dependencies {
             implementation(devNpm("copy-webpack-plugin", "14.0.0"))
-            implementation(npm("@cashapp/sqldelight-sqljs-worker", "2.3.2"))
+            implementation(npm("@cashapp/sqldelight-sqljs-worker", libs.versions.sqldelight.get()))
             implementation(npm("sql.js", "1.14.1"))
         }
 
