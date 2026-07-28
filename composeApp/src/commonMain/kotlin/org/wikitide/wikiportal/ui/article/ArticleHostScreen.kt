@@ -311,7 +311,7 @@ private fun SingleArticleTab(
         while (isSearchBarOpen) {
             delay(700)
             if (searchQuery.isNotBlank() && isPageSearchDirty(navigator)) {
-                searchResult = runPageSearch(navigator, searchQuery)
+                searchResult = runPageSearch(navigator, searchQuery, scrollToActive = false)
             }
         }
     }
