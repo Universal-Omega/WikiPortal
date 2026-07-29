@@ -166,6 +166,7 @@ private fun SingleArticleTab(
     val allWikis = remember(presetWikis, customWikis) { presetWikis + customWikis }
     val site = remember(tab.wikiId, allWikis) { allWikis.firstOrNull { it.id == tab.wikiId } ?: repository.activeWiki.value }
     val initialTitle = remember(tab.id) { tab.title }
+    val openOfflineFromStart = remember(tab.id) { repository.isOfflineSaved(site.id, initialTitle) }
     val textScale by repository.textScale.collectAsState()
     val offlineKeys by repository.offlineKeys.collectAsState()
     val confirmExternalNavigation by repository.confirmExternalNavigation.collectAsState()
@@ -653,6 +654,7 @@ private fun SingleArticleTab(
                 navigator = navigator,
                 textScale = textScale,
                 offlineHtml = offlineHtml,
+                openOfflineFromStart = openOfflineFromStart,
                 allWikis = allWikis,
                 historyNavTrigger = historyNavTrigger,
                 restoreUrl = tab.currentUrl,
@@ -713,10 +715,12 @@ private fun SingleArticleTab(
 
     LaunchedEffect(isSavingOffline) {
         if (!isSavingOffline) return@LaunchedEffect
+        val rendered = api.getRenderedPageHtml(site, currentTitle).getOrNull()
+            ?.takeIf { it.isNotBlank() }
+            ?: api.parsePage(site, currentTitle).getOrNull()?.text
 
-        val parsed = api.parsePage(site, currentTitle).getOrNull()
-        if (parsed != null && parsed.text.isNotBlank()) {
-            val selfContained = buildSelfContainedHtml(parsed.text, site.baseUrl, api)
+        if (!rendered.isNullOrBlank()) {
+            val selfContained = buildSelfContainedHtml(rendered, site.baseUrl, api)
             repository.saveOfflineArticle(
                 SavedPage(
                     wikiId = site.id,
