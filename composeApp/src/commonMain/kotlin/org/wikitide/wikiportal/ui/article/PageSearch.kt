@@ -57,26 +57,6 @@ if (!window.__wpSearchReady) {
     window.__wpResumeObserver();
   };
 
-  window.__wpIsControl = function(startEl) {
-    var el = startEl;
-    while (el && el !== document.body) {
-      var role = el.getAttribute ? el.getAttribute('role') : null;
-      if (
-        el.tagName === 'BUTTON' ||
-        el.tagName === 'LABEL' ||
-        el.tagName === 'SUMMARY' ||
-        role === 'button' ||
-        role === 'menuitem' ||
-        role === 'menu' ||
-        (el.hasAttribute && (el.hasAttribute('aria-haspopup') || el.hasAttribute('aria-expanded')))
-      ) {
-        return true;
-      }
-      el = el.parentElement;
-    }
-    return false;
-  };
-
   window.__wpFindBoundary = function(fromEl) {
     var el = fromEl;
     while (el && el !== document.body) {
@@ -115,8 +95,14 @@ if (!window.__wpSearchReady) {
 
   window.__wpRevealAncestors = function(markEl) {
     var el = markEl.parentElement;
+    var withinSummary = false;
     while (el && el !== document.body) {
-      if (el.tagName === 'DETAILS' && !el.open) el.open = true;
+      if (el.tagName === 'SUMMARY') {
+        withinSummary = true;
+      } else if (el.tagName === 'DETAILS') {
+        if (!withinSummary && !el.open) el.open = true;
+        withinSummary = false;
+      }
       if (el.getAttribute && el.getAttribute('hidden') === 'until-found') el.removeAttribute('hidden');
       el = el.parentElement;
     }
@@ -178,7 +164,6 @@ if (!window.__wpSearchReady) {
         var tag = parent ? parent.nodeName : '';
         if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'MARK' || tag === 'NOSCRIPT') return NodeFilter.FILTER_REJECT;
         if (!node.nodeValue || node.nodeValue.toLowerCase().indexOf(needle) === -1) return NodeFilter.FILTER_SKIP;
-        if (parent && window.__wpIsControl(parent)) return NodeFilter.FILTER_REJECT;
         if (parent && window.__wpIsExcluded(parent)) return NodeFilter.FILTER_REJECT;
         return NodeFilter.FILTER_ACCEPT;
       },
