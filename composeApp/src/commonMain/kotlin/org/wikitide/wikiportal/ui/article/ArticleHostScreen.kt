@@ -87,6 +87,7 @@ import org.wikitide.wikiportal.data.TabsRepository
 import org.wikitide.wikiportal.data.model.ArticleTab
 import org.wikitide.wikiportal.data.model.AuthDomains
 import org.wikitide.wikiportal.data.model.SavedPage
+import org.wikitide.wikiportal.data.model.WikimediaDomains
 import org.wikitide.wikiportal.network.MediaWikiApi
 import org.wikitide.wikiportal.network.PageSummaryDto
 import org.wikitide.wikiportal.ui.tabs.TabsScreen
@@ -715,9 +716,13 @@ private fun SingleArticleTab(
 
     LaunchedEffect(isSavingOffline) {
         if (!isSavingOffline) return@LaunchedEffect
-        val rendered = api.getRenderedPageHtml(site, currentTitle).getOrNull()
-            ?.takeIf { it.isNotBlank() }
-            ?: api.parsePage(site, currentTitle).getOrNull()?.text
+        val rendered = if (WikimediaDomains.matches(site.baseUrl)) {
+            api.getMobileHtml(site, currentTitle).getOrNull()?.takeIf { it.isNotBlank() }
+        } else {
+            null
+        } ?: api.parsePage(site, currentTitle).getOrNull()
+            ?.takeIf { it.text.isNotBlank() }
+            ?.let { buildOfflineDocument(it, site, api) }
 
         if (!rendered.isNullOrBlank()) {
             val selfContained = buildSelfContainedHtml(rendered, site.baseUrl, api)
