@@ -95,7 +95,8 @@ fun TabsListScreen(
                             Modifier
                         },
                         onClick = { onOpenTab(tab.wikiId, tab.title) },
-                        onClose = { tabsRepository.closeTab(tab.id) },
+                        onDismiss = { tabsRepository.closeTab(tab.id) },
+                        dismissContentDescription = "Close tab",
                         trailingContent = if (isActive) {
                             {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
