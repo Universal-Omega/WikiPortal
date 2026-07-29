@@ -13,18 +13,25 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.DownloadDone
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tab
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -33,14 +40,21 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -76,6 +90,7 @@ import org.wikitide.wikiportal.data.model.SavedPage
 import org.wikitide.wikiportal.network.MediaWikiApi
 import org.wikitide.wikiportal.network.PageSummaryDto
 import org.wikitide.wikiportal.ui.tabs.TabsScreen
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
 
@@ -271,6 +286,38 @@ private fun SingleArticleTab(
         isOnExternalSite = allWikis.none { settledUrl.startsWith(it.baseUrl) } && !AuthDomains.matches(settledUrl)
     }
 
+    var isSearchBarOpen by remember(tab.id) { mutableStateOf(false) }
+    var searchQuery by remember(tab.id) { mutableStateOf("") }
+    var searchResult by remember(tab.id) { mutableStateOf(PageSearchResult()) }
+    val searchFocusRequester = remember(tab.id) { FocusRequester() }
+
+    LaunchedEffect(isSearchBarOpen, searchQuery) {
+        if (!isSearchBarOpen) return@LaunchedEffect
+        if (searchQuery.isBlank()) {
+            searchResult = PageSearchResult()
+            clearPageSearch(navigator)
+            return@LaunchedEffect
+        }
+        delay(250)
+        searchResult = runPageSearch(navigator, searchQuery)
+    }
+
+    LaunchedEffect(isSearchBarOpen, pageState.isLoading) {
+        if (!isSearchBarOpen || !pageState.isLoading) return@LaunchedEffect
+        isSearchBarOpen = false
+        searchQuery = ""
+        searchResult = PageSearchResult()
+    }
+
+    LaunchedEffect(isSearchBarOpen) {
+        while (isSearchBarOpen) {
+            delay(700)
+            if (searchQuery.isNotBlank() && isPageSearchDirty(navigator)) {
+                searchResult = runPageSearch(navigator, searchQuery, scrollToActive = false)
+            }
+        }
+    }
+
     var pageSummary by remember(tab.id) { mutableStateOf<PageSummaryDto?>(null) }
     var offlineHtml by remember(tab.id) { mutableStateOf<String?>(null) }
     var isSavingOffline by remember(tab.id) { mutableStateOf(false) }
@@ -365,24 +412,83 @@ private fun SingleArticleTab(
         contentWindowInsets = WindowInsets(0.dp),
         topBar = {
             Column {
-                TopAppBar(
-                    navigationIcon = {
-                        Row {
+                if (isSearchBarOpen) {
+                    TopAppBar(
+                        navigationIcon = {
                             IconButton(
                                 onClick = {
-                                    scope.launch {
-                                        capturePreviewAndRun(onBack)
-                                    }
+                                    isSearchBarOpen = false
+                                    searchQuery = ""
+                                    searchResult = PageSearchResult()
+                                    scope.launch { clearPageSearch(navigator) }
                                 },
                             ) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                                Icon(Icons.Filled.Close, contentDescription = "Close search")
+                            }
+                        },
+                        title = {
+                            TextField(
+                                value = searchQuery,
+                                onValueChange = { searchQuery = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .focusRequester(searchFocusRequester),
+                                placeholder = { Text("Find on page") },
+                                singleLine = true,
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent,
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent,
+                                ),
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                                keyboardActions = KeyboardActions(
+                                    onSearch = { scope.launch { searchResult = stepPageSearch(navigator, forward = true) } },
+                                ),
+                            )
+                        },
+                        actions = {
+                            if (searchQuery.isNotBlank()) {
+                                Text(
+                                    text = if (searchResult.matchCount > 0) {
+                                        "${searchResult.activeIndex}/${searchResult.matchCount}"
+                                    } else {
+                                        "0/0"
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.padding(horizontal = 4.dp),
+                                )
                             }
 
-                            if (navigator.canGoForward) {
-                                IconButton(onClick = { navigator.navigateForward(); historyNavTrigger++ }) {
-                                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Forward")
-                                }
+                            IconButton(
+                                enabled = searchResult.matchCount > 0,
+                                onClick = { scope.launch { searchResult = stepPageSearch(navigator, forward = false) } },
+                            ) {
+                                Icon(Icons.Filled.KeyboardArrowUp, contentDescription = "Previous match")
                             }
+
+                            IconButton(
+                                enabled = searchResult.matchCount > 0,
+                                onClick = { scope.launch { searchResult = stepPageSearch(navigator, forward = true) } },
+                            ) {
+                                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Next match")
+                            }
+                        },
+                        windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
+                    )
+
+                    LaunchedEffect(Unit) { searchFocusRequester.requestFocus() }
+                } else {
+                    TopAppBar(
+                    navigationIcon = {
+                        IconButton(
+                            onClick = {
+                                scope.launch {
+                                    capturePreviewAndRun(onBack)
+                                }
+                            },
+                        ) {
+                            Icon(Icons.Filled.Close, contentDescription = "Close")
                         }
                     },
                     title = {
@@ -436,13 +542,48 @@ private fun SingleArticleTab(
                         DropdownMenu(
                             expanded = isOverflowMenuOpen,
                             onDismissRequest = { isOverflowMenuOpen = false },
+                            shape = RoundedCornerShape(14.dp),
+                            shadowElevation = 6.dp,
                         ) {
+                            if (navigator.canGoForward) {
+                                DropdownMenuItem(
+                                    text = { Text("Forward") },
+                                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null) },
+                                    onClick = {
+                                        isOverflowMenuOpen = false
+                                        navigator.navigateForward()
+                                        historyNavTrigger++
+                                    },
+                                )
+                            }
+
+                            DropdownMenuItem(
+                                text = { Text("Refresh") },
+                                leadingIcon = { Icon(Icons.Filled.Refresh, contentDescription = null) },
+                                onClick = {
+                                    isOverflowMenuOpen = false
+                                    navigator.reload()
+                                },
+                            )
+
+                            DropdownMenuItem(
+                                text = { Text("Find on page") },
+                                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                                onClick = {
+                                    isOverflowMenuOpen = false
+                                    isSearchBarOpen = true
+                                },
+                            )
+
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
                             DropdownMenuItem(
                                 text = { Text(if (isSaved) "Unsave" else "Save for later") },
                                 leadingIcon = {
                                     Icon(
                                         imageVector = if (isSaved) Icons.Filled.Bookmark else Icons.Filled.BookmarkBorder,
                                         contentDescription = null,
+                                        tint = if (isSaved) MaterialTheme.colorScheme.primary else LocalContentColor.current,
                                     )
                                 },
                                 onClick = {
@@ -473,6 +614,7 @@ private fun SingleArticleTab(
                                         Icon(
                                             imageVector = if (isOfflineSaved) Icons.Filled.DownloadDone else Icons.Filled.Download,
                                             contentDescription = null,
+                                            tint = if (isOfflineSaved) MaterialTheme.colorScheme.primary else LocalContentColor.current,
                                         )
                                     }
                                 },
@@ -485,19 +627,11 @@ private fun SingleArticleTab(
                                     }
                                 },
                             )
-
-                            DropdownMenuItem(
-                                text = { Text("Refresh") },
-                                leadingIcon = { Icon(Icons.Filled.Refresh, contentDescription = null) },
-                                onClick = {
-                                    isOverflowMenuOpen = false
-                                    navigator.reload()
-                                },
-                            )
                         }
                     },
                     windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
-                )
+                    )
+                }
 
                 if (pageState.isLoading) {
                     LinearProgressIndicator(
