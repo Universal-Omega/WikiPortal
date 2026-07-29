@@ -85,6 +85,7 @@ object SettingKeys {
     const val SHOW_IMAGES = "show_images"
     const val OPEN_LINKS_EXTERNALLY = "open_links_externally"
     const val CONFIRM_EXTERNAL_NAVIGATION = "confirm_external_navigation"
+    const val TOP_BAR_POSITION = "top_bar_position"
 
     /** Which open tab, see [WikiPortalStore.openTabs], was active. */
     const val ACTIVE_TAB_ID = "active_tab_id"
