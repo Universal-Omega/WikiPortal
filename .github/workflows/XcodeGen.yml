@@ -48,7 +48,14 @@ jobs:
         fi
 
         sed -i '/- name: Build Unsigned Archive/i\
-    - name: Install XcodeGen via Homebrew\n      run: brew install xcodegen\n\n    - name: Wipe and Fully Regenerate Xcode Project folder\n      run: |\n        cd iosApp\n        rm -rf iosApp.xcodeproj\n        xcodegen generate\n' "$TARGET_WORKFLOW"
+    - name: Install XcodeGen via Homebrew
+      run: brew install xcodegen
+
+    - name: Wipe and Fully Regenerate Xcode Project folder
+      run: |
+        cd iosApp
+        rm -rf iosApp.xcodeproj
+        xcodegen generate
 
     - name: Create Pull Request with Automated Changes
       uses: peter-evans/create-pull-request@v7
