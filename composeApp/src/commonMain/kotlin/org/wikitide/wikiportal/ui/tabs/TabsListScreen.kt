@@ -18,7 +18,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -59,6 +59,13 @@ fun TabsListScreen(
     Column(Modifier.fillMaxSize()) {
         TopAppBar(
             title = { Text("Tabs", style = MaterialTheme.typography.headlineMedium) },
+            actions = {
+                if (tabs.isNotEmpty()) {
+                    IconButton(onClick = { tabsRepository.closeAllTabs() }) {
+                        Icon(Icons.Filled.DeleteSweep, contentDescription = "Close all tabs")
+                    }
+                }
+            },
             windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
             colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
         )
@@ -88,9 +95,10 @@ fun TabsListScreen(
                             Modifier
                         },
                         onClick = { onOpenTab(tab.wikiId, tab.title) },
-                        trailingContent = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (isActive) {
+                        onClose = { tabsRepository.closeTab(tab.id) },
+                        trailingContent = if (isActive) {
+                            {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
                                         Icons.Filled.CheckCircle,
                                         contentDescription = null,
@@ -101,15 +109,12 @@ fun TabsListScreen(
                                         "Last viewed",
                                         style = MaterialTheme.typography.labelMedium,
                                         color = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.padding(start = 4.dp).weight(1f),
+                                        modifier = Modifier.padding(start = 4.dp),
                                     )
-                                } else {
-                                    Box(Modifier.weight(1f)) {}
-                                }
-                                IconButton(onClick = { tabsRepository.closeTab(tab.id) }) {
-                                    Icon(Icons.Filled.Close, contentDescription = "Close tab")
                                 }
                             }
+                        } else {
+                            null
                         },
                     )
                 }
