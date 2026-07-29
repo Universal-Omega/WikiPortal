@@ -39,15 +39,6 @@ jobs:
                 - $(inherited)
         EOF
 
-    - name: Find and Patch Existing Workflow File
-      run: |
-        TARGET_WORKFLOW=$(find .github/workflows -name "*.yml" ! -name "generate-xcodegen-pr.yml" | head -n 1)
-        
-        if [ -z "$TARGET_WORKFLOW" ]; then
-          echo "Main workflow file not found!" && exit 1
-        fi
-
-        sed -i '/- name: Build Unsigned Archive/i\
     - name: Install XcodeGen via Homebrew
       run: brew install xcodegen
 
