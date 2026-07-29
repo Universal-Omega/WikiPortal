@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import org.wikitide.wikiportal.data.model.BarPosition
 import org.wikitide.wikiportal.data.model.PresetWikis
 import org.wikitide.wikiportal.data.model.SavedPage
 import org.wikitide.wikiportal.data.model.ThemeMode
@@ -78,6 +79,9 @@ class AppRepository(
 
     private val _confirmExternalNavigation = MutableStateFlow(true)
     val confirmExternalNavigation: StateFlow<Boolean> = _confirmExternalNavigation
+
+    private val _barPosition = MutableStateFlow(BarPosition.TOP)
+    val barPosition: StateFlow<BarPosition> = _barPosition
 
     private val _savedPages = MutableStateFlow<List<SavedPage>>(emptyList())
     val savedPages: StateFlow<List<SavedPage>> = _savedPages
@@ -182,6 +186,9 @@ class AppRepository(
             store.getSetting(SettingKeys.SHOW_IMAGES)?.let { _showImages.value = it.toBoolean() }
             store.getSetting(SettingKeys.OPEN_LINKS_EXTERNALLY)?.let { _openLinksExternally.value = it.toBoolean() }
             store.getSetting(SettingKeys.CONFIRM_EXTERNAL_NAVIGATION)?.let { _confirmExternalNavigation.value = it.toBoolean() }
+            store.getSetting(SettingKeys.BAR_POSITION)?.let { raw ->
+                BarPosition.entries.firstOrNull { it.name == raw }?.let { _barPosition.value = it }
+            }
 
             _savedPages.value = store.savedPages()
             _history.value = store.history()
@@ -444,6 +451,11 @@ class AppRepository(
     fun setConfirmExternalNavigation(enabled: Boolean) {
         _confirmExternalNavigation.value = enabled
         appScope.launch { store.setSetting(SettingKeys.CONFIRM_EXTERNAL_NAVIGATION, enabled.toString()) }
+    }
+
+    fun setBarPosition(position: BarPosition) {
+        _barPosition.value = position
+        appScope.launch { store.setSetting(SettingKeys.BAR_POSITION, position.name) }
     }
 
     fun allWikisNow(): List<WikiSite> = _presetWikis.value + _customWikis.value
