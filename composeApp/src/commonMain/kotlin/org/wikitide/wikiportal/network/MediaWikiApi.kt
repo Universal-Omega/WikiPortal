@@ -204,7 +204,7 @@ class MediaWikiApi(
             mapOf(
                 "action" to "parse",
                 "page" to title,
-                "prop" to "text|displaytitle|modules",
+                "prop" to "text|displaytitle|modules|jsconfigvars|headhtml",
             ),
         ).map { it.parse }
 
