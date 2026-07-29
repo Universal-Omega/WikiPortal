@@ -3,10 +3,11 @@ package org.wikitide.wikiportal.network
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
-import io.ktor.client.request.parameter
 import io.ktor.client.statement.bodyAsText
 import io.ktor.client.statement.request
 import io.ktor.http.HttpHeaders
+import io.ktor.http.URLBuilder
+import io.ktor.http.appendPathSegments
 import org.wikitide.wikiportal.data.model.WikiSite
 import org.wikitide.wikiportal.util.AppLog
 
@@ -203,7 +204,7 @@ class MediaWikiApi(
             mapOf(
                 "action" to "parse",
                 "page" to title,
-                "prop" to "text|displaytitle",
+                "prop" to "text|displaytitle|modules",
             ),
         ).map { it.parse }
 
@@ -230,14 +231,40 @@ class MediaWikiApi(
             ),
         ).map { it.query?.pages?.firstOrNull() }
 
-    suspend fun getRenderedPageHtml(site: WikiSite, title: String): Result<String> = runCatchingCancellable {
-        httpClient.get(site.indexUrl) {
-            parameter("action", "render")
-            parameter("title", title)
-            parameter("useskin", site.skin)
-        }.bodyAsText()
+    /**
+     * Wikimedia's own Page Content Service rendering of a page, the
+     * same content and resource set the official apps save for
+     * offline reading. See WikimediaDomains, the only wikis this is
+     * worth calling for. A wiki running this returns a full document
+     * with its own stylesheet links already in place, so nothing else
+     * needs figuring out.
+     */
+    suspend fun getMobileHtml(site: WikiSite, title: String): Result<String> = runCatchingCancellable {
+        val dbKeyTitle = title.replace(" ", "_")
+        val url = URLBuilder(site.baseUrl).apply {
+            appendPathSegments("api", "rest_v1", "page", "mobile-html", dbKeyTitle)
+        }.buildString()
+        httpClient.get(url).bodyAsText()
     }.onFailure {
-        AppLog.e("MediaWikiApi", "getRenderedPageHtml(${site.indexUrl}, $title) failed", it)
+        AppLog.e("MediaWikiApi", "getMobileHtml(${site.baseUrl}, $title) failed", it)
+    }
+
+    /**
+     * The stylesheet load.php would actually serve a live page using
+     * [modulestyles], on any standard MediaWiki install, not only
+     * Wikimedia's. This is how a saved offline copy gets real styling
+     * without depending on action=render's own generated head, which
+     * MediaWiki itself has had reported gaps in.
+     */
+    fun getModuleStylesheetUrl(site: WikiSite, modulestyles: List<String>): String? {
+        val names = modulestyles.filter { it.isNotBlank() }
+        if (names.isEmpty()) return null
+        return URLBuilder(site.loadUrl).apply {
+            parameters.append("lang", "en")
+            parameters.append("skin", site.skin)
+            parameters.append("only", "styles")
+            parameters.append("modules", names.joinToString("|"))
+        }.buildString()
     }
 
     /**
