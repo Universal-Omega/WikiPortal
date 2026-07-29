@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -83,12 +84,15 @@ fun ArticleCard(
             if (onDismiss != null || showThumbnail) {
                 Column(horizontalAlignment = Alignment.End) {
                     if (onDismiss != null) {
-                        IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
-                            Icon(dismissIcon, contentDescription = dismissContentDescription, modifier = Modifier.size(20.dp))
+                        IconButton(
+                            onClick = onDismiss,
+                            modifier = Modifier.size(28.dp).offset(x = 8.dp, y = (-8).dp),
+                        ) {
+                            Icon(dismissIcon, contentDescription = dismissContentDescription, modifier = Modifier.size(18.dp))
                         }
                     }
                     if (showThumbnail) {
-                        if (onDismiss != null) Spacer(Modifier.size(4.dp))
+                        if (onDismiss != null) Spacer(Modifier.size(2.dp))
                         if (previewBitmap != null) {
                             Image(
                                 bitmap = previewBitmap,
