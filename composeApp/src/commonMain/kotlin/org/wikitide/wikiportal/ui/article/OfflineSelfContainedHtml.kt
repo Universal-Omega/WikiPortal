@@ -32,7 +32,8 @@ suspend fun buildSelfContainedHtml(html: String, baseUrl: String, api: MediaWiki
             }
             val fetched = api.getRawBytes(absoluteUrl).getOrNull() ?: continue
             val (contentType, bytes) = fetched
-            val dataUri = "data:$contentType;base64," + Base64.encode(bytes)
+            val cleanContentType = contentType.replace(" ", "")
+            val dataUri = "data:$cleanContentType;base64," + Base64.encode(bytes)
             result = result.replace(match.value, "${match.groupValues[1]}$dataUri${match.groupValues[3]}")
         }
     }
