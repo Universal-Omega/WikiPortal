@@ -30,7 +30,16 @@ if (!window.__wpSearchReady) {
 
   window.__wpResumeObserver = function() {
     if (!window.__wpObserver) {
-      window.__wpObserver = new MutationObserver(function() { window.__wpDirty = true; });
+      window.__wpObserver = new MutationObserver(function(mutations) {
+        for (var i = 0; i < mutations.length; i++) {
+          var target = mutations[i].target;
+          var el = target.nodeType === 1 ? target : target.parentElement;
+          if (el && !window.__wpIsChrome(el)) {
+            window.__wpDirty = true;
+            return;
+          }
+        }
+      });
     }
     window.__wpObserver.observe(document.body, {
       attributes: true,
@@ -150,6 +159,7 @@ if (!window.__wpSearchReady) {
   };
 
   window.__wpRun = function(query, scrollToActive) {
+    var previousActive = window.__wpActive;
     window.__wpPauseObserver();
     window.__wpClearInternal();
     if (!query) {
@@ -191,7 +201,11 @@ if (!window.__wpSearchReady) {
       node.parentNode.replaceChild(frag, node);
     });
 
-    window.__wpActive = window.__wpMatches.length > 0 ? 0 : -1;
+    if (scrollToActive === false && previousActive >= 0 && window.__wpMatches.length > 0) {
+      window.__wpActive = Math.min(previousActive, window.__wpMatches.length - 1);
+    } else {
+      window.__wpActive = window.__wpMatches.length > 0 ? 0 : -1;
+    }
     window.__wpPaint(scrollToActive !== false);
     window.__wpDirty = false;
     window.__wpResumeObserver();
