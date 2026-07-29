@@ -105,11 +105,13 @@ jobs:
 
     - name: Compile Asset Catalog
       run: |
+        mkdir -p "$RUNNER_TEMP/actool-out"
         xcrun actool iosApp/iosApp/Assets.xcassets \
           --compile "$RUNNER_TEMP/iosApp.xcarchive/Products/Applications/iosApp.app" \
           --platform iphoneos \
           --minimum-deployment-target 15.0 \
-          --app-icon AppIcon
+          --app-icon AppIcon \
+          --output-partial-info-plist "$RUNNER_TEMP/actool-out/partial.plist"
 
     - name: Package unsigned .ipa
       run: |
