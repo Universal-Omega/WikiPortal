@@ -87,12 +87,6 @@ fun ArticleCard(
                 }
             }
             if (showThumbnail) {
-                // The dismiss button sits on top of the thumbnail itself
-                // here, same as the grid switcher's TabCard, with a dark
-                // scrim behind it so it stays legible over a light
-                // screenshot or lead image. Without a thumbnail there's
-                // nothing under it to obscure, so it's just pinned plainly
-                // to that corner of the row instead, below.
                 Box(Modifier.size(84.dp)) {
                     if (previewBitmap != null) {
                         Image(
