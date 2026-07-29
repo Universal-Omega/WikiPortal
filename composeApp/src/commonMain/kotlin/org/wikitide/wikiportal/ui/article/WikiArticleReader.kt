@@ -75,13 +75,13 @@ fun WikiArticleReader(
 ) {
     val initialUrl = remember {
         when {
-            openOfflineFromStart -> null
+            openOfflineFromStart -> ""
             restoreUrl != null -> restoreUrl
             else -> site.articleUrl(title)
         }
     }
 
-    val webViewState = if (initialUrl != null) {
+    val webViewState = if (initialUrl.isNotEmpty()) {
         rememberWebViewState(initialUrl)
     } else {
         rememberWebViewStateWithHTMLData(data = "<html><body></body></html>", baseUrl = site.baseUrl)
