@@ -250,5 +250,7 @@ class MediaWikiApi(
         val response = httpClient.get(url)
         val contentType = response.headers[HttpHeaders.ContentType] ?: "application/octet-stream"
         contentType to response.body<ByteArray>()
+    }.onFailure {
+        AppLog.e("MediaWikiApi", "getRawBytes($url) failed", it)
     }
 }
