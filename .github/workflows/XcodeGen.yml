@@ -1,0 +1,61 @@
+name: Generate XcodeGen PR
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v7
+
+    - name: Configure Git info
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@://github.com"
+
+    - name: Create project.yml Configuration File
+      run: |
+        cat << 'EOF' > iosApp/project.yml
+        name: iosApp
+        options:
+          bundleIdPrefix: org.wikitide
+        targets:
+          iosApp:
+            type: application
+            platform: iOS
+            deploymentTarget: "17.0"
+            sources: [iosApp]
+            settings:
+              PRODUCT_BUNDLE_IDENTIFIER: org.wikitide.wikiportal
+              MARKETING_VERSION: "1.0.0"
+              CURRENT_PROJECT_VERSION: "1"
+              LD_RUNPATH_SEARCH_PATHS:
+                - $(inherited)
+        EOF
+
+    - name: Find and Patch Existing Workflow File
+      run: |
+        TARGET_WORKFLOW=$(find .github/workflows -name "*.yml" ! -name "generate-xcodegen-pr.yml" | head -n 1)
+        
+        if [ -z "$TARGET_WORKFLOW" ]; then
+          echo "Main workflow file not found!" && exit 1
+        fi
+
+        sed -i '/- name: Build Unsigned Archive/i\
+    - name: Install XcodeGen via Homebrew\n      run: brew install xcodegen\n\n    - name: Wipe and Fully Regenerate Xcode Project folder\n      run: |\n        cd iosApp\n        rm -rf iosApp.xcodeproj\n        xcodegen generate\n' "$TARGET_WORKFLOW"
+
+    - name: Create Pull Request with Automated Changes
+      uses: peter-evans/create-pull-request@v7
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: "chore: migrate iosApp to automated XcodeGen regeneration on the fly"
+        title: "Migrate iOS Project Structure to XcodeGen Tracking"
+        body: "fix iosApp"
+        branch: fix/automate-xcodegen-regeneration
+        delete-branch: true
