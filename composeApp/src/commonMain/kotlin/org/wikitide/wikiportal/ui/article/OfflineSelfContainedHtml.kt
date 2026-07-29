@@ -1,7 +1,9 @@
 package org.wikitide.wikiportal.ui.article
 
 import kotlin.io.encoding.Base64
+import org.wikitide.wikiportal.data.model.WikiSite
 import org.wikitide.wikiportal.network.MediaWikiApi
+import org.wikitide.wikiportal.network.ParseResult
 
 /**
  * Builds a fully self-contained HTML document. Every statically
@@ -35,4 +37,18 @@ suspend fun buildSelfContainedHtml(html: String, baseUrl: String, api: MediaWiki
         }
     }
     return result
+}
+
+fun buildOfflineDocument(parse: ParseResult, site: WikiSite, api: MediaWikiApi): String {
+    val styleLink = api.getModuleStylesheetUrl(site, parse.modulestyles)
+        ?.let { href -> "<link rel=\"stylesheet\" href=\"$href\">" }
+        .orEmpty()
+    val heading = "<h1 id=\"firstHeading\" class=\"firstHeading\">${parse.displaytitle ?: parse.title}</h1>"
+    val footer = parse.categorieshtml
+        ?.takeIf { it.isNotBlank() }
+        ?.let { "<div class=\"catlinks\">$it</div>" }
+        .orEmpty()
+    return "<html><head><meta charset=\"utf-8\">$styleLink</head>" +
+        "<body class=\"mediawiki mw-body\">$heading" +
+        "<div class=\"mw-parser-output\">${parse.text}</div>$footer</body></html>"
 }
