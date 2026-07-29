@@ -128,6 +128,10 @@ data class ParseResult(
     val pageid: Int = 0,
     val text: String = "",
     val displaytitle: String? = null,
+    /** JS ResourceLoader module names this page's rendering needs. See API:Styling content. */
+    val modules: List<String> = emptyList(),
+    /** CSS ResourceLoader module names this page's rendering needs, the ones worth saving for offline. */
+    val modulestyles: List<String> = emptyList(),
 )
 
 @Serializable
