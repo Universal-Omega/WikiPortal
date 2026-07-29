@@ -3,6 +3,7 @@ package org.wikitide.wikiportal.network
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
+import io.ktor.client.request.parameter
 import io.ktor.client.statement.bodyAsText
 import io.ktor.client.statement.request
 import io.ktor.http.HttpHeaders
@@ -228,6 +229,16 @@ class MediaWikiApi(
                 "pithumbsize" to 200,
             ),
         ).map { it.query?.pages?.firstOrNull() }
+
+    suspend fun getRenderedPageHtml(site: WikiSite, title: String): Result<String> = runCatchingCancellable {
+        httpClient.get(site.indexUrl) {
+            parameter("action", "render")
+            parameter("title", title)
+            parameter("useskin", site.skin)
+        }.bodyAsText()
+    }.onFailure {
+        AppLog.e("MediaWikiApi", "getRenderedPageHtml(${site.indexUrl}, $title) failed", it)
+    }
 
     /**
      * Raw bytes and content type for any URL. Used to inline an offline
