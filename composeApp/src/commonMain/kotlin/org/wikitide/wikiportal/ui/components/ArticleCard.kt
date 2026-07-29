@@ -82,17 +82,8 @@ fun ArticleCard(
                 }
             }
             if (onDismiss != null || showThumbnail) {
-                Column(horizontalAlignment = Alignment.End) {
-                    if (onDismiss != null) {
-                        IconButton(
-                            onClick = onDismiss,
-                            modifier = Modifier.size(28.dp).offset(x = 8.dp, y = (-8).dp),
-                        ) {
-                            Icon(dismissIcon, contentDescription = dismissContentDescription, modifier = Modifier.size(18.dp))
-                        }
-                    }
+                Row(verticalAlignment = Alignment.Top) {
                     if (showThumbnail) {
-                        if (onDismiss != null) Spacer(Modifier.size(2.dp))
                         if (previewBitmap != null) {
                             Image(
                                 bitmap = previewBitmap,
@@ -107,6 +98,14 @@ fun ArticleCard(
                                 modifier = Modifier.size(84.dp).clip(RoundedCornerShape(12.dp)),
                                 contentScale = ContentScale.Crop,
                             )
+                        }
+                    }
+                    if (onDismiss != null) {
+                        IconButton(
+                            onClick = onDismiss,
+                            modifier = Modifier.size(28.dp).offset(x = 8.dp, y = (-8).dp),
+                        ) {
+                            Icon(dismissIcon, contentDescription = dismissContentDescription, modifier = Modifier.size(18.dp))
                         }
                     }
                 }
