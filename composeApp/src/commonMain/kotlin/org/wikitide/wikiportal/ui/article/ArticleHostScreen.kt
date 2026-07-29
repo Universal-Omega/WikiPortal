@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -35,6 +36,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.BottomAppBar
+import androidx.compose.material3.BottomAppBarDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -410,15 +413,9 @@ private fun SingleArticleTab(
         action()
     }
 
-    // Built once as a plain lambda, closing over everything it needs, so
-    // the exact same bar (normal or search mode, plus the loading strip)
-    // can be handed to whichever Scaffold slot the position setting
-    // actually calls for, without duplicating any of it.
-    val barWindowInsets = if (barPosition == BarPosition.BOTTOM) {
-        TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Bottom)
-    } else {
-        TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top)
-    }
+    // Only used by the TopAppBar branch below, since BottomAppBar takes
+    // its own bottom-safe-area insets from BottomAppBarDefaults directly.
+    val barWindowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top)
 
     val articleBar: @Composable () -> Unit = {
             Column {
@@ -430,74 +427,89 @@ private fun SingleArticleTab(
                 }
 
                 if (isSearchBarOpen) {
-                    TopAppBar(
-                        navigationIcon = {
-                            IconButton(
-                                onClick = {
-                                    isSearchBarOpen = false
-                                    searchQuery = ""
-                                    searchResult = PageSearchResult()
-                                    scope.launch { clearPageSearch(navigator) }
+                    val closeSearch: @Composable () -> Unit = {
+                        IconButton(
+                            onClick = {
+                                isSearchBarOpen = false
+                                searchQuery = ""
+                                searchResult = PageSearchResult()
+                                scope.launch { clearPageSearch(navigator) }
+                            },
+                        ) {
+                            Icon(Icons.Filled.Close, contentDescription = "Close search")
+                        }
+                    }
+
+                    val searchField: @Composable () -> Unit = {
+                        TextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(searchFocusRequester),
+                            placeholder = { Text("Find on page") },
+                            singleLine = true,
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent,
+                            ),
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                            keyboardActions = KeyboardActions(
+                                onSearch = { scope.launch { searchResult = stepPageSearch(navigator, forward = true) } },
+                            ),
+                        )
+                    }
+
+                    val searchActions: @Composable RowScope.() -> Unit = {
+                        if (searchQuery.isNotBlank()) {
+                            Text(
+                                text = if (searchResult.matchCount > 0) {
+                                    "${searchResult.activeIndex}/${searchResult.matchCount}"
+                                } else {
+                                    "0/0"
                                 },
-                            ) {
-                                Icon(Icons.Filled.Close, contentDescription = "Close search")
-                            }
-                        },
-                        title = {
-                            TextField(
-                                value = searchQuery,
-                                onValueChange = { searchQuery = it },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .focusRequester(searchFocusRequester),
-                                placeholder = { Text("Find on page") },
-                                singleLine = true,
-                                colors = TextFieldDefaults.colors(
-                                    focusedContainerColor = Color.Transparent,
-                                    unfocusedContainerColor = Color.Transparent,
-                                    focusedIndicatorColor = Color.Transparent,
-                                    unfocusedIndicatorColor = Color.Transparent,
-                                ),
-                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                                keyboardActions = KeyboardActions(
-                                    onSearch = { scope.launch { searchResult = stepPageSearch(navigator, forward = true) } },
-                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(horizontal = 4.dp),
                             )
-                        },
-                        actions = {
-                            if (searchQuery.isNotBlank()) {
-                                Text(
-                                    text = if (searchResult.matchCount > 0) {
-                                        "${searchResult.activeIndex}/${searchResult.matchCount}"
-                                    } else {
-                                        "0/0"
-                                    },
-                                    style = MaterialTheme.typography.bodySmall,
-                                    modifier = Modifier.padding(horizontal = 4.dp),
-                                )
-                            }
+                        }
 
-                            IconButton(
-                                enabled = searchResult.matchCount > 0,
-                                onClick = { scope.launch { searchResult = stepPageSearch(navigator, forward = false) } },
-                            ) {
-                                Icon(Icons.Filled.KeyboardArrowUp, contentDescription = "Previous match")
-                            }
+                        IconButton(
+                            enabled = searchResult.matchCount > 0,
+                            onClick = { scope.launch { searchResult = stepPageSearch(navigator, forward = false) } },
+                        ) {
+                            Icon(Icons.Filled.KeyboardArrowUp, contentDescription = "Previous match")
+                        }
 
-                            IconButton(
-                                enabled = searchResult.matchCount > 0,
-                                onClick = { scope.launch { searchResult = stepPageSearch(navigator, forward = true) } },
-                            ) {
-                                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Next match")
-                            }
-                        },
-                        windowInsets = barWindowInsets,
-                    )
+                        IconButton(
+                            enabled = searchResult.matchCount > 0,
+                            onClick = { scope.launch { searchResult = stepPageSearch(navigator, forward = true) } },
+                        ) {
+                            Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Next match")
+                        }
+                    }
+
+                    if (barPosition == BarPosition.BOTTOM) {
+                        BottomAppBar(
+                            windowInsets = BottomAppBarDefaults.windowInsets.only(WindowInsetsSides.Bottom),
+                        ) {
+                            closeSearch()
+                            Box(Modifier.weight(1f)) { searchField() }
+                            searchActions()
+                        }
+                    } else {
+                        TopAppBar(
+                            navigationIcon = closeSearch,
+                            title = searchField,
+                            actions = searchActions,
+                            windowInsets = barWindowInsets,
+                        )
+                    }
 
                     LaunchedEffect(Unit) { searchFocusRequester.requestFocus() }
                 } else {
-                    TopAppBar(
-                    navigationIcon = {
+                    val closeArticle: @Composable () -> Unit = {
                         IconButton(
                             onClick = {
                                 scope.launch {
@@ -507,8 +519,9 @@ private fun SingleArticleTab(
                         ) {
                             Icon(Icons.Filled.Close, contentDescription = "Close")
                         }
-                    },
-                    title = {
+                    }
+
+                    val articleTitle: @Composable () -> Unit = {
                         // Show "Title - SiteName" only when the current
                         // page matches a wiki we actually know about.
                         // Otherwise, for example an external link followed
@@ -534,8 +547,9 @@ private fun SingleArticleTab(
                             overflow = TextOverflow.Ellipsis,
                             style = MaterialTheme.typography.titleMedium,
                         )
-                    },
-                    actions = {
+                    }
+
+                    val articleActions: @Composable RowScope.() -> Unit = {
                         BadgedBox(
                             badge = { if (tabs.isNotEmpty()) Badge { Text("${tabs.size}") } },
                         ) {
@@ -645,9 +659,24 @@ private fun SingleArticleTab(
                                 },
                             )
                         }
-                    },
-                    windowInsets = barWindowInsets,
-                    )
+                    }
+
+                    if (barPosition == BarPosition.BOTTOM) {
+                        BottomAppBar(
+                            windowInsets = BottomAppBarDefaults.windowInsets.only(WindowInsetsSides.Bottom),
+                        ) {
+                            closeArticle()
+                            Box(Modifier.weight(1f).padding(horizontal = 4.dp)) { articleTitle() }
+                            articleActions()
+                        }
+                    } else {
+                        TopAppBar(
+                            navigationIcon = closeArticle,
+                            title = articleTitle,
+                            actions = articleActions,
+                            windowInsets = barWindowInsets,
+                        )
+                    }
                 }
 
                 if (barPosition != BarPosition.BOTTOM && pageState.isLoading) {
