@@ -3,10 +3,10 @@ package org.wikitide.wikiportal.network
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
-import io.ktor.client.request.parameter
 import io.ktor.client.statement.bodyAsText
 import io.ktor.client.statement.request
 import io.ktor.http.HttpHeaders
+import io.ktor.http.URLBuilder
 import org.wikitide.wikiportal.data.model.WikiSite
 import org.wikitide.wikiportal.util.AppLog
 
@@ -203,7 +203,8 @@ class MediaWikiApi(
             mapOf(
                 "action" to "parse",
                 "page" to title,
-                "prop" to "text|displaytitle",
+                "prop" to "text|displaytitle|modules|jsconfigvars|categorieshtml",
+                "useskin" to site.skin,
             ),
         ).map { it.parse }
 
@@ -230,14 +231,14 @@ class MediaWikiApi(
             ),
         ).map { it.query?.pages?.firstOrNull() }
 
-    suspend fun getRenderedPageHtml(site: WikiSite, title: String): Result<String> = runCatchingCancellable {
-        httpClient.get(site.indexUrl) {
-            parameter("action", "render")
-            parameter("title", title)
-            parameter("useskin", site.skin)
-        }.bodyAsText()
-    }.onFailure {
-        AppLog.e("MediaWikiApi", "getRenderedPageHtml(${site.indexUrl}, $title) failed", it)
+    fun getModuleStylesheetUrl(site: WikiSite, modulestyles: List<String>): String? {
+        val names = modulestyles.filter { it.isNotBlank() }
+        if (names.isEmpty()) return null
+        return URLBuilder(site.loadUrl).apply {
+            parameters.append("skin", site.skin)
+            parameters.append("only", "styles")
+            parameters.append("modules", names.joinToString("|"))
+        }.buildString()
     }
 
     /**
