@@ -111,11 +111,15 @@ jobs:
         <plist version="1.0">
         <dict>
             <key>method</key>
-            <string>ad-hoc</string>
+            <string>release-testing</string>
+            <key>teamID</key>
+            <string>0000000000</string>
             <key>compileBitcode</key>
             <false/>
             <key>thinning</key>
             <string>&lt;none&gt;</string>
+            <key>signingStyle</key>
+            <string>manual</string>
         </dict>
         </plist>
         EOF
