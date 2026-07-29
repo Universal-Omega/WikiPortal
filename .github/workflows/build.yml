@@ -93,7 +93,7 @@ jobs:
         cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
         cache-read-only: false
 
-    - name: Build archive with asset compilation
+    - name: Build Xcode Archive
       run: |
         cd iosApp
         xcodebuild -project iosApp.xcodeproj -scheme iosApp \
@@ -103,22 +103,35 @@ jobs:
           AD_HOC_CODE_SIGNING_ALLOWED=YES \
           archive
 
-    - name: Compile Asset Catalog
+    - name: Create Official Export Options Plist
       run: |
-        mkdir -p "$RUNNER_TEMP/actool-out"
-        xcrun actool iosApp/iosApp/Assets.xcassets \
-          --compile "$RUNNER_TEMP/iosApp.xcarchive/Products/Applications/iosApp.app" \
-          --platform iphoneos \
-          --minimum-deployment-target 15.0 \
-          --app-icon AppIcon \
-          --output-partial-info-plist "$RUNNER_TEMP/actool-out/partial.plist"
+        cat <<EOF > "$RUNNER_TEMP/ExportOptions.plist"
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>method</key>
+            <string>ad-hoc</string>
+            <key>compileBitcode</key>
+            <false/>
+            <key>thinning</key>
+            <string>&lt;none&gt;</string>
+        </dict>
+        </plist>
+        EOF
 
-    - name: Package unsigned .ipa
+    - name: Export Official Unsigned .ipa Payload
       run: |
-        mkdir -p "$RUNNER_TEMP/Payload"
-        cp -r "$RUNNER_TEMP/iosApp.xcarchive/Products/Applications/iosApp.app" "$RUNNER_TEMP/Payload/"
-        cd "$RUNNER_TEMP"
-        zip -r WikiPortal-unsigned.ipa Payload
+        xcodebuild -exportArchive \
+          -archivePath "$RUNNER_TEMP/iosApp.xcarchive" \
+          -exportPath "$RUNNER_TEMP/ExportedOutput" \
+          -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+          CODE_SIGNING_ALLOWED=NO \
+          AD_HOC_CODE_SIGNING_ALLOWED=YES
+
+    - name: Rename and Prepare Final Build Artifact
+      run: |
+        mv "$RUNNER_TEMP/ExportedOutput/iosApp.ipa" "$RUNNER_TEMP/WikiPortal-unsigned.ipa"
 
     - name: Upload .ipa
       uses: actions/upload-artifact@v7
