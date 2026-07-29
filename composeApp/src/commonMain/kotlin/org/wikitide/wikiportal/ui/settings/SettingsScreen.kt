@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import org.koin.compose.koinInject
 import org.wikitide.wikiportal.BuildKonfig
 import org.wikitide.wikiportal.data.AppRepository
+import org.wikitide.wikiportal.data.model.BarPosition
 import org.wikitide.wikiportal.data.model.ThemeMode
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -41,6 +42,7 @@ fun SettingsScreen(onOpenWikiPicker: () -> Unit, onOpenLogs: () -> Unit, reposit
     val showImages by repository.showImages.collectAsState()
     val openLinksExternally by repository.openLinksExternally.collectAsState()
     val confirmExternalNavigation by repository.confirmExternalNavigation.collectAsState()
+    val barPosition by repository.barPosition.collectAsState()
 
     Column(Modifier.fillMaxSize()) {
         TopAppBar(
@@ -119,6 +121,29 @@ fun SettingsScreen(onOpenWikiPicker: () -> Unit, onOpenLogs: () -> Unit, reposit
                     checked = confirmExternalNavigation,
                     onCheckedChange = repository::setConfirmExternalNavigation,
                 )
+            }
+
+            item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
+            item { SectionLabel("Browsing") }
+            item {
+                Column(Modifier.padding(horizontal = 20.dp)) {
+                    Text("Bar position", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 4.dp))
+                    Text(
+                        "Where the address bar and page search sit in an article",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 4.dp),
+                    )
+                    BarPosition.entries.forEach { position ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().clickable { repository.setBarPosition(position) }.padding(vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(selected = barPosition == position, onClick = { repository.setBarPosition(position) })
+                            Text(position.label, modifier = Modifier.padding(start = 8.dp))
+                        }
+                    }
+                }
             }
 
             item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
