@@ -86,6 +86,7 @@ import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.TabsRepository
 import org.wikitide.wikiportal.data.model.ArticleTab
 import org.wikitide.wikiportal.data.model.AuthDomains
+import org.wikitide.wikiportal.data.model.BarPosition
 import org.wikitide.wikiportal.data.model.SavedPage
 import org.wikitide.wikiportal.network.MediaWikiApi
 import org.wikitide.wikiportal.network.PageSummaryDto
@@ -169,6 +170,7 @@ private fun SingleArticleTab(
     val textScale by repository.textScale.collectAsState()
     val offlineKeys by repository.offlineKeys.collectAsState()
     val confirmExternalNavigation by repository.confirmExternalNavigation.collectAsState()
+    val barPosition by repository.barPosition.collectAsState()
     val scope = rememberCoroutineScope()
 
     // A link the WebView tried to load that points somewhere outside
@@ -408,10 +410,25 @@ private fun SingleArticleTab(
         action()
     }
 
-    Scaffold(
-        contentWindowInsets = WindowInsets(0.dp),
-        topBar = {
+    // Built once as a plain lambda, closing over everything it needs, so
+    // the exact same bar (normal or search mode, plus the loading strip)
+    // can be handed to whichever Scaffold slot the position setting
+    // actually calls for, without duplicating any of it.
+    val barWindowInsets = if (barPosition == BarPosition.BOTTOM) {
+        TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Bottom)
+    } else {
+        TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top)
+    }
+
+    val articleBar: @Composable () -> Unit = {
             Column {
+                if (barPosition == BarPosition.BOTTOM && pageState.isLoading) {
+                    LinearProgressIndicator(
+                        progress = { pageState.progress.coerceIn(0, 100) / 100f },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+
                 if (isSearchBarOpen) {
                     TopAppBar(
                         navigationIcon = {
@@ -474,7 +491,7 @@ private fun SingleArticleTab(
                                 Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Next match")
                             }
                         },
-                        windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
+                        windowInsets = barWindowInsets,
                     )
 
                     LaunchedEffect(Unit) { searchFocusRequester.requestFocus() }
@@ -629,18 +646,23 @@ private fun SingleArticleTab(
                             )
                         }
                     },
-                    windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
+                    windowInsets = barWindowInsets,
                     )
                 }
 
-                if (pageState.isLoading) {
+                if (barPosition != BarPosition.BOTTOM && pageState.isLoading) {
                     LinearProgressIndicator(
                         progress = { pageState.progress.coerceIn(0, 100) / 100f },
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
             }
-        },
+    }
+
+    Scaffold(
+        contentWindowInsets = WindowInsets(0.dp),
+        topBar = { if (barPosition != BarPosition.BOTTOM) articleBar() },
+        bottomBar = { if (barPosition == BarPosition.BOTTOM) articleBar() },
     ) { innerPadding ->
         Box(
             Modifier
