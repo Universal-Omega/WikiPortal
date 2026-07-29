@@ -4,18 +4,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
@@ -90,32 +86,23 @@ fun SavedScreen(
             ) {
                 items(list, key = { it.wikiId + "|" + it.title + it.timestampEpochMillis }) { page: SavedPage ->
                     val isOpen = (page.wikiId to page.title) in openKeys
-                    val actionContent: (@Composable () -> Unit)? = when (tab) {
-                        0 -> {
-                            { IconButton(onClick = { repository.toggleSaved(page) }) { Icon(Icons.Filled.Delete, contentDescription = "Remove") } }
-                        }
-                        1 -> {
-                            { IconButton(onClick = { repository.removeOfflineArticle(page.wikiId, page.title) }) { Icon(Icons.Filled.Delete, contentDescription = "Remove offline copy") } }
-                        }
+                    val onDismiss: (() -> Unit)? = when (tab) {
+                        0 -> { { repository.toggleSaved(page) } }
+                        1 -> { { repository.removeOfflineArticle(page.wikiId, page.title) } }
                         else -> null
                     }
+                    val dismissLabel = if (tab == 1) "Remove offline copy" else "Remove"
                     ArticleCard(
                         title = page.title,
                         extract = page.wikiName,
                         thumbnailUrl = page.thumbnailUrl,
                         showImages = showImages,
                         onClick = { onArticleClick(page.wikiId, page.title) },
-                        trailingContent = if (isOpen || actionContent != null) {
-                            {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    if (isOpen) OpenTabIndicator() else Box {}
-                                    actionContent?.invoke()
-                                }
-                            }
+                        onDismiss = onDismiss,
+                        dismissIcon = Icons.Filled.Delete,
+                        dismissContentDescription = dismissLabel,
+                        trailingContent = if (isOpen) {
+                            { OpenTabIndicator() }
                         } else {
                             null
                         },

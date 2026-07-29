@@ -18,7 +18,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,18 +38,6 @@ import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.TabsRepository
 import org.wikitide.wikiportal.ui.components.ArticleCard
 
-/**
- * A plain, Saved-style list of currently open tabs. This is the bottom
- * nav's Tabs destination, distinct from the rich grid-of-thumbnail-cards
- * switcher in TabsScreen.kt, which stays reachable from inside the
- * article reader itself, unchanged. This shows each tab's real
- * thumbnail and article summary, see ArticleTab.extract, rather than
- * the wiki-name subtitle Saved, History, and Offline use. Those span
- * many wikis at once, where "which wiki" is the more useful line at a
- * glance, but every open tab already shows its own title prominently,
- * so a content preview is more useful here than repeating the wiki
- * name.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TabsListScreen(
@@ -60,6 +48,7 @@ fun TabsListScreen(
     val tabs by tabsRepository.tabs.collectAsState()
     val showImages by repository.showImages.collectAsState()
     val activeTabId by tabsRepository.activeTabId.collectAsState()
+    val previews by tabsRepository.previews.collectAsState()
     val listState = rememberLazyListState()
 
     LaunchedEffect(activeTabId) {
@@ -70,6 +59,13 @@ fun TabsListScreen(
     Column(Modifier.fillMaxSize()) {
         TopAppBar(
             title = { Text("Tabs", style = MaterialTheme.typography.headlineMedium) },
+            actions = {
+                if (tabs.isNotEmpty()) {
+                    IconButton(onClick = { tabsRepository.closeAllTabs() }) {
+                        Icon(Icons.Filled.DeleteSweep, contentDescription = "Close all tabs")
+                    }
+                }
+            },
             windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
             colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
         )
@@ -91,15 +87,19 @@ fun TabsListScreen(
                         extract = tab.extract.orEmpty(),
                         thumbnailUrl = tab.thumbnailUrl,
                         showImages = showImages,
+                        previewBitmap = previews[tab.id],
+                        wikiLabel = tab.wikiName.takeIf { it.isNotBlank() },
                         modifier = if (isActive) {
                             Modifier.border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary), RoundedCornerShape(12.dp))
                         } else {
                             Modifier
                         },
                         onClick = { onOpenTab(tab.wikiId, tab.title) },
-                        trailingContent = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (isActive) {
+                        onDismiss = { tabsRepository.closeTab(tab.id) },
+                        dismissContentDescription = "Close tab",
+                        trailingContent = if (isActive) {
+                            {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
                                         Icons.Filled.CheckCircle,
                                         contentDescription = null,
@@ -110,15 +110,12 @@ fun TabsListScreen(
                                         "Last viewed",
                                         style = MaterialTheme.typography.labelMedium,
                                         color = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.padding(start = 4.dp).weight(1f),
+                                        modifier = Modifier.padding(start = 4.dp),
                                     )
-                                } else {
-                                    Box(Modifier.weight(1f)) {}
-                                }
-                                IconButton(onClick = { tabsRepository.closeTab(tab.id) }) {
-                                    Icon(Icons.Filled.Close, contentDescription = "Close tab")
                                 }
                             }
+                        } else {
+                            null
                         },
                     )
                 }
