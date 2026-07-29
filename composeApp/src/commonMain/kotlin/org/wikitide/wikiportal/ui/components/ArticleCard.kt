@@ -3,7 +3,6 @@ package org.wikitide.wikiportal.ui.components
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -43,64 +42,68 @@ fun ArticleCard(
     onClose: (() -> Unit)? = null,
     trailingContent: (@Composable () -> Unit)? = null,
 ) {
-    Box(modifier.fillMaxWidth()) {
-        Card(
-            modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    val showThumbnail = showImages && (previewBitmap != null || !thumbnailUrl.isNullOrBlank())
+    Card(
+        modifier = modifier.fillMaxWidth().clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.Top,
         ) {
-            Row(
-                modifier = Modifier.padding(14.dp).then(if (onClose != null) Modifier.padding(end = 30.dp) else Modifier),
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                verticalAlignment = Alignment.Top,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(title, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    if (!wikiLabel.isNullOrBlank()) {
-                        Spacer(Modifier.size(2.dp))
-                        Text(
-                            wikiLabel,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    if (extract.isNotBlank()) {
-                        Spacer(Modifier.size(6.dp))
-                        Text(
-                            extract,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 3,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    trailingContent?.let {
-                        Spacer(Modifier.size(8.dp))
-                        it()
-                    }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                if (!wikiLabel.isNullOrBlank()) {
+                    Spacer(Modifier.size(2.dp))
+                    Text(
+                        wikiLabel,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+                    )
                 }
-                if (showImages && (previewBitmap != null || !thumbnailUrl.isNullOrBlank())) {
-                    if (previewBitmap != null) {
-                        Image(
-                            bitmap = previewBitmap,
-                            contentDescription = null,
-                            modifier = Modifier.size(84.dp).aspectRatio(1f).clip(RoundedCornerShape(12.dp)),
-                            contentScale = ContentScale.Crop,
-                        )
-                    } else {
-                        AsyncImage(
-                            model = thumbnailUrl,
-                            contentDescription = null,
-                            modifier = Modifier.size(84.dp).aspectRatio(1f).clip(RoundedCornerShape(12.dp)),
-                            contentScale = ContentScale.Crop,
-                        )
-                    }
+                if (extract.isNotBlank()) {
+                    Spacer(Modifier.size(6.dp))
+                    Text(
+                        extract,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                trailingContent?.let {
+                    Spacer(Modifier.size(8.dp))
+                    it()
                 }
             }
-        }
-        if (onClose != null) {
-            IconButton(onClick = onClose, modifier = Modifier.align(Alignment.TopEnd)) {
-                Icon(Icons.Filled.Close, contentDescription = "Close tab")
+            if (onClose != null || showThumbnail) {
+                Column(horizontalAlignment = Alignment.End) {
+                    if (onClose != null) {
+                        IconButton(onClick = onClose, modifier = Modifier.size(32.dp)) {
+                            Icon(Icons.Filled.Close, contentDescription = "Close tab", modifier = Modifier.size(20.dp))
+                        }
+                    }
+                    if (showThumbnail) {
+                        if (onClose != null) Spacer(Modifier.size(4.dp))
+                        if (previewBitmap != null) {
+                            Image(
+                                bitmap = previewBitmap,
+                                contentDescription = null,
+                                modifier = Modifier.size(84.dp).aspectRatio(1f).clip(RoundedCornerShape(12.dp)),
+                                contentScale = ContentScale.Crop,
+                            )
+                        } else {
+                            AsyncImage(
+                                model = thumbnailUrl,
+                                contentDescription = null,
+                                modifier = Modifier.size(84.dp).aspectRatio(1f).clip(RoundedCornerShape(12.dp)),
+                                contentScale = ContentScale.Crop,
+                            )
+                        }
+                    }
+                }
             }
         }
     }
