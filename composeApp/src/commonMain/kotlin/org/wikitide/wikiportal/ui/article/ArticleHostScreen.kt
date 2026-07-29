@@ -87,6 +87,7 @@ import org.wikitide.wikiportal.data.TabsRepository
 import org.wikitide.wikiportal.data.model.ArticleTab
 import org.wikitide.wikiportal.data.model.AuthDomains
 import org.wikitide.wikiportal.data.model.SavedPage
+import org.wikitide.wikiportal.navigation.Navigator
 import org.wikitide.wikiportal.network.MediaWikiApi
 import org.wikitide.wikiportal.network.PageSummaryDto
 import org.wikitide.wikiportal.ui.tabs.TabsScreen
@@ -154,6 +155,7 @@ private fun SingleArticleTab(
     repository: AppRepository = koinInject(),
     api: MediaWikiApi = koinInject(),
     tabsRepository: TabsRepository = koinInject(),
+    appNavigator: Navigator = koinInject(),
 ) {
     val tabs by tabsRepository.tabs.collectAsState()
     val presetWikis by repository.presetWikis.collectAsState()
@@ -190,6 +192,10 @@ private fun SingleArticleTab(
         )
     }
 
+    // Whether this tab is currently showing a saved offline copy
+    // rather than a live page.
+    var offlineHtml by remember(tab.id) { mutableStateOf<String?>(null) }
+
     // Read through rememberUpdatedState rather than as a remember(site)
     // key, so toggling the setting mid-session is picked up by the
     // interceptor right away without tearing down and recreating the
@@ -197,6 +203,8 @@ private fun SingleArticleTab(
     val confirmExternalNavigationState = rememberUpdatedState(confirmExternalNavigation)
     val allWikisState = rememberUpdatedState(allWikis)
     val isOnExternalSiteState = rememberUpdatedState(isOnExternalSite)
+    val offlineHtmlState = rememberUpdatedState(offlineHtml)
+    val offlineKeysState = rememberUpdatedState(offlineKeys)
 
     val navigator = rememberWebViewNavigator(
         requestInterceptor = remember(site) {
@@ -207,6 +215,22 @@ private fun SingleArticleTab(
                 ): WebRequestInterceptResult {
                     val url = request.url
                     if (url.startsWith("data:")) return WebRequestInterceptResult.Allow
+
+                    if (offlineHtmlState.value != null) {
+                        // Showing a saved snapshot, there's no network
+                        // to send this to. A link to another saved
+                        // article swaps the tab over to that copy
+                        // instead of trying to fetch it. Everything
+                        // else is dropped, including anything
+                        // rewriteOfflineLinks should already have
+                        // turned into plain text before this point.
+                        val targetTitle = extractCanonicalTitle(url, site)
+                        if (targetTitle != null && targetTitle in offlineTitlesForWiki(offlineKeysState.value, site.id)) {
+                            appNavigator.openArticle(site.id, targetTitle)
+                        }
+                        return WebRequestInterceptResult.Reject
+                    }
+
                     val isAuthRequest = AuthDomains.matches(url)
                     val targetSite = when {
                         isAuthRequest -> site
@@ -320,7 +344,6 @@ private fun SingleArticleTab(
     }
 
     var pageSummary by remember(tab.id) { mutableStateOf<PageSummaryDto?>(null) }
-    var offlineHtml by remember(tab.id) { mutableStateOf<String?>(null) }
     var isSavingOffline by remember(tab.id) { mutableStateOf(false) }
     var isRefreshing by remember(tab.id) { mutableStateOf(false) }
     var isOverflowMenuOpen by remember(tab.id) { mutableStateOf(false) }
@@ -328,6 +351,22 @@ private fun SingleArticleTab(
     // that hasn't navigated anywhere new doesn't re-fetch and re-record a
     // visit it already has.
     var summarizedTitle by remember(tab.id) { mutableStateOf<String?>(null) }
+
+    // navigator.reload() re-requests whatever URL the WebView thinks
+    // it's on, which for offline content loaded through loadHtml isn't
+    // a real, re-fetchable address, so reload() on it just clears the
+    // page instead of refreshing anything. There's nothing to refresh
+    // on a saved snapshot anyway, so this re-runs the same loadHtml
+    // instead of touching the network.
+    fun refreshCurrentPage() {
+        val savedHtml = offlineHtml
+        if (savedHtml != null) {
+            navigator.loadHtml(savedHtml, baseUrl = site.baseUrl)
+        } else {
+            navigator.reload()
+        }
+    }
+
     var nativeWebViewRef by remember(tab.id) { mutableStateOf<NativeWebView?>(null) }
     val savedPages by repository.savedPages.collectAsState()
     val pullToRefreshState = rememberPullToRefreshState()
@@ -352,7 +391,8 @@ private fun SingleArticleTab(
     // before the person would notice.
     LaunchedEffect(isActive, tab.id, currentTitle, offlineKeys) {
         if (!isActive) return@LaunchedEffect
-        offlineHtml = if (isOfflineSaved) repository.getOfflineArticleHtml(site.id, currentTitle) else null
+        val savedHtml = if (isOfflineSaved) repository.getOfflineArticleHtml(site.id, currentTitle) else null
+        offlineHtml = savedHtml?.let { rewriteOfflineLinks(it, site, offlineTitlesForWiki(offlineKeys, site.id)) }
     }
 
     // Gated on isActive, and deduped by summarizedTitle, so background
@@ -563,7 +603,7 @@ private fun SingleArticleTab(
                                 leadingIcon = { Icon(Icons.Filled.Refresh, contentDescription = null) },
                                 onClick = {
                                     isOverflowMenuOpen = false
-                                    navigator.reload()
+                                    refreshCurrentPage()
                                 },
                             )
 
@@ -686,7 +726,7 @@ private fun SingleArticleTab(
                                     if (triggered) {
                                         pullToRefreshState.animateToThreshold()
                                         isRefreshing = true
-                                        navigator.reload()
+                                        refreshCurrentPage()
                                     } else {
                                         pullToRefreshState.animateToHidden()
                                     }
