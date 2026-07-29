@@ -2,6 +2,7 @@ name: Generate XcodeGen PR
 
 on:
   workflow_dispatch:
+  push:
 
 permissions:
   contents: write
@@ -39,6 +40,7 @@ jobs:
                 - $(inherited)
               OTHER_LDFLAGS:
                 - $(inherited)
+                - -framework ComposeApp
                 - -lsqlite3
         EOF
 
