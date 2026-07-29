@@ -49,7 +49,7 @@ jobs:
         xcodegen generate
 
     - name: Create Pull Request with Automated Changes
-      uses: peter-evans/create-pull-request@v7
+      uses: peter-evans/create-pull-request@v8
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         commit-message: "chore: migrate iosApp to automated XcodeGen regeneration on the fly"
