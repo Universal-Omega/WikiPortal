@@ -10,13 +10,36 @@ private var koinStarted = false
 
 fun initKoin() {
     if (koinStarted) return
-    startKoin {
-        printLogger(Level.DEBUG)
-        modules(appModules())
+    try {
+        println("STARTING KOIN INITIALIZATION...")
+        
+        startKoin {
+            printLogger(Level.DEBUG)
+            modules(appModules())
+        }
+        koinStarted = true
+        
+        println("KOIN INITIALIZED SUCCESSFULLY")
+    } catch (e: Throwable) {
+        println("KOIN INITIALIZATION FAILED!")
+        println("Exception Type: ${e::class.simpleName}")
+        println("Message: ${e.message}")
+        e.printStackTrace()
+        throw e
     }
-    koinStarted = true
 }
 
-fun MainViewController(): UIViewController = ComposeUIViewController {
-    WikiPortalApp()
+fun MainViewController(): UIViewController {
+    return try {
+        println("CREATING COMPOSE VIEW CONTROLLER...")
+        ComposeUIViewController {
+            WikiPortalApp()
+        }
+    } catch (e: Throwable) {
+        println("COMPOSE UI RENDERING FAILED!")
+        println("Exception Type: ${e::class.simpleName}")
+        println("Message: ${e.message}")
+        e.printStackTrace()
+        throw e
+    }
 }
