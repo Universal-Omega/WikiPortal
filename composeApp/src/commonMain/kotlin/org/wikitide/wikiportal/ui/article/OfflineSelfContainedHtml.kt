@@ -1,7 +1,9 @@
 package org.wikitide.wikiportal.ui.article
 
 import kotlin.io.encoding.Base64
+import org.wikitide.wikiportal.data.model.WikiSite
 import org.wikitide.wikiportal.network.MediaWikiApi
+import org.wikitide.wikiportal.network.ParseResult
 
 /**
  * Builds a fully self-contained HTML document. Every statically
@@ -35,4 +37,18 @@ suspend fun buildSelfContainedHtml(html: String, baseUrl: String, api: MediaWiki
         }
     }
     return result
+}
+
+/**
+ * Turns parsePage's bare content fragment into a real document, with a
+ * stylesheet link for whatever CSS modules that content actually
+ * declared it needs, see ParseResult.modulestyles. buildSelfContainedHtml
+ * then inlines that link exactly the way it inlines any other, and the
+ * saved copy ends up styled instead of a bare unstyled block of text.
+ */
+fun buildOfflineDocument(parse: ParseResult, site: WikiSite, api: MediaWikiApi): String {
+    val styleLink = api.getModuleStylesheetUrl(site, parse.modulestyles)
+        ?.let { href -> "<link rel=\"stylesheet\" href=\"$href\">" }
+        .orEmpty()
+    return "<html><head>$styleLink</head><body class=\"mw-parser-output\">${parse.text}</body></html>"
 }
