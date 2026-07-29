@@ -715,12 +715,11 @@ private fun SingleArticleTab(
 
     LaunchedEffect(isSavingOffline) {
         if (!isSavingOffline) return@LaunchedEffect
-        val rendered = api.getRenderedPageHtml(site, currentTitle).getOrNull()
-            ?.takeIf { it.isNotBlank() }
-            ?: api.parsePage(site, currentTitle).getOrNull()?.text
+        val parsed = api.parsePage(site, currentTitle).getOrNull()
 
-        if (!rendered.isNullOrBlank()) {
-            val selfContained = buildSelfContainedHtml(rendered, site.baseUrl, api)
+        if (parsed != null && parsed.text.isNotBlank()) {
+            val document = buildOfflineDocument(parsed, site, api)
+            val selfContained = buildSelfContainedHtml(document, site.baseUrl, api)
             repository.saveOfflineArticle(
                 SavedPage(
                     wikiId = site.id,
