@@ -37,6 +37,9 @@ jobs:
               CURRENT_PROJECT_VERSION: "1"
               LD_RUNPATH_SEARCH_PATHS:
                 - $(inherited)
+              OTHER_LDFLAGS:
+                - $(inherited)
+                - -lsqlite3
         EOF
 
     - name: Install XcodeGen via Homebrew
