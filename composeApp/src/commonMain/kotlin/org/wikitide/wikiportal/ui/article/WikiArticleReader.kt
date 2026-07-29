@@ -10,9 +10,9 @@ import com.multiplatform.webview.web.NativeWebView
 import com.multiplatform.webview.web.WebView
 import com.multiplatform.webview.web.WebViewNavigator
 import com.multiplatform.webview.web.rememberWebViewState
+import com.multiplatform.webview.web.rememberWebViewStateWithHTMLData
 import io.ktor.http.URLBuilder
 import io.ktor.http.decodeURLQueryComponent
-import kotlin.io.encoding.Base64
 import kotlinx.coroutines.delay
 import org.wikitide.wikiportal.data.model.AuthDomains
 import org.wikitide.wikiportal.data.model.WikiSite
@@ -43,10 +43,20 @@ fun WikiArticleReader(
     textScale: Float,
     /**
      * Fully self-contained HTML, with all sub-resources inlined as
-     * data URIs, built by buildSelfContainedHtml, or null for a live
-     * page.
+     * data URIs, built by buildSelfContainedHtml, or null while a live
+     * page is showing, or while an offline copy is still being read
+     * back from storage.
      */
     offlineHtml: String?,
+    /**
+     * True when, at the moment this tab opened, [title] already had a
+     * saved offline copy. This tab never starts a live load in that
+     * case, since it would only flash on screen before [offlineHtml]
+     * replaces it. Saving a copy mid visit, while this is browsing
+     * live, does not set this, so that save doesn't interrupt the page
+     * already on screen.
+     */
+    openOfflineFromStart: Boolean,
     /**
      * Every wiki the app knows about, presets and custom. Used to look
      * up which one, if any, the currently loaded URL belongs to,
@@ -65,13 +75,23 @@ fun WikiArticleReader(
 ) {
     val initialUrl = remember {
         when {
-            offlineHtml != null -> "data:text/html;charset=utf-8;base64," + Base64.encode(offlineHtml.encodeToByteArray())
+            openOfflineFromStart -> null
             restoreUrl != null -> restoreUrl
             else -> site.articleUrl(title)
         }
     }
 
-    val webViewState = rememberWebViewState(initialUrl)
+    val webViewState = if (initialUrl != null) {
+        rememberWebViewState(initialUrl)
+    } else {
+        rememberWebViewStateWithHTMLData(data = "<html><body></body></html>", baseUrl = site.baseUrl)
+    }
+
+    LaunchedEffect(offlineHtml) {
+        if (openOfflineFromStart && offlineHtml != null) {
+            navigator.loadHtml(offlineHtml, baseUrl = site.baseUrl)
+        }
+    }
 
     LaunchedEffect(Unit) {
         webViewState.webSettings.apply {
