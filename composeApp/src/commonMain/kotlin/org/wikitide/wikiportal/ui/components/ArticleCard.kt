@@ -103,7 +103,7 @@ fun ArticleCard(
                     if (onDismiss != null) {
                         IconButton(
                             onClick = onDismiss,
-                            modifier = Modifier.size(30.dp).offset(x = 12.dp, y = (-12).dp),
+                            modifier = Modifier.size(30.dp).offset(y = (-12).dp),
                         ) {
                             Icon(dismissIcon, contentDescription = dismissContentDescription, modifier = Modifier.size(22.dp))
                         }
