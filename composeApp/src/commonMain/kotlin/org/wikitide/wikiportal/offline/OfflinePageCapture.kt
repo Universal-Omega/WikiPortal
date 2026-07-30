@@ -8,9 +8,11 @@ import org.wikitide.wikiportal.network.MediaWikiApi
  * exact same HTML this app's own WebView already shows while browsing
  * live, since WikiSite.articleUrl is the one URL both paths use, with
  * a short, known list of irrelevant elements removed (OfflineJunkStripper),
- * its own ResourceLoader modules prefetched so real page scripts like
- * collapsible sections keep working offline (OfflineModuleBundle), and
- * every remaining external resource inlined as a data URI
+ * its own ResourceLoader modules prefetched, styling guaranteed by
+ * fetching it as plain CSS text rather than trusting the real
+ * ResourceLoader JS runtime to apply it, scripts like collapsible
+ * sections best-effort on top of that (OfflineModuleBundle), and every
+ * remaining external resource inlined as a data URI
  * (OfflineResourceInliner). The result needs nothing from the network
  * to render.
  *
@@ -24,11 +26,14 @@ suspend fun captureArticleForOffline(site: WikiSite, title: String, api: MediaWi
     val rendered = api.getRenderedPage(site, title).getOrElse { return Result.failure(it) }
 
     val withoutJunk = stripKnownJunkElements(rendered)
-    val moduleBundle = fetchOfflineModuleBundle(withoutJunk, site, api).orEmpty()
-    val withHeadExtras = injectBeforeFirst(withoutJunk, "</head>", OFFLINE_DEAD_LINK_CSS + moduleBundle)
-    val withFallback = injectBeforeFirst(withHeadExtras, "</body>", OFFLINE_COLLAPSIBLE_FALLBACK_SCRIPT)
+    val modules = fetchOfflineModules(withoutJunk, site, api)
+    val moduleStyleTag = modules.css?.let { "<style>$it</style>" }.orEmpty()
+    val moduleScriptTag = modules.js?.let { "<script>$it</script>" }.orEmpty()
 
-    return Result.success(inlineResourcesAsDataUris(withFallback, site.baseUrl, api))
+    val withHeadExtras = injectBeforeFirst(withoutJunk, "</head>", OFFLINE_DEAD_LINK_CSS + moduleStyleTag)
+    val withScripts = injectBeforeFirst(withHeadExtras, "</body>", moduleScriptTag + OFFLINE_COLLAPSIBLE_FALLBACK_SCRIPT)
+
+    return Result.success(inlineResourcesAsDataUris(withScripts, site.baseUrl, api))
 }
 
 /**
