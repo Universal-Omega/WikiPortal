@@ -31,9 +31,17 @@ suspend fun captureArticleForOffline(site: WikiSite, title: String, api: MediaWi
     return Result.success(inlineResourcesAsDataUris(withFallback, site.baseUrl, api))
 }
 
-/** Inserts [insert] right before the first case-insensitive [closingTag], or prepends it if that tag is missing from otherwise-valid-enough HTML. */
+/**
+ * Inserts [insert] right before the first case-insensitive [closingTag],
+ * or prepends it if that tag is missing from otherwise-valid-enough
+ * HTML. Deliberately plain indexOf/substring, not Regex.replaceFirst:
+ * [insert] is real JS and CSS content, jQuery's own `$` included, and
+ * passing that through as a replacement pattern crashes the moment it
+ * contains a `$` Matcher.replaceFirst can't parse as a group
+ * reference, which real script content does constantly.
+ */
 private fun injectBeforeFirst(html: String, closingTag: String, insert: String): String {
     if (insert.isBlank()) return html
-    val pattern = Regex(Regex.escape(closingTag), RegexOption.IGNORE_CASE)
-    return if (pattern.containsMatchIn(html)) pattern.replaceFirst(html, "$insert$closingTag") else insert + html
+    val index = html.indexOf(closingTag, ignoreCase = true)
+    return if (index >= 0) html.substring(0, index) + insert + html.substring(index) else insert + html
 }
