@@ -16,6 +16,7 @@ import io.ktor.http.decodeURLQueryComponent
 import kotlinx.coroutines.delay
 import org.wikitide.wikiportal.data.model.AuthDomains
 import org.wikitide.wikiportal.data.model.WikiSite
+import org.wikitide.wikiportal.offline.offlineLoadIdentityUrl
 
 /** Snapshot of what the reader is currently showing, reported up to [ArticleHostScreen]. */
 data class WikiPageState(
@@ -33,41 +34,53 @@ data class WikiPageState(
 fun WikiArticleReader(
     site: WikiSite,
     /**
-     * The title to load. This must be a stable value, for example
-     * captured once at tab creation through remember(tab.id) { tab.title }
-     * in the caller. This is not meant to track in-page navigation
-     * reactively.
+     * The title this tab's WebView is initially constructed to load.
+     * This must be a stable value, for example captured once at tab
+     * creation through remember(tab.id) { tab.title } in the caller,
+     * and stays that way for this tab's whole lifetime. It is not
+     * meant to track later in-page or in-tab navigation. See
+     * [offlineDisplayTitle] for the one place that distinction
+     * actually matters.
      */
     title: String,
     navigator: WebViewNavigator,
     textScale: Float,
     /**
      * Fully self-contained HTML, with all sub-resources inlined as
-     * data URIs, built by buildSelfContainedHtml, or null while a live
+     * data URIs, captured by OfflinePageCapture, or null while a live
      * page is showing, or while an offline copy is still being read
      * back from storage.
      */
     offlineHtml: String?,
     /**
-     * True once the caller has actually checked storage for [title]'s
-     * offline copy at least once, so a null [offlineHtml] can be told
-     * apart from "haven't looked yet" versus "looked, and there really
-     * isn't one, or isn't one any more." Without that distinction there
-     * would be no way to tell a tab that hasn't loaded anything yet
-     * apart from one whose saved copy just got deleted out from under
-     * it.
+     * True once the caller has actually checked storage for the
+     * current offline title's copy at least once, so a null
+     * [offlineHtml] can be told apart from "haven't looked yet" versus
+     * "looked, and there really isn't one, or isn't one any more."
+     * Without that distinction there would be no way to tell a tab
+     * that hasn't loaded anything yet apart from one whose saved copy
+     * just got deleted out from under it.
      */
     offlineLookupSettled: Boolean,
     /**
-     * True when this tab should be showing [title]'s saved offline copy
-     * rather than a live page: either that was true from the moment
-     * this tab opened, or an explicit tap on the Offline list reused
-     * this already-open tab and upgraded it afterward, see
-     * TabsRepository.markOpenedFromOffline. Either way this tab never
-     * starts, or stays on, a live load once true, since it would only
-     * flash on screen before [offlineHtml] replaces it. Saving a copy
-     * mid visit, while this is browsing live, does not set this, so
-     * that save doesn't interrupt the page already on screen.
+     * The title [offlineHtml] actually belongs to right now. For an
+     * offline tab this can genuinely differ from [title]: clicking a
+     * link to another saved article navigates within this same tab,
+     * see ArticleHostScreen's RequestInterceptor, so a tab that opened
+     * on one title can end up showing a different one without ever
+     * being torn down and recreated. Only meaningful, and only ever
+     * read, while [openOfflineFromStart] is true.
+     */
+    offlineDisplayTitle: String,
+    /**
+     * True when this tab should be showing an offline copy rather than
+     * a live page: either that was true from the moment this tab
+     * opened, or an explicit tap on the Offline list reused this
+     * already-open tab and upgraded it, see TabsRepository. This tab
+     * never starts, or stays on, a live load once true, since it would
+     * only flash on screen before [offlineHtml] replaces it. Saving a
+     * copy mid visit, while this is browsing live, does not set this,
+     * so that save doesn't interrupt the page already on screen.
      */
     openOfflineFromStart: Boolean,
     /**
@@ -109,7 +122,7 @@ fun WikiArticleReader(
             // different one, since some WebView engines key cached
             // content and back-forward history off the baseUrl alone.
             // See offlineLoadIdentityUrl.
-            navigator.loadHtml(offlineHtml, baseUrl = offlineLoadIdentityUrl(site, title, offlineHtml))
+            navigator.loadHtml(offlineHtml, baseUrl = offlineLoadIdentityUrl(site, offlineDisplayTitle, offlineHtml))
         } else if (openOfflineFromStart && offlineHtml == null && offlineLookupSettled) {
             // Confirmed, not just still pending, that there is no
             // saved copy for this tab to show, either because it was
@@ -118,7 +131,7 @@ fun WikiArticleReader(
             // it. Either way, falling back to the live article beats
             // leaving a blank tab or whatever was last rendered stuck
             // on screen.
-            navigator.loadUrl(site.articleUrl(title))
+            navigator.loadUrl(site.articleUrl(offlineDisplayTitle))
         }
     }
 
@@ -165,8 +178,8 @@ fun WikiArticleReader(
 
         if (offlineHtml != null) {
             lastKnown.value = lastKnown.value.copy(
-                title = title,
-                canonicalTitle = title,
+                title = offlineDisplayTitle,
+                canonicalTitle = offlineDisplayTitle,
                 displaySiteName = site.name,
                 url = url ?: lastKnown.value.url,
                 isLoading = isLoading,
