@@ -24,21 +24,31 @@ jobs:
 
     - name: Boot a simulator
       run: |
-        UDID=$(xcrun simctl list devices available -j | python3 -c "
-        import json, sys
-        data = json.load(sys.stdin)
+        xcrun simctl list devices available -j > devices.json
+        cat devices.json
+
+        UDID=$(python3 -c "
+        import json
+        with open('devices.json') as f:
+            data = json.load(f)
         for runtime, devices in data['devices'].items():
-            if 'iOS' not in runtime:
+            if 'iOS' not in runtime or 'tvOS' in runtime:
                 continue
             for d in devices:
-                if d.get('isAvailable') and d['name'].startswith('iPhone'):
+                available = d.get('isAvailable', d.get('availability', '') == '(available)')
+                if available and d.get('name', '').startswith('iPhone'):
                     print(d['udid'])
-                    raise SystemExit
-        ")
+                    break
+            else:
+                continue
+            break
+        ") || true
+
         if [ -z "$UDID" ]; then
-          echo "No available iPhone simulator found. Check the device list above."
+          echo "No matching simulator found. Full device list was printed above, check it for the actual schema/names."
           exit 1
         fi
+
         echo "Using simulator: $UDID"
         echo "UDID=$UDID" >> $GITHUB_ENV
         xcrun simctl boot "$UDID"
