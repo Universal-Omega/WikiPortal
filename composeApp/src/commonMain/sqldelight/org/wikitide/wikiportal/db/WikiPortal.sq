@@ -135,12 +135,13 @@ CREATE TABLE IF NOT EXISTS OpenTab (
     thumbnailUrl TEXT,
     extract TEXT,
     createdAtEpochMillis INTEGER NOT NULL,
-    currentUrl TEXT
+    currentUrl TEXT,
+    openedFromOffline INTEGER AS Boolean NOT NULL DEFAULT 0
 );
 
 upsertOpenTab:
-INSERT OR REPLACE INTO OpenTab(id, wikiId, wikiName, title, thumbnailUrl, extract, createdAtEpochMillis, currentUrl)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO OpenTab(id, wikiId, wikiName, title, thumbnailUrl, extract, createdAtEpochMillis, currentUrl, openedFromOffline)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 deleteOpenTab:
 DELETE FROM OpenTab WHERE id = ?;
