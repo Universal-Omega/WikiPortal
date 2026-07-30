@@ -38,6 +38,7 @@ class SqlDelightWikiPortalStore(
     // SQLDelight handles natively without a ColumnAdapter.
     private val database = WikiPortalDatabase(driver, WikiAdapter = Wiki.Adapter(availableSkinsAdapter = SkinOptionListColumnAdapter))
     private val queries = database.wikiPortalQueries
+    private val offlineArticleStore = OfflineArticleStore(queries, offlineFiles)
 
     private val schemaMutex = Mutex()
     private var schemaReady = false
@@ -172,40 +173,27 @@ class SqlDelightWikiPortalStore(
 
     override suspend fun saveOfflineArticle(page: SavedPage, html: String) {
         ensureSchema()
-        val fileName = offlineArticleFileName(page.wikiId, page.title)
-        offlineFiles.write(fileName, html)
-        queries.upsertOfflineArticle(page.wikiId, page.wikiName, page.title, page.thumbnailUrl, fileName, page.timestampEpochMillis)
+        offlineArticleStore.save(page, html)
     }
 
     override suspend fun getOfflineArticleHtml(wikiId: String, title: String): String? {
         ensureSchema()
-        val fileName = queries.getOfflineArticleFileName(wikiId, title).awaitAsOneOrNull() ?: return null
-        return offlineFiles.read(fileName)
+        return offlineArticleStore.getHtml(wikiId, title)
     }
 
     override suspend fun removeOfflineArticle(wikiId: String, title: String) {
         ensureSchema()
-        val fileName = queries.getOfflineArticleFileName(wikiId, title).awaitAsOneOrNull()
-        queries.deleteOfflineArticle(wikiId, title)
-        if (fileName != null) offlineFiles.delete(fileName)
+        offlineArticleStore.remove(wikiId, title)
     }
 
     override suspend fun offlineArticleKeys(): Set<String> {
         ensureSchema()
-        return queries.selectAllOfflineArticleKeys().awaitAsList().map { "${it.wikiId}|${it.title}" }.toSet()
+        return offlineArticleStore.keys()
     }
 
     override suspend fun offlineArticles(): List<SavedPage> {
         ensureSchema()
-        return queries.selectAllOfflineArticles().awaitAsList().map {
-            SavedPage(
-                wikiId = it.wikiId,
-                wikiName = it.wikiName,
-                title = it.title,
-                thumbnailUrl = it.thumbnailUrl,
-                timestampEpochMillis = it.savedAtEpochMillis,
-            )
-        }
+        return offlineArticleStore.all()
     }
 
     override suspend fun openTabs(): List<ArticleTab> {

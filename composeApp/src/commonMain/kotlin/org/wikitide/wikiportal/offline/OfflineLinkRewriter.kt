@@ -1,5 +1,7 @@
 package org.wikitide.wikiportal.offline
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.wikitide.wikiportal.data.model.WikiSite
 import org.wikitide.wikiportal.ui.article.extractCanonicalTitle
 
@@ -31,13 +33,20 @@ const val OFFLINE_DEAD_LINK_CSS =
  * [offlineTitlesForSite] is title only, not the wikiId|title keys
  * AppRepository.offlineKeys stores, since every link found here is
  * necessarily on [site] already.
+ *
+ * suspend, running on Dispatchers.Default, for the same reason
+ * OfflinePageCapture does: this re-runs on every load of a saved
+ * article, and a full regex pass over a document that can be
+ * megabytes once its images are inlined has no business running on
+ * whatever dispatcher its caller happened to be on, which for the
+ * LaunchedEffect that actually calls this is Compose's UI dispatcher.
  */
-fun rewriteOfflineLinks(html: String, site: WikiSite, offlineTitlesForSite: Set<String>): String {
+suspend fun rewriteOfflineLinks(html: String, site: WikiSite, offlineTitlesForSite: Set<String>): String = withContext(Dispatchers.Default) {
     val openingTag = Regex("""<a\b([^>]*)>""")
     val hrefAttr = Regex("""\shref="([^"]*)"""")
     val classAttr = Regex("""\sclass="([^"]*)"""")
 
-    return openingTag.replace(html) { match ->
+    openingTag.replace(html) { match ->
         val attrs = match.groupValues[1]
         val hrefMatch = hrefAttr.find(attrs) ?: return@replace match.value
         val href = hrefMatch.groupValues[1]

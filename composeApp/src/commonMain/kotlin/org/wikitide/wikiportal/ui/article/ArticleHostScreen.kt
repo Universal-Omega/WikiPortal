@@ -223,6 +223,7 @@ private fun SingleArticleTab(
 
     /** Clicking a link inside an offline tab to another saved article. Pushes history and clears forward, same as following any new link would. */
     fun navigateWithinOfflineTab(newTitle: String) {
+        if (newTitle == currentOfflineTitle()) return
         offlineBackStack = offlineBackStack + currentOfflineTitle()
         offlineForwardStack = emptyList()
         pageState = pageState.copy(title = newTitle, canonicalTitle = newTitle, isLoading = true)
@@ -740,10 +741,20 @@ private fun SingleArticleTab(
                 }
 
                 if (pageState.isLoading) {
-                    LinearProgressIndicator(
-                        progress = { pageState.progress.coerceIn(0, 100) / 100f },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                    // openOfflineFromStart, still no offlineHtml: reading
+                    // and rewriting a saved article's HTML off disk, not a
+                    // real, percentage-trackable load. pageState.progress
+                    // would just be stuck reporting 0 through this whole
+                    // phase, which looks like a stall rather than
+                    // something actually happening.
+                    if (openOfflineFromStart && offlineHtml == null) {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    } else {
+                        LinearProgressIndicator(
+                            progress = { pageState.progress.coerceIn(0, 100) / 100f },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                 }
             }
         },
