@@ -40,6 +40,10 @@ suspend fun buildSelfContainedHtml(html: String, baseUrl: String, api: MediaWiki
     return result
 }
 
+private const val OFFLINE_DEAD_LINK_CSS =
+    "<style>.$OFFLINE_DEAD_LINK_CLASS{color:inherit!important;text-decoration:none!important;" +
+        "font-weight:bold!important;cursor:default!important;pointer-events:none!important;}</style>"
+
 fun buildOfflineDocument(parse: ParseResult, site: WikiSite, api: MediaWikiApi): String {
     val styleLink = api.getModuleStylesheetUrl(site, parse.modulestyles)
         ?.let { href -> "<link rel=\"stylesheet\" href=\"$href\">" }
@@ -49,7 +53,7 @@ fun buildOfflineDocument(parse: ParseResult, site: WikiSite, api: MediaWikiApi):
         ?.takeIf { it.isNotBlank() }
         ?.let { "<div class=\"catlinks\">$it</div>" }
         .orEmpty()
-    return "<html><head><meta charset=\"utf-8\">$styleLink</head>" +
+    return "<html><head><meta charset=\"utf-8\">$styleLink$OFFLINE_DEAD_LINK_CSS</head>" +
         "<body class=\"mediawiki mw-body\">$heading" +
         "<div class=\"mw-parser-output\">${parse.text}</div>$footer</body></html>"
 }
