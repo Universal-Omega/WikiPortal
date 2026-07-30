@@ -1,0 +1,63 @@
+name: Debug Launch on Simulator
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  simulator-debug:
+    runs-on: macos-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v7
+
+    - name: Install XcodeGen via Homebrew
+      run: brew install xcodegen
+
+    - name: Regenerate Xcode project
+      run: |
+        cd iosApp
+        xcodegen generate
+
+    - name: List available simulators
+      run: xcrun simctl list devices available
+
+    - name: Boot a simulator
+      run: |
+        UDID=$(xcrun simctl list devices available | grep "iPhone 15" | head -1 | grep -oE '[0-9A-F-]{36}')
+        echo "UDID=$UDID" >> $GITHUB_ENV
+        xcrun simctl boot "$UDID"
+
+    - name: Build for simulator
+      run: |
+        cd iosApp
+        xcodebuild build \
+          -project iosApp.xcodeproj \
+          -scheme iosApp \
+          -destination "id=$UDID" \
+          -derivedDataPath ./build
+
+    - name: Install app on simulator
+      run: |
+        APP_PATH=$(find iosApp/build -name "iosApp.app" -path "*Debug-iphonesimulator*" | head -1)
+        xcrun simctl install "$UDID" "$APP_PATH"
+
+    - name: Launch app and capture console output
+      run: |
+        timeout 20 xcrun simctl launch --console-pty "$UDID" org.wikitide.wikiportal > launch_output.log 2>&1 || true
+        cat launch_output.log
+
+    - name: Collect crash reports if any
+      run: |
+        mkdir -p crash_reports
+        find ~/Library/Logs/DiagnosticReports -iname "*iosApp*" -exec cp {} crash_reports/ \; || true
+        xcrun simctl spawn "$UDID" log collect --output simulator_logs.logarchive || true
+
+    - name: Upload debug artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: simulator-debug-output
+        path: |
+          launch_output.log
+          crash_reports/
+          simulator_logs.logarchive
