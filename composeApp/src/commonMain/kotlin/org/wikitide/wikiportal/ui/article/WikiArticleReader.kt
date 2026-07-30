@@ -49,6 +49,16 @@ fun WikiArticleReader(
      */
     offlineHtml: String?,
     /**
+     * True once the caller has actually checked storage for [title]'s
+     * offline copy at least once, so a null [offlineHtml] can be told
+     * apart from "haven't looked yet" versus "looked, and there really
+     * isn't one, or isn't one any more." Without that distinction there
+     * would be no way to tell a tab that hasn't loaded anything yet
+     * apart from one whose saved copy just got deleted out from under
+     * it.
+     */
+    offlineLookupSettled: Boolean,
+    /**
      * True when, at the moment this tab opened, [title] already had a
      * saved offline copy. This tab never starts a live load in that
      * case, since it would only flash on screen before [offlineHtml]
@@ -87,9 +97,25 @@ fun WikiArticleReader(
         rememberWebViewStateWithHTMLData(data = "<html><body></body></html>", baseUrl = site.baseUrl)
     }
 
-    LaunchedEffect(offlineHtml) {
+    LaunchedEffect(offlineHtml, offlineLookupSettled) {
         if (openOfflineFromStart && offlineHtml != null) {
-            navigator.loadHtml(offlineHtml, baseUrl = site.baseUrl)
+            // baseUrl here is deliberately not just site.baseUrl. Every
+            // offline article for this wiki loading with that same
+            // bare baseUrl is what let one saved article's cached
+            // rendering get served back in place of a completely
+            // different one, since some WebView engines key cached
+            // content and back-forward history off the baseUrl alone.
+            // See offlineLoadIdentityUrl.
+            navigator.loadHtml(offlineHtml, baseUrl = offlineLoadIdentityUrl(site, title, offlineHtml))
+        } else if (openOfflineFromStart && offlineHtml == null && offlineLookupSettled) {
+            // Confirmed, not just still pending, that there is no
+            // saved copy for this tab to show, either because it was
+            // deleted after this tab loaded it, or there never really
+            // was one despite this tab meaning to open straight into
+            // it. Either way, falling back to the live article beats
+            // leaving a blank tab or whatever was last rendered stuck
+            // on screen.
+            navigator.loadUrl(site.articleUrl(title))
         }
     }
 
