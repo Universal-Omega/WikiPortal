@@ -42,7 +42,7 @@ suspend fun captureArticleForOffline(site: WikiSite, title: String, api: MediaWi
     val moduleScriptTag = modules.js?.let { "<script>$it</script>" }.orEmpty()
 
     val withHeadExtras = injectBeforeFirst(withoutJunk, "</head>", OFFLINE_DEAD_LINK_CSS + moduleStyleTag)
-    val withScripts = injectBeforeFirst(withHeadExtras, "</body>", moduleScriptTag + OFFLINE_COLLAPSIBLE_FALLBACK_SCRIPT)
+    val withScripts = injectBeforeFirst(withHeadExtras, "</body>", moduleScriptTag)
 
     Result.success(inlineResourcesAsDataUris(withScripts, site.baseUrl, api))
 }
