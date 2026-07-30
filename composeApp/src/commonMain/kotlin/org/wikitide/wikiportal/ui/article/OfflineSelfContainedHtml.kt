@@ -44,6 +44,18 @@ private const val OFFLINE_DEAD_LINK_CSS =
     "<style>.$OFFLINE_DEAD_LINK_CLASS{color:inherit!important;text-decoration:none!important;" +
         "font-weight:bold!important;cursor:default!important;pointer-events:none!important;}</style>"
 
+private const val OFFLINE_COLLAPSIBLE_SECTIONS_JS = """<script>
+document.querySelectorAll('.collapsible-heading').forEach(function(heading) {
+  heading.addEventListener('click', function() {
+    var expanded = heading.classList.toggle('open-block');
+    heading.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    var blockId = heading.getAttribute('aria-controls');
+    var block = blockId ? document.getElementById(blockId) : null;
+    if (block) block.classList.toggle('open-block', expanded);
+  });
+});
+</script>"""
+
 fun buildOfflineDocument(parse: ParseResult, site: WikiSite, api: MediaWikiApi): String {
     val styleLink = api.getModuleStylesheetUrl(site, parse.modulestyles)
         ?.let { href -> "<link rel=\"stylesheet\" href=\"$href\">" }
@@ -55,5 +67,5 @@ fun buildOfflineDocument(parse: ParseResult, site: WikiSite, api: MediaWikiApi):
         .orEmpty()
     return "<html><head><meta charset=\"utf-8\">$styleLink$OFFLINE_DEAD_LINK_CSS</head>" +
         "<body class=\"mediawiki mw-body\">$heading" +
-        "<div class=\"mw-parser-output\">${parse.text}</div>$footer</body></html>"
+        "<div class=\"mw-parser-output\">${parse.text}</div>$footer$OFFLINE_COLLAPSIBLE_SECTIONS_JS</body></html>"
 }
