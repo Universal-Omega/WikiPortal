@@ -29,17 +29,12 @@ class Navigator(
      * works in a browser. A new tab is only created when no existing tab
      * matches. ArticleRoute is a singleton, so navigateTo does nothing if
      * we are already there.
-     *
-     * [openedFromOffline] only ever applies to a genuinely new tab. An
-     * existing tab found through findOpenTab keeps whatever it already
-     * committed to when it was first opened, rather than switching
-     * partway through whatever a later, unrelated click happened to ask
-     * for.
      */
     fun openArticle(wikiId: String, title: String, openedFromOffline: Boolean = false) {
         val site = repository.allWikisNow().firstOrNull { it.id == wikiId } ?: repository.activeWiki.value
         val existing = tabsRepository.findOpenTab(wikiId, title)
         if (existing != null) {
+            if (openedFromOffline) tabsRepository.markOpenedFromOffline(existing.id)
             tabsRepository.setActiveTab(existing.id)
         } else {
             tabsRepository.openTab(site, title, openedFromOffline)
