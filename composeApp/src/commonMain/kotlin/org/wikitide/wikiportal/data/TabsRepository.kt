@@ -137,9 +137,9 @@ class TabsRepository(
         return backHandlers[activeId]?.invoke() ?: false
     }
 
-    fun openTab(site: WikiSite, title: String): String {
+    fun openTab(site: WikiSite, title: String, openedFromOffline: Boolean = false): String {
         val id = "tab-${nowEpochMillis()}-${Random.nextInt(10_000)}"
-        val tab = ArticleTab(id, site.id, site.name, title, createdAtEpochMillis = nowEpochMillis())
+        val tab = ArticleTab(id, site.id, site.name, title, createdAtEpochMillis = nowEpochMillis(), openedFromOffline = openedFromOffline)
         _tabs.update { it + tab }
         _activeTabId.value = id
         _activeTabCanGoBack.value = false
