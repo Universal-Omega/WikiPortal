@@ -179,13 +179,13 @@ class SqlDelightWikiPortalStore(
 
     override suspend fun getOfflineArticleHtml(wikiId: String, title: String): String? {
         ensureSchema()
-        val fileName = queries.getOfflineArticleHtml(wikiId, title).awaitAsOneOrNull() ?: return null
+        val fileName = queries.getOfflineArticleFileName(wikiId, title).awaitAsOneOrNull() ?: return null
         return offlineFiles.read(fileName)
     }
 
     override suspend fun removeOfflineArticle(wikiId: String, title: String) {
         ensureSchema()
-        val fileName = queries.getOfflineArticleHtml(wikiId, title).awaitAsOneOrNull()
+        val fileName = queries.getOfflineArticleFileName(wikiId, title).awaitAsOneOrNull()
         queries.deleteOfflineArticle(wikiId, title)
         if (fileName != null) offlineFiles.delete(fileName)
     }
