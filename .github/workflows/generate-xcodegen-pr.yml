@@ -54,10 +54,19 @@ jobs:
             info:
               path: iosApp/Info.plist
               properties:
-                UILaunchScreen:
-                  UIColorName: systemBackgroundColor
+                CFBundleDevelopmentRegion: en
+                CFBundleDisplayName: WikiPortal
+                CFBundleExecutable: $(EXECUTABLE_NAME)
+                CFBundleIdentifier: $(PRODUCT_BUNDLE_IDENTIFIER)
+                CFBundleInfoDictionaryVersion: "6.0"
+                CFBundleName: $(PRODUCT_NAME)
+                CFBundlePackageType: APPL
+                CFBundleShortVersionString: $(MARKETING_VERSION)
+                CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+                LSRequiresIPhoneOS: true
                 UIApplicationSceneManifest:
                   UIApplicationSupportsMultipleScenes: false
+                UILaunchScreen: {}
                 UISupportedInterfaceOrientations:
                   - UIInterfaceOrientationPortrait
                   - UIInterfaceOrientationLandscapeLeft
@@ -94,10 +103,6 @@ jobs:
                   cd "$SRCROOT/.."
                   ./gradlew :composeApp:embedAndSignAppleFrameworkForXcode
                 basedOnDependencyAnalysis: false
-
-            resources:
-              - iosApp/Assets.xcassets
-              - path: "iosApp/Preview Content/Preview Assets.xcassets"
 
         schemes:
           iosApp:
