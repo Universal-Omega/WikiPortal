@@ -1,33 +1,32 @@
 package org.wikitide.wikiportal.offline
 
-/**
- * A short, known list of elements worth stripping from an offline
- * save: things that are either meaningless offline (a cookie consent
- * banner has nothing to ask consent for) or actively broken (most
- * fire off a network call the moment they render). This is
- * deliberately narrow. The point of OfflinePageCapture is keeping the
- * real page exactly as it is; this removes a small, specific list of
- * known irritants, not a general "clean up the page" pass.
- */
 private val KNOWN_JUNK_IDS = listOf("cookiewarning", "cookie-notice", "cookie-banner", "gdpr-notice")
+private val KNOWN_JUNK_CLASSES = listOf("mw-cookiewarning-container")
 
 fun stripKnownJunkElements(html: String): String {
     var result = html
     for (id in KNOWN_JUNK_IDS) {
-        result = stripElementById(result, id)
+        result = stripElement(result, idOpenTagPattern(id))
+    }
+    for (className in KNOWN_JUNK_CLASSES) {
+        result = stripElement(result, classOpenTagPattern(className))
     }
     return result
 }
 
+private fun idOpenTagPattern(id: String) = Regex("""<([a-zA-Z0-9]+)\b[^>]*\bid="$id"[^>]*>""")
+
+/** \b on both sides of $className, so a class list like "foo mw-cookiewarning-container bar" matches on the whole class name, not some other class that merely contains it as a substring. */
+private fun classOpenTagPattern(className: String) = Regex("""<([a-zA-Z0-9]+)\b[^>]*\bclass="[^"]*\b$className\b[^"]*"[^>]*>""")
+
 /**
- * Removes the element with this exact id, and everything inside it,
- * by counting opening and closing tags of whatever element type it is
- * rather than a single regex match, since a naive `.*?` would stop at
- * the first closing tag it sees, which is very likely a child
- * element's, not this one's.
+ * Removes the first element matching [openTagPattern], and everything
+ * inside it, by counting opening and closing tags of whatever element
+ * type it is rather than a single regex match, since a naive `.*?`
+ * would stop at the first closing tag it sees, which is very likely a
+ * child element's, not this one's.
  */
-private fun stripElementById(html: String, id: String): String {
-    val openTagPattern = Regex("""<([a-zA-Z0-9]+)\b[^>]*\bid="$id"[^>]*>""")
+private fun stripElement(html: String, openTagPattern: Regex): String {
     val openMatch = openTagPattern.find(html) ?: return html
     val tagName = openMatch.groupValues[1]
     val start = openMatch.range.first
