@@ -57,10 +57,11 @@ fun rewriteOfflineLinks(html: String, site: WikiSite, offlineTitlesForSite: Set<
 }
 
 private fun resolveOfflineLinkTitle(href: String, site: WikiSite): String? {
+    val decodedHref = href.decodeHtmlEntities()
     val absolute = when {
-        href.startsWith("//") -> "https:$href"
-        href.startsWith("/") -> "${site.baseUrl}$href"
-        href.startsWith("http") -> href
+        decodedHref.startsWith("//") -> "https:$decodedHref"
+        decodedHref.startsWith("/") -> "${site.baseUrl}$decodedHref"
+        decodedHref.startsWith("http") -> decodedHref
         else -> return null
     }
     return extractCanonicalTitle(absolute, site)
