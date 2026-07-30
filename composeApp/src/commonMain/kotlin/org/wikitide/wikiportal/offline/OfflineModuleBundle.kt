@@ -39,7 +39,7 @@ private val MODULES_QUERY_PARAM = Regex("""[?&]modules=([^&"'\s]+)""")
  * ResourceLoader startup module resolves that dependency at runtime
  * without it ever appearing as a literal string anywhere.
  */
-private val ALWAYS_REQUESTED_MODULES = setOf("jquery.makeCollapsible", "mediawiki.page.ready")
+private val ALWAYS_REQUESTED_MODULES = setOf("mediawiki.page.ready")
 
 private fun extractReferencedModuleNames(html: String): Set<String> {
     val decodedHtml = html.decodeHtmlEntities()
@@ -49,10 +49,12 @@ private fun extractReferencedModuleNames(html: String): Set<String> {
             names += nameMatch.groupValues[1]
         }
     }
+
     for (match in MODULES_QUERY_PARAM.findAll(decodedHtml)) {
         val decoded = match.groupValues[1].decodeURLQueryComponent()
         names += decoded.split("|").map { it.trim() }.filter { it.isNotEmpty() }
     }
+
     return names
 }
 
@@ -86,7 +88,6 @@ class OfflineModules(val css: String?, val js: String?)
 suspend fun fetchOfflineModules(html: String, site: WikiSite, api: MediaWikiApi): OfflineModules {
     val moduleNames = extractReferencedModuleNames(html) + ALWAYS_REQUESTED_MODULES
     if (moduleNames.isEmpty()) return OfflineModules(null, null)
-
     return OfflineModules(
         css = fetchModuleBundle(moduleNames, site, api, only = "styles"),
         js = fetchModuleBundle(moduleNames, site, api, only = "scripts"),
