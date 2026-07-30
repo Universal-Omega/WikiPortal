@@ -1,5 +1,7 @@
 package org.wikitide.wikiportal.offline
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.wikitide.wikiportal.data.model.WikiSite
 import org.wikitide.wikiportal.network.MediaWikiApi
 
@@ -16,14 +18,23 @@ import org.wikitide.wikiportal.network.MediaWikiApi
  * (OfflineResourceInliner). The result needs nothing from the network
  * to render.
  *
+ * Runs on Dispatchers.Default, not whatever dispatcher the caller
+ * happened to be on. This does a real amount of CPU work, regex
+ * scanning and rebuilding strings that can run into the megabytes for
+ * a large page, and none of that has any business running on
+ * Compose's UI dispatcher, which is exactly where the LaunchedEffect
+ * that kicks this off otherwise runs. Without this a big save visibly
+ * froze the whole app, not just the tab doing the saving, for as long
+ * as the save took.
+ *
  * Link deactivation, rewriteOfflineLinks, deliberately isn't done here.
  * Which links should still work depends on which other articles are
  * saved right now, not what was saved when this article was captured,
  * so it's re-applied every time a saved copy is loaded instead, see
  * ArticleHostScreen.
  */
-suspend fun captureArticleForOffline(site: WikiSite, title: String, api: MediaWikiApi): Result<String> {
-    val rendered = api.getRenderedPage(site, title).getOrElse { return Result.failure(it) }
+suspend fun captureArticleForOffline(site: WikiSite, title: String, api: MediaWikiApi): Result<String> = withContext(Dispatchers.Default) {
+    val rendered = api.getRenderedPage(site, title).getOrElse { return@withContext Result.failure(it) }
 
     val withoutJunk = stripKnownJunkElements(rendered)
     val modules = fetchOfflineModules(withoutJunk, site, api)
@@ -31,9 +42,9 @@ suspend fun captureArticleForOffline(site: WikiSite, title: String, api: MediaWi
     val moduleScriptTag = modules.js?.let { "<script>$it</script>" }.orEmpty()
 
     val withHeadExtras = injectBeforeFirst(withoutJunk, "</head>", OFFLINE_DEAD_LINK_CSS + moduleStyleTag)
-    val withScripts = injectBeforeFirst(withHeadExtras, "</body>", moduleScriptTag + OFFLINE_COLLAPSIBLE_FALLBACK_SCRIPT)
+    val withScripts = injectBeforeFirst(withHeadExtras, "</body>", moduleScriptTag)
 
-    return Result.success(inlineResourcesAsDataUris(withScripts, site.baseUrl, api))
+    Result.success(inlineResourcesAsDataUris(withScripts, site.baseUrl, api))
 }
 
 /**

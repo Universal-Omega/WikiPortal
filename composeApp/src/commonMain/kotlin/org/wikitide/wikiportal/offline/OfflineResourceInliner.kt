@@ -1,6 +1,11 @@
 package org.wikitide.wikiportal.offline
 
 import kotlin.io.encoding.Base64
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import org.wikitide.wikiportal.network.MediaWikiApi
 
 /**
@@ -26,8 +31,11 @@ private val HREF_ATTR = Regex("""\shref="([^"]*)"""")
 private val SRC_ATTR = Regex("""\ssrc="([^"]*)"""")
 private val REL_ATTR = Regex("""\srel="([^"]*)"""")
 
+/** A browser fetches a page's own resources several at once, not one at a time; matched here rather than fetching truly unbounded, which for a page with hundreds of images would just as easily overwhelm a small wiki's server or this app's own connection pool as help. */
+private const val MAX_CONCURRENT_FETCHES = 8
+
 /**
- * A modern skin, Citizen here, commonly loads its real stylesheet as
+ * Some skins load their real stylesheet as
  * `<link rel="preload" as="style" href="..." onload="this.rel='stylesheet'">`,
  * a real, fast page's own performance trick: the stylesheet is fetched
  * early but only actually activates as CSS once that onload swaps
@@ -36,67 +44,54 @@ private val REL_ATTR = Regex("""\srel="([^"]*)"""")
  * happen, and the styling never applies even though the CSS itself
  * inlined successfully. Detecting that shape and forcing rel straight
  * to stylesheet up front skips the swap entirely instead of depending
- * on it.
+ * on it. Harmless either way for a tag that was already a plain
+ * rel="stylesheet" to begin with, which is what most MediaWiki
+ * installs actually ship; this only ever changes anything for the
+ * preload shape specifically.
  */
-private suspend fun inlineLinkTags(html: String, baseUrl: String, api: MediaWikiApi): String {
-    var result = html
-    for (match in LINK_TAG.findAll(html).toList()) {
-        val tag = match.value
-        val hrefMatch = HREF_ATTR.find(tag) ?: continue
-        val rawUrl = hrefMatch.groupValues[1]
-        if (rawUrl.startsWith("data:")) continue
-        val dataUri = fetchAsDataUri(rawUrl, baseUrl, api) ?: continue
+private suspend fun inlineLinkTags(html: String, baseUrl: String, api: MediaWikiApi): String =
+    inlineMatches(
+        html, LINK_TAG, baseUrl, api,
+        extractUrl = { match -> HREF_ATTR.find(match.value)?.groupValues?.get(1) },
+        buildReplacement = { match, dataUri ->
+            val tag = match.value
+            val hrefMatch = HREF_ATTR.find(tag)!!
+            var newTag = tag.replaceRange(hrefMatch.range, " href=\"$dataUri\"")
 
-        var newTag = tag.replaceRange(hrefMatch.range, " href=\"$dataUri\"")
+            val relMatch = REL_ATTR.find(newTag)
+            if (relMatch != null && relMatch.groupValues[1].contains("preload", ignoreCase = true)) {
+                newTag = newTag.replaceRange(REL_ATTR.find(newTag)!!.range, " rel=\"stylesheet\"")
+            }
+            // A stale integrity hash or a crossorigin requirement has
+            // no meaning for content that is now inline, and a browser
+            // treating either as still binding would only reject the
+            // resource for no real reason.
+            newTag = stripAttribute(newTag, "as")
+            newTag = stripAttribute(newTag, "onload")
+            newTag = stripAttribute(newTag, "integrity")
+            newTag = stripAttribute(newTag, "crossorigin")
+            newTag
+        },
+    )
 
-        val relMatch = REL_ATTR.find(newTag)
-        if (relMatch != null && relMatch.groupValues[1].contains("preload", ignoreCase = true)) {
-            newTag = newTag.replaceRange(REL_ATTR.find(newTag)!!.range, " rel=\"stylesheet\"")
-        }
-        // A stale integrity hash or a crossorigin requirement has no
-        // meaning for content that is now inline, and a browser
-        // treating either as still binding would only reject the
-        // resource for no real reason.
-        newTag = stripAttribute(newTag, "as")
-        newTag = stripAttribute(newTag, "onload")
-        newTag = stripAttribute(newTag, "integrity")
-        newTag = stripAttribute(newTag, "crossorigin")
+private suspend fun inlineScriptTags(html: String, baseUrl: String, api: MediaWikiApi): String =
+    inlineMatches(
+        html, SCRIPT_OPEN_TAG, baseUrl, api,
+        extractUrl = { match -> SRC_ATTR.find(match.value)?.groupValues?.get(1) },
+        buildReplacement = { match, dataUri ->
+            var newTag = match.value.replaceRange(SRC_ATTR.find(match.value)!!.range, " src=\"$dataUri\"")
+            newTag = stripAttribute(newTag, "integrity")
+            newTag = stripAttribute(newTag, "crossorigin")
+            newTag
+        },
+    )
 
-        result = result.replace(tag, newTag)
-    }
-    return result
-}
-
-private suspend fun inlineScriptTags(html: String, baseUrl: String, api: MediaWikiApi): String {
-    var result = html
-    for (match in SCRIPT_OPEN_TAG.findAll(html).toList()) {
-        val tag = match.value
-        val srcMatch = SRC_ATTR.find(tag) ?: continue
-        val rawUrl = srcMatch.groupValues[1]
-        if (rawUrl.startsWith("data:")) continue
-        val dataUri = fetchAsDataUri(rawUrl, baseUrl, api) ?: continue
-
-        var newTag = tag.replaceRange(srcMatch.range, " src=\"$dataUri\"")
-        newTag = stripAttribute(newTag, "integrity")
-        newTag = stripAttribute(newTag, "crossorigin")
-
-        result = result.replace(tag, newTag)
-    }
-    return result
-}
-
-private suspend fun inlineImgTags(html: String, baseUrl: String, api: MediaWikiApi): String {
-    var result = html
-    for (match in IMG_TAG.findAll(html).toList()) {
-        val tag = match.value
-        val srcMatch = SRC_ATTR.find(tag) ?: continue
-        val rawUrl = srcMatch.groupValues[1]
-        if (rawUrl.startsWith("data:")) continue
-        val dataUri = fetchAsDataUri(rawUrl, baseUrl, api) ?: continue
-        result = result.replace(tag, tag.replaceRange(srcMatch.range, " src=\"$dataUri\""))
-    }
-    return result
-}
+private suspend fun inlineImgTags(html: String, baseUrl: String, api: MediaWikiApi): String =
+    inlineMatches(
+        html, IMG_TAG, baseUrl, api,
+        extractUrl = { match -> SRC_ATTR.find(match.value)?.groupValues?.get(1) },
+        buildReplacement = { match, dataUri -> match.value.replaceRange(SRC_ATTR.find(match.value)!!.range, " src=\"$dataUri\"") },
+    )
 
 /**
  * @import inside a literal `<style>` block already sitting in the
@@ -108,22 +103,56 @@ private suspend fun inlineImgTags(html: String, baseUrl: String, api: MediaWikiA
  */
 private val CSS_IMPORT = Regex("""@import\s+(?:url\()?["']?([^"')]+)["']?\)?\s*;""")
 
-private suspend fun inlineCssImports(html: String, baseUrl: String, api: MediaWikiApi): String {
-    var result = html
-    for (match in CSS_IMPORT.findAll(html).toList()) {
-        val rawUrl = match.groupValues[1]
-        if (rawUrl.startsWith("data:")) continue
-        val dataUri = fetchAsDataUri(rawUrl, baseUrl, api) ?: continue
-        result = result.replace(match.value, "@import url(\"$dataUri\");")
+private suspend fun inlineCssImports(html: String, baseUrl: String, api: MediaWikiApi): String =
+    inlineMatches(
+        html, CSS_IMPORT, baseUrl, api,
+        extractUrl = { match -> match.groupValues[1] },
+        buildReplacement = { _, dataUri -> "@import url(\"$dataUri\");" },
+    )
+
+private suspend fun inlineMatches(
+    html: String,
+    tagPattern: Regex,
+    baseUrl: String,
+    api: MediaWikiApi,
+    extractUrl: (MatchResult) -> String?,
+    buildReplacement: (match: MatchResult, dataUri: String) -> String,
+): String {
+    val matches = tagPattern.findAll(html).toList()
+    if (matches.isEmpty()) return html
+
+    val dataUris = coroutineScope {
+        val fetchLimiter = Semaphore(MAX_CONCURRENT_FETCHES)
+        matches.map { match ->
+            async {
+                val rawUrl = extractUrl(match)
+                if (rawUrl == null || rawUrl.startsWith("data:")) {
+                    null
+                } else {
+                    fetchLimiter.withPermit { fetchAsDataUri(rawUrl, baseUrl, api) }
+                }
+            }
+        }.awaitAll()
     }
-    return result
+
+    val result = StringBuilder(html.length)
+    var cursor = 0
+    matches.forEachIndexed { index, match ->
+        result.append(html, cursor, match.range.first)
+        val dataUri = dataUris[index]
+        result.append(if (dataUri != null) buildReplacement(match, dataUri) else match.value)
+        cursor = match.range.last + 1
+    }
+    result.append(html, cursor, html.length)
+    return result.toString()
 }
 
 private suspend fun fetchAsDataUri(rawUrl: String, baseUrl: String, api: MediaWikiApi): String? {
+    val decodedUrl = rawUrl.decodeHtmlEntities()
     val absoluteUrl = when {
-        rawUrl.startsWith("//") -> "https:$rawUrl"
-        rawUrl.startsWith("/") -> "$baseUrl$rawUrl"
-        rawUrl.startsWith("http") -> rawUrl
+        decodedUrl.startsWith("//") -> "https:$decodedUrl"
+        decodedUrl.startsWith("/") -> "$baseUrl$decodedUrl"
+        decodedUrl.startsWith("http") -> decodedUrl
         else -> return null
     }
     val (contentType, bytes) = api.getRawBytes(absoluteUrl).getOrNull() ?: return null

@@ -18,15 +18,14 @@ private val MODULE_LIST_ASSIGNMENT_OR_CALL = Regex("""(?:RLPAGEMODULES\s*=|mw\.l
 private val QUOTED_STRING = Regex("""['"]([^'"]+)['"]""")
 
 /**
- * A skin's own stylesheet is very often referenced through a plain
- * modules=a|b|c query parameter on a single static link or script tag
- * the skin's own template writes directly, not through RLPAGEMODULES
- * or a loader call at all. Catching that name here matters
- * specifically because that one static tag, see
- * OfflineResourceInliner's rel=preload handling, is exactly the kind
- * of thing that can end up not actually applying on its own; naming
- * the same module again through the guaranteed only=styles fetch
- * below is what actually makes sure it does.
+ * A real page's own CSS very often arrives through one or more plain,
+ * static `<link>` tags the skin's own template writes directly,
+ * modules=a|b|c and all, rather than through RLPAGEMODULES or a
+ * loader call. Vector 2022's actual site.styles and skins.vector...
+ * links work exactly this way. Naming those same modules again here,
+ * fed into the guaranteed only=styles fetch below, is what actually
+ * makes sure that CSS applies even if something about the original
+ * static tag itself doesn't carry over cleanly once inlined.
  */
 private val MODULES_QUERY_PARAM = Regex("""[?&]modules=([^&"'\s]+)""")
 
@@ -40,19 +39,22 @@ private val MODULES_QUERY_PARAM = Regex("""[?&]modules=([^&"'\s]+)""")
  * ResourceLoader startup module resolves that dependency at runtime
  * without it ever appearing as a literal string anywhere.
  */
-private val ALWAYS_REQUESTED_MODULES = setOf("jquery.makeCollapsible", "mediawiki.page.ready")
+private val ALWAYS_REQUESTED_MODULES = setOf("mediawiki.page.ready")
 
 private fun extractReferencedModuleNames(html: String): Set<String> {
+    val decodedHtml = html.decodeHtmlEntities()
     val names = mutableSetOf<String>()
-    for (match in MODULE_LIST_ASSIGNMENT_OR_CALL.findAll(html)) {
+    for (match in MODULE_LIST_ASSIGNMENT_OR_CALL.findAll(decodedHtml)) {
         for (nameMatch in QUOTED_STRING.findAll(match.groupValues[1])) {
             names += nameMatch.groupValues[1]
         }
     }
-    for (match in MODULES_QUERY_PARAM.findAll(html)) {
+
+    for (match in MODULES_QUERY_PARAM.findAll(decodedHtml)) {
         val decoded = match.groupValues[1].decodeURLQueryComponent()
         names += decoded.split("|").map { it.trim() }.filter { it.isNotEmpty() }
     }
+
     return names
 }
 
@@ -86,7 +88,6 @@ class OfflineModules(val css: String?, val js: String?)
 suspend fun fetchOfflineModules(html: String, site: WikiSite, api: MediaWikiApi): OfflineModules {
     val moduleNames = extractReferencedModuleNames(html) + ALWAYS_REQUESTED_MODULES
     if (moduleNames.isEmpty()) return OfflineModules(null, null)
-
     return OfflineModules(
         css = fetchModuleBundle(moduleNames, site, api, only = "styles"),
         js = fetchModuleBundle(moduleNames, site, api, only = "scripts"),
