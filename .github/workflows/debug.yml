@@ -2,7 +2,7 @@ name: Debug Launch on Simulator
 
 on:
   workflow_dispatch:
-  push:
+#  push:
 
 jobs:
   simulator-debug:
