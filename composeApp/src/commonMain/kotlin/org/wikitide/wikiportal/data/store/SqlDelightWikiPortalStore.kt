@@ -212,6 +212,7 @@ class SqlDelightWikiPortalStore(private val driver: SqlDriver) : WikiPortalStore
                 extract = it.extract,
                 createdAtEpochMillis = it.createdAtEpochMillis,
                 currentUrl = it.currentUrl,
+                openedFromOffline = it.openedFromOffline,
             )
         }
     }
@@ -220,6 +221,7 @@ class SqlDelightWikiPortalStore(private val driver: SqlDriver) : WikiPortalStore
         ensureSchema()
         queries.upsertOpenTab(
             tab.id, tab.wikiId, tab.wikiName, tab.title, tab.thumbnailUrl, tab.extract, tab.createdAtEpochMillis, tab.currentUrl,
+            tab.openedFromOffline,
         )
     }
 
