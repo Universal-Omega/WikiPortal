@@ -27,7 +27,7 @@ private val SRC_ATTR = Regex("""\ssrc="([^"]*)"""")
 private val REL_ATTR = Regex("""\srel="([^"]*)"""")
 
 /**
- * A modern skin, Citizen here, commonly loads its real stylesheet as
+ * Some skins load their real stylesheet as
  * `<link rel="preload" as="style" href="..." onload="this.rel='stylesheet'">`,
  * a real, fast page's own performance trick: the stylesheet is fetched
  * early but only actually activates as CSS once that onload swaps
@@ -36,7 +36,10 @@ private val REL_ATTR = Regex("""\srel="([^"]*)"""")
  * happen, and the styling never applies even though the CSS itself
  * inlined successfully. Detecting that shape and forcing rel straight
  * to stylesheet up front skips the swap entirely instead of depending
- * on it.
+ * on it. Harmless either way for a tag that was already a plain
+ * rel="stylesheet" to begin with, which is what most MediaWiki
+ * installs actually ship; this only ever changes anything for the
+ * preload shape specifically.
  */
 private suspend fun inlineLinkTags(html: String, baseUrl: String, api: MediaWikiApi): String {
     var result = html
@@ -120,10 +123,11 @@ private suspend fun inlineCssImports(html: String, baseUrl: String, api: MediaWi
 }
 
 private suspend fun fetchAsDataUri(rawUrl: String, baseUrl: String, api: MediaWikiApi): String? {
+    val decodedUrl = rawUrl.decodeHtmlEntities()
     val absoluteUrl = when {
-        rawUrl.startsWith("//") -> "https:$rawUrl"
-        rawUrl.startsWith("/") -> "$baseUrl$rawUrl"
-        rawUrl.startsWith("http") -> rawUrl
+        decodedUrl.startsWith("//") -> "https:$decodedUrl"
+        decodedUrl.startsWith("/") -> "$baseUrl$decodedUrl"
+        decodedUrl.startsWith("http") -> decodedUrl
         else -> return null
     }
     val (contentType, bytes) = api.getRawBytes(absoluteUrl).getOrNull() ?: return null
