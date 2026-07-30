@@ -383,7 +383,7 @@ private fun SingleArticleTab(
     // instead of touching the network.
     fun refreshCurrentPage() {
         val savedHtml = offlineHtml
-        if (savedHtml != null) {
+        if (openOfflineFromStart && savedHtml != null) {
             navigator.loadHtml(savedHtml, baseUrl = offlineLoadIdentityUrl(site, currentTitle, savedHtml))
         } else {
             navigator.reload()
