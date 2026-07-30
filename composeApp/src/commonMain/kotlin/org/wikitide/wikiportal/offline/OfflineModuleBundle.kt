@@ -1,6 +1,7 @@
 package org.wikitide.wikiportal.offline
 
 import io.ktor.http.URLBuilder
+import io.ktor.http.decodeURLQueryComponent
 import org.wikitide.wikiportal.data.model.WikiSite
 import org.wikitide.wikiportal.network.MediaWikiApi
 
@@ -15,6 +16,19 @@ import org.wikitide.wikiportal.network.MediaWikiApi
  */
 private val MODULE_LIST_ASSIGNMENT_OR_CALL = Regex("""(?:RLPAGEMODULES\s*=|mw\.loader\.(?:load|using)\()\s*\[([^]]*)]""")
 private val QUOTED_STRING = Regex("""['"]([^'"]+)['"]""")
+
+/**
+ * A skin's own stylesheet is very often referenced through a plain
+ * modules=a|b|c query parameter on a single static link or script tag
+ * the skin's own template writes directly, not through RLPAGEMODULES
+ * or a loader call at all. Catching that name here matters
+ * specifically because that one static tag, see
+ * OfflineResourceInliner's rel=preload handling, is exactly the kind
+ * of thing that can end up not actually applying on its own; naming
+ * the same module again through the guaranteed only=styles fetch
+ * below is what actually makes sure it does.
+ */
+private val MODULES_QUERY_PARAM = Regex("""[?&]modules=([^&"'\s]+)""")
 
 /**
  * Small, core, ship-with-every-install modules this app asks for
@@ -35,42 +49,57 @@ private fun extractReferencedModuleNames(html: String): Set<String> {
             names += nameMatch.groupValues[1]
         }
     }
+    for (match in MODULES_QUERY_PARAM.findAll(html)) {
+        val decoded = match.groupValues[1].decodeURLQueryComponent()
+        names += decoded.split("|").map { it.trim() }.filter { it.isNotEmpty() }
+    }
     return names
 }
+
+/** [css] is ready to drop straight into a `<style>` tag, [js] into a `<script>` tag. Either is null if that request came back empty or failed. */
+class OfflineModules(val css: String?, val js: String?)
 
 /**
  * A live page only ships the ResourceLoader startup module up front,
  * in its own script tag, already picked up like any other by
  * inlineResourcesAsDataUris. Everything past that, the actual
- * per-page modules, loads afterward through mw.loader.using(...)
- * calls queued in the page's own inline scripts, which normally fetch
- * from load.php over the network at the moment they're needed.
- * Offline, that fetch can never succeed.
+ * per-page modules, normally loads afterward, at runtime, the moment
+ * the page's own scripts ask for it, which can never succeed offline.
  *
- * This finds every module name the page's own scripts are going to
- * ask for, fetches them all up front as one combined load.php bundle,
- * script and style together the way a dynamically-loaded module
- * normally arrives, and returns it ready to inline as one more
- * `<script>` tag. By the time those mw.loader.using(...) calls
- * actually run, the modules they want are already registered locally,
- * and nothing needs the network at all.
+ * Style and script are fetched as two separate requests here, with
+ * only=styles and only=scripts, deliberately not one combined request
+ * left for mw.loader.implement(...) to apply through the real
+ * ResourceLoader JS runtime. only=styles hands back plain CSS text,
+ * nothing to execute, nothing that can silently fail to apply; that
+ * guarantee is worth a second network round trip. [css] and [js] are
+ * injected separately by OfflinePageCapture, css as a static
+ * `<style>` tag in head, js as one more best-effort `<script>` block
+ * alongside the collapsible fallback, where it stays free to fail on
+ * its own without taking styling down with it.
  *
- * This is a best-effort emulation of a real ResourceLoader client
- * bootstrap, not a guarantee. It covers modules the page names
+ * This is still a best-effort emulation of a real page's own module
+ * loading, not a guarantee. It covers modules the page names
  * explicitly, plus the small fixed set above. A module some other,
  * indirect, runtime-computed path pulls in isn't something static
  * text scanning can find, and won't be available offline.
  */
-suspend fun fetchOfflineModuleBundle(html: String, site: WikiSite, api: MediaWikiApi): String? {
+suspend fun fetchOfflineModules(html: String, site: WikiSite, api: MediaWikiApi): OfflineModules {
     val moduleNames = extractReferencedModuleNames(html) + ALWAYS_REQUESTED_MODULES
-    if (moduleNames.isEmpty()) return null
+    if (moduleNames.isEmpty()) return OfflineModules(null, null)
 
+    return OfflineModules(
+        css = fetchModuleBundle(moduleNames, site, api, only = "styles"),
+        js = fetchModuleBundle(moduleNames, site, api, only = "scripts"),
+    )
+}
+
+private suspend fun fetchModuleBundle(moduleNames: Set<String>, site: WikiSite, api: MediaWikiApi, only: String): String? {
     val url = URLBuilder(site.loadUrl).apply {
         parameters.append("skin", site.skin)
+        parameters.append("only", only)
         parameters.append("modules", moduleNames.joinToString("|"))
     }.buildString()
 
     val (_, bytes) = api.getRawBytes(url).getOrNull() ?: return null
-    val script = bytes.decodeToString()
-    return if (script.isNotBlank()) "<script>$script</script>" else null
+    return bytes.decodeToString().takeIf { it.isNotBlank() }
 }
