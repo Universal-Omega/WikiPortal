@@ -176,6 +176,18 @@ fun WikiArticleReader(
         val progress = (loading as? LoadingState.Loading)?.let { (it.progress * 100).toInt() } ?: 100
         val isLoading = loading is LoadingState.Loading
 
+        if (openOfflineFromStart && offlineHtml == null && !offlineLookupSettled) {
+            lastKnown.value = lastKnown.value.copy(
+                title = offlineDisplayTitle,
+                canonicalTitle = offlineDisplayTitle,
+                displaySiteName = site.name,
+                isLoading = true,
+                progress = 0,
+            )
+            onStateChanged(lastKnown.value)
+            return@LaunchedEffect
+        }
+
         if (openOfflineFromStart && offlineHtml != null) {
             lastKnown.value = lastKnown.value.copy(
                 title = offlineDisplayTitle,
