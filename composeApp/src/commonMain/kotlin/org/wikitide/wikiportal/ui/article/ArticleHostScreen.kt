@@ -89,6 +89,10 @@ import org.wikitide.wikiportal.data.model.AuthDomains
 import org.wikitide.wikiportal.data.model.SavedPage
 import org.wikitide.wikiportal.network.MediaWikiApi
 import org.wikitide.wikiportal.network.PageSummaryDto
+import org.wikitide.wikiportal.offline.captureArticleForOffline
+import org.wikitide.wikiportal.offline.offlineLoadIdentityUrl
+import org.wikitide.wikiportal.offline.offlineTitlesForWiki
+import org.wikitide.wikiportal.offline.rewriteOfflineLinks
 import org.wikitide.wikiportal.ui.tabs.TabsScreen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -166,6 +170,7 @@ private fun SingleArticleTab(
     val allWikis = remember(presetWikis, customWikis) { presetWikis + customWikis }
     val site = remember(tab.wikiId, allWikis) { allWikis.firstOrNull { it.id == tab.wikiId } ?: repository.activeWiki.value }
     val initialTitle = remember(tab.id) { tab.title }
+    val openOfflineFromStart = tab.openedFromOffline
     val textScale by repository.textScale.collectAsState()
     val offlineKeys by repository.offlineKeys.collectAsState()
     val confirmExternalNavigation by repository.confirmExternalNavigation.collectAsState()
@@ -189,6 +194,57 @@ private fun SingleArticleTab(
         )
     }
 
+    // Whether this tab is currently showing a saved offline copy
+    // rather than a live page.
+    var offlineHtml by remember(tab.id) { mutableStateOf<String?>(null) }
+    // Whether the lookup below has actually run at least once, so a
+    // null offlineHtml downstream can be told apart from "haven't
+    // checked yet" versus "checked, and there's genuinely nothing
+    // there". See WikiArticleReader's matching param.
+    var offlineLookupSettled by remember(tab.id) { mutableStateOf(false) }
+
+    var pageState by remember(tab.id) {
+        mutableStateOf(
+            WikiPageState(title = initialTitle, canonicalTitle = initialTitle, displaySiteName = site.name, url = tab.currentUrl.orEmpty()),
+        )
+    }
+
+    // Offline navigation stays inside this one tab, exactly like
+    // ordinary browsing: clicking a link to another saved article
+    // changes what this tab shows, not a new tab for every article
+    // clicked through, and back/forward move through that history.
+    // WebView's own navigateBack/navigateForward aren't used for this,
+    // on purpose, see the back handler below for why, so this tracks
+    // the titles visited in this tab itself instead.
+    var offlineBackStack by remember(tab.id) { mutableStateOf(listOf<String>()) }
+    var offlineForwardStack by remember(tab.id) { mutableStateOf(listOf<String>()) }
+
+    fun currentOfflineTitle() = pageState.canonicalTitle.ifBlank { initialTitle }
+
+    /** Clicking a link inside an offline tab to another saved article. Pushes history and clears forward, same as following any new link would. */
+    fun navigateWithinOfflineTab(newTitle: String) {
+        if (newTitle == currentOfflineTitle()) return
+        offlineBackStack = offlineBackStack + currentOfflineTitle()
+        offlineForwardStack = emptyList()
+        pageState = pageState.copy(title = newTitle, canonicalTitle = newTitle, isLoading = true)
+    }
+
+    fun goBackOffline(): Boolean {
+        val previous = offlineBackStack.lastOrNull() ?: return false
+        offlineForwardStack = offlineForwardStack + currentOfflineTitle()
+        offlineBackStack = offlineBackStack.dropLast(1)
+        pageState = pageState.copy(title = previous, canonicalTitle = previous, isLoading = true)
+        return true
+    }
+
+    fun goForwardOffline(): Boolean {
+        val next = offlineForwardStack.lastOrNull() ?: return false
+        offlineBackStack = offlineBackStack + currentOfflineTitle()
+        offlineForwardStack = offlineForwardStack.dropLast(1)
+        pageState = pageState.copy(title = next, canonicalTitle = next, isLoading = true)
+        return true
+    }
+
     // Read through rememberUpdatedState rather than as a remember(site)
     // key, so toggling the setting mid-session is picked up by the
     // interceptor right away without tearing down and recreating the
@@ -196,6 +252,9 @@ private fun SingleArticleTab(
     val confirmExternalNavigationState = rememberUpdatedState(confirmExternalNavigation)
     val allWikisState = rememberUpdatedState(allWikis)
     val isOnExternalSiteState = rememberUpdatedState(isOnExternalSite)
+    val offlineHtmlState = rememberUpdatedState(offlineHtml)
+    val offlineKeysState = rememberUpdatedState(offlineKeys)
+    val openOfflineFromStartState = rememberUpdatedState(openOfflineFromStart)
 
     val navigator = rememberWebViewNavigator(
         requestInterceptor = remember(site) {
@@ -206,6 +265,23 @@ private fun SingleArticleTab(
                 ): WebRequestInterceptResult {
                     val url = request.url
                     if (url.startsWith("data:")) return WebRequestInterceptResult.Allow
+
+                    if (openOfflineFromStartState.value && offlineHtmlState.value != null) {
+                        // Showing a saved snapshot, there's no network
+                        // to send this to. A link to another saved
+                        // article navigates within this same tab,
+                        // ordinary browsing, not a new tab for every
+                        // article clicked through. Everything else is
+                        // dropped, including anything rewriteOfflineLinks
+                        // should already have turned into plain text
+                        // before this point.
+                        val targetTitle = extractCanonicalTitle(url, site)
+                        if (targetTitle != null && targetTitle in offlineTitlesForWiki(offlineKeysState.value, site.id)) {
+                            navigateWithinOfflineTab(targetTitle)
+                        }
+                        return WebRequestInterceptResult.Reject
+                    }
+
                     val isAuthRequest = AuthDomains.matches(url)
                     val targetSite = when {
                         isAuthRequest -> site
@@ -247,9 +323,21 @@ private fun SingleArticleTab(
     // Registered once, at tab creation, keyed by tab.id and not isActive.
     // See TabsRepository's comment on backHandlers for why this must not
     // be tied to activation timing.
+    //
+    // openOfflineFromStart tabs never call navigator.navigateBack() at
+    // all, on purpose. Offline content loads through loadHtml, which on
+    // Android goes straight to loadDataWithBaseURL, and each such call,
+    // an ordinary refresh included, counts as one more entry in the
+    // WebView's own back-forward list. Android WebView is known not to
+    // reliably restore loadDataWithBaseURL content when navigating back
+    // into one of those entries, rendering blank instead. offlineBackStack
+    // above is what actually gives these tabs working back navigation
+    // without touching that.
     DisposableEffect(tab.id) {
         tabsRepository.registerBackHandler(tab.id) {
-            if (navigator.canGoBack) {
+            if (openOfflineFromStart) {
+                goBackOffline()
+            } else if (navigator.canGoBack) {
                 navigator.navigateBack()
                 historyNavTrigger++
                 true
@@ -261,16 +349,12 @@ private fun SingleArticleTab(
     }
 
     // Keeps TabsRepository.activeTabCanGoBack in sync with this tab's own
-    // in-page history, but only while this tab is actually the active
-    // one.
-    LaunchedEffect(isActive, navigator.canGoBack) {
-        if (isActive) tabsRepository.setActiveTabCanGoBack(navigator.canGoBack)
-    }
-
-    var pageState by remember(tab.id) {
-        mutableStateOf(
-            WikiPageState(title = initialTitle, canonicalTitle = initialTitle, displaySiteName = site.name, url = tab.currentUrl.orEmpty()),
-        )
+    // history, WebView's for a live tab, offlineBackStack for an offline
+    // one, but only while this tab is actually the active one.
+    LaunchedEffect(isActive, navigator.canGoBack, offlineBackStack) {
+        if (isActive) {
+            tabsRepository.setActiveTabCanGoBack(if (openOfflineFromStart) offlineBackStack.isNotEmpty() else navigator.canGoBack)
+        }
     }
 
     // The interceptor above only ever sees genuinely new top-level
@@ -319,7 +403,6 @@ private fun SingleArticleTab(
     }
 
     var pageSummary by remember(tab.id) { mutableStateOf<PageSummaryDto?>(null) }
-    var offlineHtml by remember(tab.id) { mutableStateOf<String?>(null) }
     var isSavingOffline by remember(tab.id) { mutableStateOf(false) }
     var isRefreshing by remember(tab.id) { mutableStateOf(false) }
     var isOverflowMenuOpen by remember(tab.id) { mutableStateOf(false) }
@@ -327,6 +410,7 @@ private fun SingleArticleTab(
     // that hasn't navigated anywhere new doesn't re-fetch and re-record a
     // visit it already has.
     var summarizedTitle by remember(tab.id) { mutableStateOf<String?>(null) }
+
     var nativeWebViewRef by remember(tab.id) { mutableStateOf<NativeWebView?>(null) }
     val savedPages by repository.savedPages.collectAsState()
     val pullToRefreshState = rememberPullToRefreshState()
@@ -345,13 +429,30 @@ private fun SingleArticleTab(
     val isSaved = savedPages.any { it.wikiId == site.id && it.title == currentTitle }
     val isOfflineSaved = repository.isOfflineSaved(site.id, currentTitle)
 
+    // navigator.reload() re-requests whatever URL the WebView thinks
+    // it's on, which for offline content loaded through loadHtml isn't
+    // a real, re-fetchable address, so reload() on it just clears the
+    // page instead of refreshing anything. There's nothing to refresh
+    // on a saved snapshot anyway, so this re-runs the same loadHtml
+    // instead of touching the network.
+    fun refreshCurrentPage() {
+        val savedHtml = offlineHtml
+        if (openOfflineFromStart && savedHtml != null) {
+            navigator.loadHtml(savedHtml, baseUrl = offlineLoadIdentityUrl(site, currentTitle, savedHtml))
+        } else {
+            navigator.reload()
+        }
+    }
+
     // Gated on isActive so a background tab doesn't do this local lookup
     // every time any tab's offline status changes. It re-runs the moment
     // the tab becomes active again, which is early enough to still land
     // before the person would notice.
     LaunchedEffect(isActive, tab.id, currentTitle, offlineKeys) {
         if (!isActive) return@LaunchedEffect
-        offlineHtml = if (isOfflineSaved) repository.getOfflineArticleHtml(site.id, currentTitle) else null
+        val savedHtml = if (isOfflineSaved) repository.getOfflineArticleHtml(site.id, currentTitle) else null
+        offlineHtml = savedHtml?.let { rewriteOfflineLinks(it, site, offlineTitlesForWiki(offlineKeys, site.id)) }
+        offlineLookupSettled = true
     }
 
     // Gated on isActive, and deduped by summarizedTitle, so background
@@ -372,14 +473,16 @@ private fun SingleArticleTab(
         }
         if (currentTitle == summarizedTitle) return@LaunchedEffect
         val isOffSiteContent = isOnExternalSite || AuthDomains.matches(pageState.url)
-        // getPageSummary assumes currentTitle is a real article on
-        // site, which isn't true for an auth page or an external link
-        // followed in this tab, so that call is skipped for those.
-        // The tab and history are still updated either way, using
-        // pageState.url as the actual address to return to, rather
-        // than reconstructing one from title and wikiId that would
-        // 404 on a page that was never really an article here.
-        val freshSummary = if (isOffSiteContent) null else api.getPageSummary(site, currentTitle).getOrNull()
+        // getPageSummary assumes currentTitle is a real, currently
+        // reachable article on site. That's not true for an auth page
+        // or an external link followed in this tab, and there's no
+        // network to ask at all while reading offline, in-tab
+        // navigation between saved articles included. The tab and
+        // history are still updated either way, using pageState.url as
+        // the actual address to return to, rather than reconstructing
+        // one from title and wikiId that would 404 on a page that was
+        // never really an article here.
+        val freshSummary = if (isOffSiteContent || openOfflineFromStart) null else api.getPageSummary(site, currentTitle).getOrNull()
         summarizedTitle = currentTitle
         pageSummary = freshSummary
         tabsRepository.updateTab(
@@ -545,14 +648,18 @@ private fun SingleArticleTab(
                             shape = RoundedCornerShape(14.dp),
                             shadowElevation = 6.dp,
                         ) {
-                            if (navigator.canGoForward) {
+                            if (if (openOfflineFromStart) offlineForwardStack.isNotEmpty() else navigator.canGoForward) {
                                 DropdownMenuItem(
                                     text = { Text("Forward") },
                                     leadingIcon = { Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null) },
                                     onClick = {
                                         isOverflowMenuOpen = false
-                                        navigator.navigateForward()
-                                        historyNavTrigger++
+                                        if (openOfflineFromStart) {
+                                            goForwardOffline()
+                                        } else {
+                                            navigator.navigateForward()
+                                            historyNavTrigger++
+                                        }
                                     },
                                 )
                             }
@@ -562,7 +669,7 @@ private fun SingleArticleTab(
                                 leadingIcon = { Icon(Icons.Filled.Refresh, contentDescription = null) },
                                 onClick = {
                                     isOverflowMenuOpen = false
-                                    navigator.reload()
+                                    refreshCurrentPage()
                                 },
                             )
 
@@ -634,10 +741,20 @@ private fun SingleArticleTab(
                 }
 
                 if (pageState.isLoading) {
-                    LinearProgressIndicator(
-                        progress = { pageState.progress.coerceIn(0, 100) / 100f },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                    // openOfflineFromStart, still no offlineHtml: reading
+                    // and rewriting a saved article's HTML off disk, not a
+                    // real, percentage-trackable load. pageState.progress
+                    // would just be stuck reporting 0 through this whole
+                    // phase, which looks like a stall rather than
+                    // something actually happening.
+                    if (openOfflineFromStart && offlineHtml == null) {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    } else {
+                        LinearProgressIndicator(
+                            progress = { pageState.progress.coerceIn(0, 100) / 100f },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                 }
             }
         },
@@ -653,6 +770,9 @@ private fun SingleArticleTab(
                 navigator = navigator,
                 textScale = textScale,
                 offlineHtml = offlineHtml,
+                offlineLookupSettled = offlineLookupSettled,
+                offlineDisplayTitle = currentTitle,
+                openOfflineFromStart = openOfflineFromStart,
                 allWikis = allWikis,
                 historyNavTrigger = historyNavTrigger,
                 restoreUrl = tab.currentUrl,
@@ -684,7 +804,7 @@ private fun SingleArticleTab(
                                     if (triggered) {
                                         pullToRefreshState.animateToThreshold()
                                         isRefreshing = true
-                                        navigator.reload()
+                                        refreshCurrentPage()
                                     } else {
                                         pullToRefreshState.animateToHidden()
                                     }
@@ -713,10 +833,9 @@ private fun SingleArticleTab(
 
     LaunchedEffect(isSavingOffline) {
         if (!isSavingOffline) return@LaunchedEffect
+        val captured = captureArticleForOffline(site, currentTitle, api).getOrNull()
 
-        val parsed = api.parsePage(site, currentTitle).getOrNull()
-        if (parsed != null && parsed.text.isNotBlank()) {
-            val selfContained = buildSelfContainedHtml(parsed.text, site.baseUrl, api)
+        if (!captured.isNullOrBlank()) {
             repository.saveOfflineArticle(
                 SavedPage(
                     wikiId = site.id,
@@ -725,7 +844,7 @@ private fun SingleArticleTab(
                     thumbnailUrl = pageSummary?.thumbnail?.source,
                     timestampEpochMillis = nowEpochMillis(),
                 ),
-                selfContained,
+                captured,
             )
         }
 

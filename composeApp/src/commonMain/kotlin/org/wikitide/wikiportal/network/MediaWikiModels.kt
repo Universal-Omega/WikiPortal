@@ -117,20 +117,6 @@ data class SearchInfoDto(
 )
 
 @Serializable
-data class ParseResponse(
-    val parse: ParseResult? = null,
-    override val error: ApiErrorDto? = null,
-) : ActionApiResponse
-
-@Serializable
-data class ParseResult(
-    val title: String = "",
-    val pageid: Int = 0,
-    val text: String = "",
-    val displaytitle: String? = null,
-)
-
-@Serializable
 data class CategoryMembersResponse(
     val query: CategoryMembersQuery? = null,
     override val error: ApiErrorDto? = null,

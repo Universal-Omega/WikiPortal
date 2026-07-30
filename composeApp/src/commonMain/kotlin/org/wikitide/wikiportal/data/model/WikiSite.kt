@@ -66,6 +66,7 @@ data class WikiSite(
     val apiUrl: String get() = "$baseUrl$scriptPath/api.php"
     val indexUrl: String get() = "$baseUrl$scriptPath/index.php"
     val restUrl: String get() = "$baseUrl$scriptPath/rest.php"
+    val loadUrl: String get() = "$baseUrl$scriptPath/load.php"
 
     val faviconUrl: String get() = discoveredFaviconUrl ?: "$baseUrl/favicon.ico"
 

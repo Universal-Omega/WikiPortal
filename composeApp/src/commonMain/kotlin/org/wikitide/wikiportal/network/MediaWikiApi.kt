@@ -196,15 +196,21 @@ class MediaWikiApi(
             response.query?.recentchanges?.map { it.title }?.distinct().orEmpty()
         }
 
-    suspend fun parsePage(site: WikiSite, title: String): Result<ParseResult?> =
-        actionApi.get<ParseResponse>(
-            site.apiUrl,
-            mapOf(
-                "action" to "parse",
-                "page" to title,
-                "prop" to "text|displaytitle",
-            ),
-        ).map { it.parse }
+    /**
+     * The real rendered page, byte for byte the same HTML a browser, or
+     * this app's own WebView, gets from visiting the article normally:
+     * full head, every stylesheet and script tag, the skin's own
+     * chrome, any collapsible sections' real markup, all of it. Used
+     * for offline saving, see OfflinePageCapture, specifically because
+     * [WikiSite.articleUrl] is the exact same URL live browsing already
+     * uses, so there is no separate, thinner rendering path to fall out
+     * of sync with.
+     */
+    suspend fun getRenderedPage(site: WikiSite, title: String): Result<String> = runCatchingCancellable {
+        httpClient.get(site.articleUrl(title)).bodyAsText()
+    }.onFailure {
+        AppLog.e("MediaWikiApi", "getRenderedPage(${site.id}, $title) failed", it)
+    }
 
     /**
      * Fetches an extract and thumbnail for exactly one page. Used by
@@ -232,11 +238,13 @@ class MediaWikiApi(
     /**
      * Raw bytes and content type for any URL. Used to inline an offline
      * article's CSS, JS, and image sub-resources as data URIs. See
-     * OfflineSelfContainedHtml.kt.
+     * OfflineResourceInliner.
      */
     suspend fun getRawBytes(url: String): Result<Pair<String, ByteArray>> = runCatchingCancellable {
         val response = httpClient.get(url)
         val contentType = response.headers[HttpHeaders.ContentType] ?: "application/octet-stream"
         contentType to response.body<ByteArray>()
+    }.onFailure {
+        AppLog.e("MediaWikiApi", "getRawBytes($url) failed", it)
     }
 }

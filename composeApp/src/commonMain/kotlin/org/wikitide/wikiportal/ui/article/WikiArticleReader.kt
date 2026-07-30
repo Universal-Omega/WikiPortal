@@ -10,12 +10,13 @@ import com.multiplatform.webview.web.NativeWebView
 import com.multiplatform.webview.web.WebView
 import com.multiplatform.webview.web.WebViewNavigator
 import com.multiplatform.webview.web.rememberWebViewState
+import com.multiplatform.webview.web.rememberWebViewStateWithHTMLData
 import io.ktor.http.URLBuilder
 import io.ktor.http.decodeURLQueryComponent
-import kotlin.io.encoding.Base64
 import kotlinx.coroutines.delay
 import org.wikitide.wikiportal.data.model.AuthDomains
 import org.wikitide.wikiportal.data.model.WikiSite
+import org.wikitide.wikiportal.offline.offlineLoadIdentityUrl
 
 /** Snapshot of what the reader is currently showing, reported up to [ArticleHostScreen]. */
 data class WikiPageState(
@@ -33,20 +34,55 @@ data class WikiPageState(
 fun WikiArticleReader(
     site: WikiSite,
     /**
-     * The title to load. This must be a stable value, for example
-     * captured once at tab creation through remember(tab.id) { tab.title }
-     * in the caller. This is not meant to track in-page navigation
-     * reactively.
+     * The title this tab's WebView is initially constructed to load.
+     * This must be a stable value, for example captured once at tab
+     * creation through remember(tab.id) { tab.title } in the caller,
+     * and stays that way for this tab's whole lifetime. It is not
+     * meant to track later in-page or in-tab navigation. See
+     * [offlineDisplayTitle] for the one place that distinction
+     * actually matters.
      */
     title: String,
     navigator: WebViewNavigator,
     textScale: Float,
     /**
      * Fully self-contained HTML, with all sub-resources inlined as
-     * data URIs, built by buildSelfContainedHtml, or null for a live
-     * page.
+     * data URIs, captured by OfflinePageCapture, or null while a live
+     * page is showing, or while an offline copy is still being read
+     * back from storage.
      */
     offlineHtml: String?,
+    /**
+     * True once the caller has actually checked storage for the
+     * current offline title's copy at least once, so a null
+     * [offlineHtml] can be told apart from "haven't looked yet" versus
+     * "looked, and there really isn't one, or isn't one any more."
+     * Without that distinction there would be no way to tell a tab
+     * that hasn't loaded anything yet apart from one whose saved copy
+     * just got deleted out from under it.
+     */
+    offlineLookupSettled: Boolean,
+    /**
+     * The title [offlineHtml] actually belongs to right now. For an
+     * offline tab this can genuinely differ from [title]: clicking a
+     * link to another saved article navigates within this same tab,
+     * see ArticleHostScreen's RequestInterceptor, so a tab that opened
+     * on one title can end up showing a different one without ever
+     * being torn down and recreated. Only meaningful, and only ever
+     * read, while [openOfflineFromStart] is true.
+     */
+    offlineDisplayTitle: String,
+    /**
+     * True when this tab should be showing an offline copy rather than
+     * a live page: either that was true from the moment this tab
+     * opened, or an explicit tap on the Offline list reused this
+     * already-open tab and upgraded it, see TabsRepository. This tab
+     * never starts, or stays on, a live load once true, since it would
+     * only flash on screen before [offlineHtml] replaces it. Saving a
+     * copy mid visit, while this is browsing live, does not set this,
+     * so that save doesn't interrupt the page already on screen.
+     */
+    openOfflineFromStart: Boolean,
     /**
      * Every wiki the app knows about, presets and custom. Used to look
      * up which one, if any, the currently loaded URL belongs to,
@@ -65,13 +101,39 @@ fun WikiArticleReader(
 ) {
     val initialUrl = remember {
         when {
-            offlineHtml != null -> "data:text/html;charset=utf-8;base64," + Base64.encode(offlineHtml.encodeToByteArray())
+            openOfflineFromStart -> ""
             restoreUrl != null -> restoreUrl
             else -> site.articleUrl(title)
         }
     }
 
-    val webViewState = rememberWebViewState(initialUrl)
+    val webViewState = if (initialUrl.isNotEmpty()) {
+        rememberWebViewState(initialUrl)
+    } else {
+        rememberWebViewStateWithHTMLData(data = "<html><body></body></html>", baseUrl = site.baseUrl)
+    }
+
+    LaunchedEffect(offlineHtml, offlineLookupSettled, openOfflineFromStart) {
+        if (openOfflineFromStart && offlineHtml != null) {
+            // baseUrl here is deliberately not just site.baseUrl. Every
+            // offline article for this wiki loading with that same
+            // bare baseUrl is what let one saved article's cached
+            // rendering get served back in place of a completely
+            // different one, since some WebView engines key cached
+            // content and back-forward history off the baseUrl alone.
+            // See offlineLoadIdentityUrl.
+            navigator.loadHtml(offlineHtml, baseUrl = offlineLoadIdentityUrl(site, offlineDisplayTitle, offlineHtml))
+        } else if (openOfflineFromStart && offlineHtml == null && offlineLookupSettled) {
+            // Confirmed, not just still pending, that there is no
+            // saved copy for this tab to show, either because it was
+            // deleted after this tab loaded it, or there never really
+            // was one despite this tab meaning to open straight into
+            // it. Either way, falling back to the live article beats
+            // leaving a blank tab or whatever was last rendered stuck
+            // on screen.
+            navigator.loadUrl(site.articleUrl(offlineDisplayTitle))
+        }
+    }
 
     LaunchedEffect(Unit) {
         webViewState.webSettings.apply {
@@ -114,10 +176,22 @@ fun WikiArticleReader(
         val progress = (loading as? LoadingState.Loading)?.let { (it.progress * 100).toInt() } ?: 100
         val isLoading = loading is LoadingState.Loading
 
-        if (offlineHtml != null) {
+        if (openOfflineFromStart && offlineHtml == null && !offlineLookupSettled) {
             lastKnown.value = lastKnown.value.copy(
-                title = title,
-                canonicalTitle = title,
+                title = offlineDisplayTitle,
+                canonicalTitle = offlineDisplayTitle,
+                displaySiteName = site.name,
+                isLoading = true,
+                progress = 0,
+            )
+            onStateChanged(lastKnown.value)
+            return@LaunchedEffect
+        }
+
+        if (openOfflineFromStart && offlineHtml != null) {
+            lastKnown.value = lastKnown.value.copy(
+                title = offlineDisplayTitle,
+                canonicalTitle = offlineDisplayTitle,
                 displaySiteName = site.name,
                 url = url ?: lastKnown.value.url,
                 isLoading = isLoading,

@@ -23,20 +23,21 @@ class Navigator(
 
     /**
      * Opens a reading tab for wikiId and title, then makes sure we are on
-     * the Article destination. If that article is already open in another
-     * tab, found through findOpenTab, we just switch to that tab instead
-     * of opening a duplicate, the same way clicking an already-open tab
-     * works in a browser. A new tab is only created when no existing tab
-     * matches. ArticleRoute is a singleton, so navigateTo does nothing if
-     * we are already there.
+     * the Article destination. If that article is already open in
+     * another tab in the same mode, live or offline, found through
+     * findOpenTab, we just switch to that tab instead of opening a
+     * duplicate, the same way clicking an already-open tab works in a
+     * browser. A tab in the other mode doesn't count as a match; see
+     * findOpenTab. ArticleRoute is a singleton, so navigateTo does
+     * nothing if we are already there.
      */
-    fun openArticle(wikiId: String, title: String) {
+    fun openArticle(wikiId: String, title: String, openedFromOffline: Boolean = false) {
         val site = repository.allWikisNow().firstOrNull { it.id == wikiId } ?: repository.activeWiki.value
-        val existing = tabsRepository.findOpenTab(wikiId, title)
+        val existing = tabsRepository.findOpenTab(wikiId, title, openedFromOffline)
         if (existing != null) {
             tabsRepository.setActiveTab(existing.id)
         } else {
-            tabsRepository.openTab(site, title)
+            tabsRepository.openTab(site, title, openedFromOffline)
         }
         navigateTo(ArticleRoute)
     }
