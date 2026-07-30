@@ -1,6 +1,6 @@
 package org.wikitide.wikiportal.offline
 
-private val KNOWN_JUNK_IDS = listOf("cookiewarning", "cookie-notice", "cookie-banner", "gdpr-notice", "siteNotice")
+private val KNOWN_JUNK_IDS = listOf("siteNotice")
 private val KNOWN_JUNK_CLASSES = listOf("mw-cookiewarning-container")
 
 fun stripKnownJunkElements(html: String): String {
