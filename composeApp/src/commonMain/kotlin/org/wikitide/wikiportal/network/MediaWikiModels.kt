@@ -117,24 +117,6 @@ data class SearchInfoDto(
 )
 
 @Serializable
-data class ParseResponse(
-    val parse: ParseResult? = null,
-    override val error: ApiErrorDto? = null,
-) : ActionApiResponse
-
-@Serializable
-data class ParseResult(
-    val title: String = "",
-    val pageid: Int = 0,
-    val text: String = "",
-    val displaytitle: String? = null,
-    /** CSS-only ResourceLoader module names this page needs, fetchable together as one stylesheet from load.php. See MediaWikiApi.getModuleStylesheetUrl. */
-    val modulestyles: List<String> = emptyList(),
-    /** The category links a skin would normally render below the article body. */
-    val categorieshtml: String? = null,
-)
-
-@Serializable
 data class CategoryMembersResponse(
     val query: CategoryMembersQuery? = null,
     override val error: ApiErrorDto? = null,
