@@ -79,7 +79,7 @@ jobs:
         xcrun simctl spawn "$UDID" log collect --output simulator_logs.logarchive || true
 
     - name: Upload debug artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: simulator-debug-output
         path: |
