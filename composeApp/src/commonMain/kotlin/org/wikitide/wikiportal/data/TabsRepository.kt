@@ -137,9 +137,9 @@ class TabsRepository(
         return backHandlers[activeId]?.invoke() ?: false
     }
 
-    fun openTab(site: WikiSite, title: String): String {
+    fun openTab(site: WikiSite, title: String, openedFromOffline: Boolean = false): String {
         val id = "tab-${nowEpochMillis()}-${Random.nextInt(10_000)}"
-        val tab = ArticleTab(id, site.id, site.name, title, createdAtEpochMillis = nowEpochMillis())
+        val tab = ArticleTab(id, site.id, site.name, title, createdAtEpochMillis = nowEpochMillis(), openedFromOffline = openedFromOffline)
         _tabs.update { it + tab }
         _activeTabId.value = id
         _activeTabCanGoBack.value = false
@@ -236,14 +236,24 @@ class TabsRepository(
     fun tab(tabId: String): ArticleTab? = _tabs.value.firstOrNull { it.id == tabId }
 
     /**
-     * Looks for an already-open tab pointing at the same wiki and title,
-     * so callers, for example tapping an article from Dashboard, Search,
-     * or Saved, can jump to it instead of opening a duplicate. This
-     * matches on the tab's current title, which tracks in-page
-     * navigation through updateTab, not just its original opening title,
-     * so a tab that has since navigated back to this same article is
-     * still found.
+     * Looks for an already-open tab pointing at the same wiki, title,
+     * and viewing mode, so callers, for example tapping an article
+     * from Dashboard, Search, Saved, or Offline, can jump to it instead
+     * of opening a duplicate. This matches on the tab's current title,
+     * which tracks in-page navigation through updateTab, not just its
+     * original opening title, so a tab that has since navigated back
+     * to this same article is still found.
+     *
+     * [openedFromOffline] is part of the match, not just wikiId and
+     * title. A tab already open live and a tab already open offline
+     * for the same title are two different things, not one tab that
+     * gets mutated depending on whichever click happened to land on it
+     * last. Tapping Saved for a title that's already open offline in
+     * some other tab opens or switches to a separate live tab, and
+     * tapping Offline for a title that's already open live does the
+     * same in reverse, rather than either one silently taking over
+     * whatever tab already existed.
      */
-    fun findOpenTab(wikiId: String, title: String): ArticleTab? =
-        _tabs.value.firstOrNull { it.wikiId == wikiId && it.title == title }
+    fun findOpenTab(wikiId: String, title: String, openedFromOffline: Boolean): ArticleTab? =
+        _tabs.value.firstOrNull { it.wikiId == wikiId && it.title == title && it.openedFromOffline == openedFromOffline }
 }
