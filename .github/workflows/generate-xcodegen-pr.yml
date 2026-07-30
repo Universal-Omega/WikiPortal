@@ -41,14 +41,11 @@ jobs:
               OTHER_LDFLAGS:
                 - $(inherited)
                 - -lsqlite3
-              FRAMEWORK_SEARCH_PATHS:
-                - $(inherited)
-                - $(SRCROOT)/../composeApp/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)
-                - $(SRCROOT)/../shared/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)
-            dependencies:
-              - framework: ../composeApp/build/xcode-frameworks/Release/iphoneos/ComposeApp.xcframework
-                embed: true
-                codeSign: false
+            preBuildScripts:
+              - name: Compile Kotlin Multiplatform Shared Code Framework
+                script: |
+                  cd "$SRCROOT/.."
+                  ./gradlew :composeApp:embedAndSignAppleFrameworkForXcode
         EOF
 
     - name: Install XcodeGen via Homebrew
