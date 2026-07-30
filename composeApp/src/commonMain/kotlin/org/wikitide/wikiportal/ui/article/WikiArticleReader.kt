@@ -59,12 +59,15 @@ fun WikiArticleReader(
      */
     offlineLookupSettled: Boolean,
     /**
-     * True when, at the moment this tab opened, [title] already had a
-     * saved offline copy. This tab never starts a live load in that
-     * case, since it would only flash on screen before [offlineHtml]
-     * replaces it. Saving a copy mid visit, while this is browsing
-     * live, does not set this, so that save doesn't interrupt the page
-     * already on screen.
+     * True when this tab should be showing [title]'s saved offline copy
+     * rather than a live page: either that was true from the moment
+     * this tab opened, or an explicit tap on the Offline list reused
+     * this already-open tab and upgraded it afterward, see
+     * TabsRepository.markOpenedFromOffline. Either way this tab never
+     * starts, or stays on, a live load once true, since it would only
+     * flash on screen before [offlineHtml] replaces it. Saving a copy
+     * mid visit, while this is browsing live, does not set this, so
+     * that save doesn't interrupt the page already on screen.
      */
     openOfflineFromStart: Boolean,
     /**
@@ -97,7 +100,7 @@ fun WikiArticleReader(
         rememberWebViewStateWithHTMLData(data = "<html><body></body></html>", baseUrl = site.baseUrl)
     }
 
-    LaunchedEffect(offlineHtml, offlineLookupSettled) {
+    LaunchedEffect(offlineHtml, offlineLookupSettled, openOfflineFromStart) {
         if (openOfflineFromStart && offlineHtml != null) {
             // baseUrl here is deliberately not just site.baseUrl. Every
             // offline article for this wiki loading with that same
