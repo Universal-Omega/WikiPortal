@@ -33,6 +33,7 @@ val navigationModule = module {
         val navigator = get<Navigator>()
         SavedScreen(
             onArticleClick = { wikiId, title -> navigator.openArticle(wikiId, title) },
+            onOfflineArticleClick = { wikiId, title -> navigator.openArticle(wikiId, title, openedFromOffline = true) },
         )
     }
 

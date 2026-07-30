@@ -38,6 +38,7 @@ import org.wikitide.wikiportal.ui.components.OpenTabIndicator
 @Composable
 fun SavedScreen(
     onArticleClick: (wikiId: String, title: String) -> Unit,
+    onOfflineArticleClick: (wikiId: String, title: String) -> Unit,
     repository: AppRepository = koinInject(),
     tabsRepository: TabsRepository = koinInject(),
 ) {
@@ -97,7 +98,9 @@ fun SavedScreen(
                         extract = page.wikiName,
                         thumbnailUrl = page.thumbnailUrl,
                         showImages = showImages,
-                        onClick = { onArticleClick(page.wikiId, page.title) },
+                        onClick = {
+                            if (tab == 1) onOfflineArticleClick(page.wikiId, page.title) else onArticleClick(page.wikiId, page.title)
+                        },
                         onDismiss = onDismiss,
                         dismissIcon = Icons.Filled.Delete,
                         dismissContentDescription = dismissLabel,

@@ -28,13 +28,17 @@ import org.wikitide.wikiportal.db.WikiPortalDatabase
  * EXISTS, so it is simplest to just do it here on first use rather than
  * choreograph it across four different driver-construction call sites.
  */
-class SqlDelightWikiPortalStore(private val driver: SqlDriver) : WikiPortalStore {
+class SqlDelightWikiPortalStore(
+    private val driver: SqlDriver,
+    private val offlineFiles: OfflineArticleFileStore,
+) : WikiPortalStore {
 
     // WikiAdapter only needs an entry for availableSkins. isCustom and
     // skinIsUserSet are typed INTEGER AS Boolean in WikiPortal.sq, which
     // SQLDelight handles natively without a ColumnAdapter.
     private val database = WikiPortalDatabase(driver, WikiAdapter = Wiki.Adapter(availableSkinsAdapter = SkinOptionListColumnAdapter))
     private val queries = database.wikiPortalQueries
+    private val offlineArticleStore = OfflineArticleStore(queries, offlineFiles)
 
     private val schemaMutex = Mutex()
     private var schemaReady = false
@@ -169,35 +173,27 @@ class SqlDelightWikiPortalStore(private val driver: SqlDriver) : WikiPortalStore
 
     override suspend fun saveOfflineArticle(page: SavedPage, html: String) {
         ensureSchema()
-        queries.upsertOfflineArticle(page.wikiId, page.wikiName, page.title, page.thumbnailUrl, html, page.timestampEpochMillis)
+        offlineArticleStore.save(page, html)
     }
 
     override suspend fun getOfflineArticleHtml(wikiId: String, title: String): String? {
         ensureSchema()
-        return queries.getOfflineArticleHtml(wikiId, title).awaitAsOneOrNull()
+        return offlineArticleStore.getHtml(wikiId, title)
     }
 
     override suspend fun removeOfflineArticle(wikiId: String, title: String) {
         ensureSchema()
-        queries.deleteOfflineArticle(wikiId, title)
+        offlineArticleStore.remove(wikiId, title)
     }
 
     override suspend fun offlineArticleKeys(): Set<String> {
         ensureSchema()
-        return queries.selectAllOfflineArticleKeys().awaitAsList().map { "${it.wikiId}|${it.title}" }.toSet()
+        return offlineArticleStore.keys()
     }
 
     override suspend fun offlineArticles(): List<SavedPage> {
         ensureSchema()
-        return queries.selectAllOfflineArticles().awaitAsList().map {
-            SavedPage(
-                wikiId = it.wikiId,
-                wikiName = it.wikiName,
-                title = it.title,
-                thumbnailUrl = it.thumbnailUrl,
-                timestampEpochMillis = it.savedAtEpochMillis,
-            )
-        }
+        return offlineArticleStore.all()
     }
 
     override suspend fun openTabs(): List<ArticleTab> {
@@ -212,6 +208,7 @@ class SqlDelightWikiPortalStore(private val driver: SqlDriver) : WikiPortalStore
                 extract = it.extract,
                 createdAtEpochMillis = it.createdAtEpochMillis,
                 currentUrl = it.currentUrl,
+                openedFromOffline = it.openedFromOffline,
             )
         }
     }
@@ -220,6 +217,7 @@ class SqlDelightWikiPortalStore(private val driver: SqlDriver) : WikiPortalStore
         ensureSchema()
         queries.upsertOpenTab(
             tab.id, tab.wikiId, tab.wikiName, tab.title, tab.thumbnailUrl, tab.extract, tab.createdAtEpochMillis, tab.currentUrl,
+            tab.openedFromOffline,
         )
     }
 
