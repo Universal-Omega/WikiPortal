@@ -29,7 +29,7 @@ actual fun platformModule(): Module = module {
         )
         AndroidSqliteDriver(openHelper)
     }
+    single<LogExporter> { AndroidLogExporter(get()) }
     single<OfflineArticleFileStore> { AndroidOfflineArticleFileStore(get()) }
     single<WikiPortalStore> { SqlDelightWikiPortalStore(get(), get()) }
-    single<LogExporter> { AndroidLogExporter(get()) }
 }
