@@ -106,17 +106,17 @@ CREATE TABLE IF NOT EXISTS OfflineArticle (
     wikiName TEXT NOT NULL,
     title TEXT NOT NULL,
     thumbnailUrl TEXT,
-    html TEXT NOT NULL,
+    htmlFileName TEXT NOT NULL,
     savedAtEpochMillis INTEGER NOT NULL,
     PRIMARY KEY (wikiId, title)
 );
 
 upsertOfflineArticle:
-INSERT OR REPLACE INTO OfflineArticle(wikiId, wikiName, title, thumbnailUrl, html, savedAtEpochMillis)
+INSERT OR REPLACE INTO OfflineArticle(wikiId, wikiName, title, thumbnailUrl, htmlFileName, savedAtEpochMillis)
 VALUES (?, ?, ?, ?, ?, ?);
 
-getOfflineArticleHtml:
-SELECT html FROM OfflineArticle WHERE wikiId = ? AND title = ?;
+getOfflineArticleFileName:
+SELECT htmlFileName FROM OfflineArticle WHERE wikiId = ? AND title = ?;
 
 deleteOfflineArticle:
 DELETE FROM OfflineArticle WHERE wikiId = ? AND title = ?;
@@ -126,6 +126,22 @@ SELECT wikiId, title FROM OfflineArticle;
 
 selectAllOfflineArticles:
 SELECT wikiId, wikiName, title, thumbnailUrl, savedAtEpochMillis FROM OfflineArticle ORDER BY savedAtEpochMillis DESC;
+
+-- Only ever populated on the web target. Real platforms (Android,
+-- desktop, iOS) store offline article HTML as actual files instead.
+CREATE TABLE IF NOT EXISTS OfflineArticleFile (
+    fileName TEXT NOT NULL PRIMARY KEY,
+    content TEXT NOT NULL
+);
+
+upsertOfflineArticleFile:
+INSERT OR REPLACE INTO OfflineArticleFile(fileName, content) VALUES (?, ?);
+
+getOfflineArticleFile:
+SELECT content FROM OfflineArticleFile WHERE fileName = ?;
+
+deleteOfflineArticleFile:
+DELETE FROM OfflineArticleFile WHERE fileName = ?;
 
 CREATE TABLE IF NOT EXISTS OpenTab (
     id TEXT NOT NULL PRIMARY KEY,
