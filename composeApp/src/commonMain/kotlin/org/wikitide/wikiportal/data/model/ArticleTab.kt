@@ -25,4 +25,5 @@ data class ArticleTab(
     val extract: String? = null,
     val createdAtEpochMillis: Long,
     val currentUrl: String? = null,
+    val openedFromOffline: Boolean = false,
 )
