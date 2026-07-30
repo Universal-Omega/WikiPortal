@@ -32,6 +32,30 @@ jobs:
             platform: iOS
             deploymentTarget: "17.0"
             sources: [iosApp]
+            info:
+              path: iosApp/Info.plist
+              properties:
+                CFBundleDevelopmentRegion: en
+                CFBundleDisplayName: WikiPortal
+                CFBundleExecutable: $(EXECUTABLE_NAME)
+                CFBundleIdentifier: $(PRODUCT_BUNDLE_IDENTIFIER)
+                CFBundleInfoDictionaryVersion: "6.0"
+                CFBundleName: $(PRODUCT_NAME)
+                CFBundlePackageType: APPL
+                CFBundleShortVersionString: $(MARKETING_VERSION)
+                CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+                LSRequiresIPhoneOS: true
+                UIApplicationSceneManifest:
+                  UIApplicationSupportsMultipleScenes: false
+                UILaunchScreen:
+                  UIColorName: systemBackgroundColor
+                UISupportedInterfaceOrientations:
+                  - UIInterfaceOrientationPortrait
+                UISupportedInterfaceOrientations~ipad:
+                  - UIInterfaceOrientationPortrait
+                  - UIInterfaceOrientationPortraitUpsideDown
+                  - UIInterfaceOrientationLandscapeLeft
+                  - UIInterfaceOrientationLandscapeRight
             settings:
               PRODUCT_BUNDLE_IDENTIFIER: org.wikitide.wikiportal
               MARKETING_VERSION: "1.0.0"
