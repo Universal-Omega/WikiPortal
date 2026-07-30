@@ -28,7 +28,10 @@ import org.wikitide.wikiportal.db.WikiPortalDatabase
  * EXISTS, so it is simplest to just do it here on first use rather than
  * choreograph it across four different driver-construction call sites.
  */
-class SqlDelightWikiPortalStore(private val driver: SqlDriver) : WikiPortalStore {
+class SqlDelightWikiPortalStore(
+    private val driver: SqlDriver,
+    private val offlineFiles: OfflineArticleFileStore,
+) : WikiPortalStore {
 
     // WikiAdapter only needs an entry for availableSkins. isCustom and
     // skinIsUserSet are typed INTEGER AS Boolean in WikiPortal.sq, which
@@ -169,17 +172,22 @@ class SqlDelightWikiPortalStore(private val driver: SqlDriver) : WikiPortalStore
 
     override suspend fun saveOfflineArticle(page: SavedPage, html: String) {
         ensureSchema()
-        queries.upsertOfflineArticle(page.wikiId, page.wikiName, page.title, page.thumbnailUrl, html, page.timestampEpochMillis)
+        val fileName = offlineArticleFileName(page.wikiId, page.title)
+        offlineFiles.write(fileName, html)
+        queries.upsertOfflineArticle(page.wikiId, page.wikiName, page.title, page.thumbnailUrl, fileName, page.timestampEpochMillis)
     }
 
     override suspend fun getOfflineArticleHtml(wikiId: String, title: String): String? {
         ensureSchema()
-        return queries.getOfflineArticleHtml(wikiId, title).awaitAsOneOrNull()
+        val fileName = queries.getOfflineArticleHtml(wikiId, title).awaitAsOneOrNull() ?: return null
+        return offlineFiles.read(fileName)
     }
 
     override suspend fun removeOfflineArticle(wikiId: String, title: String) {
         ensureSchema()
+        val fileName = queries.getOfflineArticleHtml(wikiId, title).awaitAsOneOrNull()
         queries.deleteOfflineArticle(wikiId, title)
+        if (fileName != null) offlineFiles.delete(fileName)
     }
 
     override suspend fun offlineArticleKeys(): Set<String> {
