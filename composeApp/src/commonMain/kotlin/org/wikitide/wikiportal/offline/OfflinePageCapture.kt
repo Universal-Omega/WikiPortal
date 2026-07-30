@@ -23,15 +23,9 @@ import org.wikitide.wikiportal.network.MediaWikiApi
  * scanning and rebuilding strings that can run into the megabytes for
  * a large page, and none of that has any business running on
  * Compose's UI dispatcher, which is exactly where the LaunchedEffect
- * that kicks this off otherwise runs. Without this a big save visibly
- * froze the whole app, not just the tab doing the saving, for as long
- * as the save took.
- *
- * Link deactivation, rewriteOfflineLinks, deliberately isn't done here.
- * Which links should still work depends on which other articles are
- * saved right now, not what was saved when this article was captured,
- * so it's re-applied every time a saved copy is loaded instead, see
- * ArticleHostScreen.
+ * that kicks this off otherwise runs. Without this a big save could
+ * visibly freeze the whole app, not just the tab doing the saving,
+ * for as long as the save took.
  */
 suspend fun captureArticleForOffline(site: WikiSite, title: String, api: MediaWikiApi): Result<String> = withContext(Dispatchers.Default) {
     val rendered = api.getRenderedPage(site, title).getOrElse { return@withContext Result.failure(it) }
