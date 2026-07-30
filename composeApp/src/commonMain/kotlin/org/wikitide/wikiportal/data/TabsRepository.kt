@@ -246,4 +246,28 @@ class TabsRepository(
      */
     fun findOpenTab(wikiId: String, title: String): ArticleTab? =
         _tabs.value.firstOrNull { it.wikiId == wikiId && it.title == title }
+
+    /**
+     * Flips an already-open tab's openedFromOffline to true. Only ever
+     * called for an explicit request to view the offline copy, from
+     * Navigator.openArticle, when findOpenTab reused an existing tab
+     * that wasn't already in that mode, rather than opening a
+     * duplicate. There's no equivalent path back to false: a tab
+     * already showing offline content is never silently downgraded by
+     * some unrelated later click, only ever upgraded by an explicit
+     * one.
+     */
+    fun markOpenedFromOffline(tabId: String) {
+        var updatedTab: ArticleTab? = null
+        _tabs.update { list ->
+            list.map {
+                if (it.id == tabId && !it.openedFromOffline) {
+                    it.copy(openedFromOffline = true).also { updated -> updatedTab = updated }
+                } else {
+                    it
+                }
+            }
+        }
+        updatedTab?.let { tab -> appScope.launch { store.upsertOpenTab(tab) } }
+    }
 }
