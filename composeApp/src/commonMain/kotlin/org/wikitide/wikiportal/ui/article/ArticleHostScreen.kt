@@ -223,6 +223,7 @@ private fun SingleArticleTab(
 
     /** Clicking a link inside an offline tab to another saved article. Pushes history and clears forward, same as following any new link would. */
     fun navigateWithinOfflineTab(newTitle: String) {
+        if (newTitle == currentOfflineTitle()) return
         offlineBackStack = offlineBackStack + currentOfflineTitle()
         offlineForwardStack = emptyList()
         pageState = pageState.copy(title = newTitle, canonicalTitle = newTitle, isLoading = true)
