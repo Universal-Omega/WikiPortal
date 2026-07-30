@@ -168,7 +168,7 @@ private fun SingleArticleTab(
     val allWikis = remember(presetWikis, customWikis) { presetWikis + customWikis }
     val site = remember(tab.wikiId, allWikis) { allWikis.firstOrNull { it.id == tab.wikiId } ?: repository.activeWiki.value }
     val initialTitle = remember(tab.id) { tab.title }
-    val openOfflineFromStart = remember(tab.id) { tab.openedFromOffline }
+    val openOfflineFromStart = tab.openedFromOffline
     val textScale by repository.textScale.collectAsState()
     val offlineKeys by repository.offlineKeys.collectAsState()
     val confirmExternalNavigation by repository.confirmExternalNavigation.collectAsState()
@@ -210,6 +210,7 @@ private fun SingleArticleTab(
     val isOnExternalSiteState = rememberUpdatedState(isOnExternalSite)
     val offlineHtmlState = rememberUpdatedState(offlineHtml)
     val offlineKeysState = rememberUpdatedState(offlineKeys)
+    val openOfflineFromStartState = rememberUpdatedState(openOfflineFromStart)
 
     val navigator = rememberWebViewNavigator(
         requestInterceptor = remember(site) {
@@ -221,7 +222,7 @@ private fun SingleArticleTab(
                     val url = request.url
                     if (url.startsWith("data:")) return WebRequestInterceptResult.Allow
 
-                    if (offlineHtmlState.value != null) {
+                    if (openOfflineFromStartState.value && offlineHtmlState.value != null) {
                         // Showing a saved snapshot, there's no network
                         // to send this to. A link to another saved
                         // article swaps the tab over to that copy
