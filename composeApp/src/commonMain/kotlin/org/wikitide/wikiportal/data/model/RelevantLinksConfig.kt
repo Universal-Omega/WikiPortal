@@ -7,7 +7,7 @@ package org.wikitide.wikiportal.data.model
  * per wiki, the same way [WikiSkins] is a curated list rather than
  * something derived. Wikis with no entry here fall back to a generic
  * heuristic instead, recent activity in the Project namespace. See
- * MediaWikiApi.getProjectNamespaceActivity and RelevantLinksViewModel.
+ * MediaWikiApi.getRecentChanges and RelevantLinksViewModel.
  */
 data class RelevantLinksSource(val category: String, val label: String)
 
