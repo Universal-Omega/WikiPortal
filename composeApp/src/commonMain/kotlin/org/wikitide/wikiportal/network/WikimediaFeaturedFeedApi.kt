@@ -56,7 +56,7 @@ class WikimediaFeaturedFeedApi(
         // hasn't been published yet, the same fallback shape as
         // WikimediaPageviewsApi.
         for (daysAgo in 0..2) {
-            val result = fetchForDate(project, dateForPageviews(daysAgo), limit)
+            val result = fetchForDate(project, wikimediaDatePath(daysAgo), limit)
             if (result.isSuccess) return result
             lastFailure = result
         }
