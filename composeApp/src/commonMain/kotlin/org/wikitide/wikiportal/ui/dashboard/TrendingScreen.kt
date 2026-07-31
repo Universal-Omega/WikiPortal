@@ -63,7 +63,7 @@ fun TrendingScreen(
     viewModel: TrendingViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
-    val title = formatMostReadDate(state.date)?.let { "Top read on $it" } ?: "Top read"
+    val title = formatMostReadDate(state.date)?.let { "Top read on $it" } ?: "Trending on ${state.wikiName}"
 
     Scaffold(
         topBar = {
@@ -83,9 +83,9 @@ fun TrendingScreen(
                 state.isLoading && state.articles.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
-                state.errorMessage != null && state.articles.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                state.articles.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
-                        state.errorMessage ?: "Couldn't load this",
+                        "Nothing trending right now",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -115,10 +115,12 @@ private fun TopReadRow(article: TrendingArticle, onClick: () -> Unit) {
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (!article.description.isNullOrBlank()) {
+            val secondaryLine = article.description?.takeIf { it.isNotBlank() }
+                ?: article.views?.let { "${formatViewCount(it)} views" }
+            secondaryLine?.let {
                 Spacer(Modifier.size(2.dp))
                 Text(
-                    text = article.description,
+                    text = it,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
