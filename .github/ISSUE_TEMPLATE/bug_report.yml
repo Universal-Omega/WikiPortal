@@ -1,0 +1,83 @@
+name: Bug report
+description: Something isn't working the way it should
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for reporting this. Fill out what you can below, it helps us track things down faster.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened
+      description: A clear description of the problem
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+    validations:
+      required: false
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the app
+        2. Go to...
+        3. Tap on...
+        4. See error
+    validations:
+      required: true
+
+  - type: input
+    id: wiki
+    attributes:
+      label: Wiki involved (if relevant)
+      placeholder: e.g. meta.miraheze.org
+    validations:
+      required: false
+
+  - type: input
+    id: device
+    attributes:
+      label: Device
+      placeholder: e.g. Pixel 8, Samsung Galaxy S24
+    validations:
+      required: false
+
+  - type: input
+    id: os-version
+    attributes:
+      label: Android version
+      placeholder: e.g. Android 14
+    validations:
+      required: false
+
+  - type: input
+    id: app-version
+    attributes:
+      label: App version
+      placeholder: Settings > About
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Settings > Logs can be copied in here, or attach screenshots directly
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and didn't find this already reported
+          required: true
