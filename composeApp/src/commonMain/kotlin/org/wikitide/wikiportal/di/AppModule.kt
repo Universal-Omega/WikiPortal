@@ -7,6 +7,7 @@ import org.koin.core.module.Module
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
+import org.wikitide.wikiportal.BuildKonfig
 import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.TabsRepository
 import org.wikitide.wikiportal.data.TrendingLoader
@@ -28,6 +29,7 @@ import org.wikitide.wikiportal.ui.dashboard.SearchViewModel
 import org.wikitide.wikiportal.ui.dashboard.TrendingViewModel
 import org.wikitide.wikiportal.ui.feedback.FeedbackViewModel
 import org.wikitide.wikiportal.ui.settings.AddWikiViewModel
+import org.wikitide.wikiportal.util.AppVersionProvider
 
 /**
  * Provided per platform. This constructs the right SqlDriver,
@@ -40,6 +42,11 @@ expect fun platformModule(): Module
 val commonModule = module {
     single { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
     single { createHttpClient() }
+    single<AppVersionProvider> {
+        object : AppVersionProvider {
+            override val versionName = BuildKonfig.VERSION_NAME
+        }
+    }
 
     singleOf(::ActionApiClient)
     singleOf(::RestApiClient)
