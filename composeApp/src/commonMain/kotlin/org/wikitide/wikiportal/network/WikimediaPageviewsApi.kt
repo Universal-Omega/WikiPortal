@@ -53,6 +53,7 @@ class WikimediaPageviewsApi(
                 // any wiki's raw pageview counts and aren't interesting
                 // as "trending". They are just always there.
                 ?.filterNot { it.article == "Main_Page" || it.article.startsWith("Special:") }
+                ?.filter { it.views >= TRENDING_MIN_DAILY_VIEWS }
                 ?.take(limit)
                 .orEmpty()
         }
