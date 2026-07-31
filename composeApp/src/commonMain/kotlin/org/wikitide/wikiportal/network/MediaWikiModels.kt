@@ -148,4 +148,21 @@ data class RecentChangesQuery(
 @Serializable
 data class RecentChangeDto(
     val title: String = "",
+    val user: String? = null,
+)
+
+@Serializable
+data class CategorySearchResponse(
+    val query: CategorySearchQuery? = null,
+    override val error: ApiErrorDto? = null,
+) : ActionApiResponse
+
+@Serializable
+data class CategorySearchQuery(
+    val search: List<CategorySearchResultDto> = emptyList(),
+)
+
+@Serializable
+data class CategorySearchResultDto(
+    val title: String = "",
 )
