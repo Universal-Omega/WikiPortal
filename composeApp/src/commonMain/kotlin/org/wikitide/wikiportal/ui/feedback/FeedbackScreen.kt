@@ -2,6 +2,8 @@ package org.wikitide.wikiportal.ui.feedback
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -45,12 +47,7 @@ import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import org.wikitide.wikiportal.util.copyPlainText
 
-/**
- * Beta-only. Meant to be deleted, along with FeedbackViewModel,
- * FeedbackApi, FeedbackRoute, and the entry point in SettingsScreen,
- * once this app leaves closed beta.
- */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun FeedbackScreen(onBack: () -> Unit, viewModel: FeedbackViewModel = koinViewModel()) {
     val state by viewModel.state.collectAsState()
@@ -105,7 +102,7 @@ fun FeedbackScreen(onBack: () -> Unit, viewModel: FeedbackViewModel = koinViewMo
 
             Column {
                 Text("What's this about?", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     FeedbackCategory.entries.forEach { category ->
                         FilterChip(
                             selected = state.category == category,
