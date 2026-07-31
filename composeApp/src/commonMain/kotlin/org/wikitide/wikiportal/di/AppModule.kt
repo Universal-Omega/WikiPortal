@@ -9,6 +9,7 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.TabsRepository
+import org.wikitide.wikiportal.data.TrendingLoader
 import org.wikitide.wikiportal.data.WikiMetadataRefresher
 import org.wikitide.wikiportal.navigation.Navigator
 import org.wikitide.wikiportal.navigation.navigationModule
@@ -49,6 +50,7 @@ val commonModule = module {
     singleOf(::FeedbackApi)
     singleOf(::WikiMetadataRefresher)
     singleOf(::AppRepository)
+    singleOf(::TrendingLoader)
     singleOf(::TabsRepository)
     singleOf(::Navigator)
 
