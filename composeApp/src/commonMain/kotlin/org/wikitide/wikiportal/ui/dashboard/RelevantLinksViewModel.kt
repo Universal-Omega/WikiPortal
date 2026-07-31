@@ -40,12 +40,11 @@ class RelevantLinksViewModel(
         viewModelScope.launch {
             _state.value = RelevantLinksUiState(isLoading = true, wikiName = wiki.name)
             val source = RelevantLinksConfig.sourceByWikiId[wiki.id]
-            val result = if (source != null) {
-                api.getCategoryMembers(wiki, source.category)
+            val titles = if (source != null) {
+                api.getCategoryMembers(wiki, source.category).getOrElse { emptyList() }
             } else {
-                api.getProjectNamespaceActivity(wiki)
+                api.getRecentChanges(wiki, namespace = 4).getOrElse { emptyList() }.map { it.title }
             }
-            val titles = result.getOrElse { emptyList() }
             if (repository.activeWiki.value.id == wiki.id) {
                 _state.value = RelevantLinksUiState(
                     titles = titles,
