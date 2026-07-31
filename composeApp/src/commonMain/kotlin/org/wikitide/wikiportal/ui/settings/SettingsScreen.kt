@@ -33,7 +33,7 @@ import org.wikitide.wikiportal.data.model.ThemeMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(onOpenWikiPicker: () -> Unit, onOpenLogs: () -> Unit, repository: AppRepository = koinInject()) {
+fun SettingsScreen(onOpenWikiPicker: () -> Unit, onOpenLogs: () -> Unit, onOpenFeedback: () -> Unit, repository: AppRepository = koinInject()) {
     val activeWiki by repository.activeWiki.collectAsState()
     val themeMode by repository.themeMode.collectAsState()
     val dynamicColor by repository.dynamicColor.collectAsState()
@@ -118,6 +118,16 @@ fun SettingsScreen(onOpenWikiPicker: () -> Unit, onOpenLogs: () -> Unit, reposit
                     subtitle = "Ask before a tab loads a link to a site outside your wikis",
                     checked = confirmExternalNavigation,
                     onCheckedChange = repository::setConfirmExternalNavigation,
+                )
+            }
+
+            item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
+            item { SectionLabel("Beta") }
+            item {
+                SettingsRow(
+                    title = "Send feedback",
+                    subtitle = "Report a bug, share an idea, or flag what's confusing",
+                    onClick = onOpenFeedback,
                 )
             }
 
