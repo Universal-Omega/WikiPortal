@@ -552,7 +552,7 @@ private fun RandomPickCard(
             }
             if (showImages && !page?.thumbnail?.source.isNullOrBlank()) {
                 AsyncImage(
-                    model = page?.thumbnail?.source,
+                    model = page.thumbnail.source,
                     contentDescription = null,
                     modifier = Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)),
                     contentScale = ContentScale.Crop,
