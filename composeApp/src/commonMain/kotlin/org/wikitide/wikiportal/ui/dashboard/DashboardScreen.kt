@@ -29,6 +29,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.ChevronRight
@@ -60,8 +61,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -72,6 +75,7 @@ import org.wikitide.wikiportal.data.TabsRepository
 import org.wikitide.wikiportal.data.model.SavedPage
 import org.wikitide.wikiportal.network.PageSummaryDto
 import org.wikitide.wikiportal.network.RecentChangeEntry
+import org.wikitide.wikiportal.network.TrendDirection
 import org.wikitide.wikiportal.network.TrendingArticle
 import org.wikitide.wikiportal.ui.components.ArticleCard
 import org.wikitide.wikiportal.ui.components.CompactArticleChip
@@ -84,6 +88,7 @@ fun DashboardScreen(
     onArticleClick: (wikiId: String, title: String) -> Unit,
     onOpenWikiPicker: () -> Unit,
     onOpenCategoryBrowse: () -> Unit,
+    onOpenTrending: () -> Unit,
     exploreViewModel: ExploreViewModel = koinViewModel(),
     searchViewModel: SearchViewModel = koinViewModel(),
     relevantLinksViewModel: RelevantLinksViewModel = koinViewModel(),
@@ -206,6 +211,7 @@ fun DashboardScreen(
                         onRefresh = exploreViewModel::refresh,
                         onShuffleRandom = exploreViewModel::shuffleRandomPick,
                         onOpenCategoryBrowse = onOpenCategoryBrowse,
+                        onOpenTrending = onOpenTrending,
                     )
                     else -> RelevantLinksTabContent(
                         state = relevantState,
@@ -348,6 +354,7 @@ private fun FeedTabContent(
     onRefresh: () -> Unit,
     onShuffleRandom: () -> Unit,
     onOpenCategoryBrowse: () -> Unit,
+    onOpenTrending: () -> Unit,
 ) {
     val wikiId = state.wiki?.id.orEmpty()
     val nothingToShowYet = state.isLoading && state.recentChanges.isEmpty() && state.continueReading.isEmpty() &&
@@ -386,7 +393,9 @@ private fun FeedTabContent(
                         TrendingCard(
                             wikiName = state.wiki?.name.orEmpty(),
                             trending = state.trending,
+                            expandable = state.trendingExpandable,
                             onArticleClick = { title -> onArticleClick(wikiId, title) },
+                            onOpenTrending = onOpenTrending,
                         )
                     }
                 }
@@ -543,7 +552,7 @@ private fun RandomPickCard(
             }
             if (showImages && !page?.thumbnail?.source.isNullOrBlank()) {
                 AsyncImage(
-                    model = page.thumbnail.source,
+                    model = page?.thumbnail?.source,
                     contentDescription = null,
                     modifier = Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)),
                     contentScale = ContentScale.Crop,
@@ -586,7 +595,13 @@ private fun RecentChangeRow(
 }
 
 @Composable
-private fun TrendingCard(wikiName: String, trending: List<TrendingArticle>, onArticleClick: (title: String) -> Unit) {
+private fun TrendingCard(
+    wikiName: String,
+    trending: List<TrendingArticle>,
+    expandable: Boolean,
+    onArticleClick: (title: String) -> Unit,
+    onOpenTrending: () -> Unit,
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -618,6 +633,13 @@ private fun TrendingCard(wikiName: String, trending: List<TrendingArticle>, onAr
                 }
                 TrendingRow(rank = index + 1, trending = article) { onArticleClick(article.title) }
             }
+            if (expandable) {
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                TextButton(onClick = onOpenTrending, modifier = Modifier.fillMaxWidth()) {
+                    Text("More top read")
+                    Icon(Icons.Filled.ChevronRight, contentDescription = null, modifier = Modifier.size(18.dp))
+                }
+            }
         }
     }
 }
@@ -638,22 +660,50 @@ private fun TrendingRow(rank: Int, trending: TrendingArticle, onClick: () -> Uni
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
         }
-        Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
+        Column(modifier = Modifier.weight(1f).padding(start = 12.dp, end = 8.dp)) {
             Text(
                 text = trending.title,
                 style = MaterialTheme.typography.bodyLarge,
+                fontStyle = if (trending.isItalicized) FontStyle.Italic else FontStyle.Normal,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             trending.views?.let { views ->
-                Text(
-                    text = "${formatViewCount(views)} views",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "${formatViewCount(views)} views",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    TrendArrow(trending.trend)
+                }
             }
         }
+        if (!trending.thumbnailUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = trending.thumbnailUrl,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)),
+                contentScale = ContentScale.Crop,
+            )
+        }
     }
+}
+
+/** The small green up / red down arrow next to a trending row's view count. Null trend, no arrow. */
+@Composable
+private fun TrendArrow(trend: TrendDirection?) {
+    val (icon, tint) = when (trend) {
+        TrendDirection.UP -> Icons.AutoMirrored.Filled.TrendingUp to Color(0xFF2E7D32)
+        TrendDirection.DOWN -> Icons.AutoMirrored.Filled.TrendingDown to Color(0xFFC62828)
+        TrendDirection.FLAT, null -> return
+    }
+    Icon(
+        icon,
+        contentDescription = null,
+        tint = tint,
+        modifier = Modifier.padding(start = 4.dp).size(14.dp),
+    )
 }
 
 private fun formatViewCount(views: Long): String {
