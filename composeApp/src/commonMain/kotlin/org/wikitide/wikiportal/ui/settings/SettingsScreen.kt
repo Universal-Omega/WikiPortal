@@ -25,6 +25,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import org.koin.compose.koinInject
 import org.wikitide.wikiportal.data.AppRepository
@@ -47,6 +48,7 @@ fun SettingsScreen(
     val showImages by repository.showImages.collectAsState()
     val openLinksExternally by repository.openLinksExternally.collectAsState()
     val confirmExternalNavigation by repository.confirmExternalNavigation.collectAsState()
+    val uriHandler = LocalUriHandler.current
 
     Column(Modifier.fillMaxSize()) {
         TopAppBar(
@@ -138,6 +140,16 @@ fun SettingsScreen(
             }
 
             item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
+            item { SectionLabel("Diagnostics") }
+            item {
+                SettingsRow(
+                    title = "App logs",
+                    subtitle = "Recent app activity, useful when troubleshooting a problem",
+                    onClick = onOpenLogs,
+                )
+            }
+
+            item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
             item { SectionLabel("About") }
             item {
                 Column(Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
@@ -151,9 +163,9 @@ fun SettingsScreen(
             }
             item {
                 SettingsRow(
-                    title = "App logs",
-                    subtitle = "Recent app activity, useful when troubleshooting a problem",
-                    onClick = onOpenLogs,
+                    title = "GitHub repository",
+                    subtitle = "View the source, file an issue, or see what's changed",
+                    onClick = { uriHandler.openUri("https://github.com/Universal-Omega/WikiPortal") },
                 )
             }
         }
