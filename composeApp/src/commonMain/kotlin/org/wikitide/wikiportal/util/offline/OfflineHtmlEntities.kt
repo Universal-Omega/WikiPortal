@@ -1,4 +1,4 @@
-package org.wikitide.wikiportal.offline
+package org.wikitide.wikiportal.util.offline
 
 /**
  * A URL sitting inside an HTML attribute is written with & as &amp;,

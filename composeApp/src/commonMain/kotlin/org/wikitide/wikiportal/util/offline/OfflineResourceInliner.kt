@@ -1,4 +1,4 @@
-package org.wikitide.wikiportal.offline
+package org.wikitide.wikiportal.util.offline
 
 import kotlin.io.encoding.Base64
 import kotlinx.coroutines.async

@@ -1,4 +1,4 @@
-package org.wikitide.wikiportal.offline
+package org.wikitide.wikiportal.util.offline
 
 import io.ktor.http.URLBuilder
 import io.ktor.http.decodeURLQueryComponent

@@ -16,7 +16,7 @@ import io.ktor.http.decodeURLQueryComponent
 import kotlinx.coroutines.delay
 import org.wikitide.wikiportal.data.model.AuthDomains
 import org.wikitide.wikiportal.data.model.WikiSite
-import org.wikitide.wikiportal.offline.offlineLoadIdentityUrl
+import org.wikitide.wikiportal.util.offline.offlineLoadIdentityUrl
 
 /** Snapshot of what the reader is currently showing, reported up to [ArticleHostScreen]. */
 data class WikiPageState(

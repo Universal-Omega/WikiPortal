@@ -89,11 +89,11 @@ import org.wikitide.wikiportal.data.model.AuthDomains
 import org.wikitide.wikiportal.data.model.SavedPage
 import org.wikitide.wikiportal.network.MediaWikiApi
 import org.wikitide.wikiportal.network.PageSummaryDto
-import org.wikitide.wikiportal.offline.captureArticleForOffline
-import org.wikitide.wikiportal.offline.offlineLoadIdentityUrl
-import org.wikitide.wikiportal.offline.offlineTitlesForWiki
-import org.wikitide.wikiportal.offline.rewriteOfflineLinks
 import org.wikitide.wikiportal.ui.tabs.TabsScreen
+import org.wikitide.wikiportal.util.offline.captureArticleForOffline
+import org.wikitide.wikiportal.util.offline.offlineLoadIdentityUrl
+import org.wikitide.wikiportal.util.offline.offlineTitlesForWiki
+import org.wikitide.wikiportal.util.offline.rewriteOfflineLinks
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Clock

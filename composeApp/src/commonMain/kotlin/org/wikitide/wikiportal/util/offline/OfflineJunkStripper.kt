@@ -1,4 +1,4 @@
-package org.wikitide.wikiportal.offline
+package org.wikitide.wikiportal.util.offline
 
 private val KNOWN_JUNK_IDS = listOf("siteNotice")
 private val KNOWN_JUNK_CLASSES = listOf("mw-cookiewarning-container")
