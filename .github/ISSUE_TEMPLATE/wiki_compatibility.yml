@@ -1,0 +1,57 @@
+name: Wiki compatibility issue
+description: A specific wiki isn't loading or displaying correctly
+title: "[Wiki]: "
+labels: ["wiki-compatibility"]
+body:
+  - type: markdown
+    attributes:
+      value: Since WikiPortal connects to any MediaWiki site, some wikis have setups that trip things up. Details here help us reproduce it.
+
+  - type: input
+    id: wiki-url
+    attributes:
+      label: Wiki URL
+      placeholder: https://example.miraheze.org
+    validations:
+      required: true
+
+  - type: textarea
+    id: issue
+    attributes:
+      label: What's going wrong
+      placeholder: e.g. search returns nothing, images don't load, page renders blank
+    validations:
+      required: true
+
+  - type: input
+    id: mediawiki-version
+    attributes:
+      label: MediaWiki version (if known)
+      description: Found at Special:Version on the wiki
+    validations:
+      required: false
+
+  - type: textarea
+    id: extensions
+    attributes:
+      label: Relevant extensions or skin (if known)
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Settings > Logs can be copied in here, or attach screenshots directly
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I checked that the wiki loads fine in a regular browser
+          required: true
+        - label: I searched existing issues and didn't find this already reported
+          required: true
