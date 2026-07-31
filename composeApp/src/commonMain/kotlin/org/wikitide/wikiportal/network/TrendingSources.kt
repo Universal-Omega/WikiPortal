@@ -28,13 +28,9 @@ data class TrendingArticle(
 /**
  * The daily view floor a page needs to clear to count as genuinely
  * trending, rather than just whatever happens to be the highest of a
- * handful of views on a very small wiki or language. Shared by both
- * Wikimedia sources, see WikimediaFeaturedFeedApi and
- * WikimediaPageviewsApi. Matomo has no equivalent yet, since its API
- * doesn't currently expose enough to filter this way, see
- * MatomoAnalyticsApi.
+ * handful of views on a very small wiki or language.
  */
-const val TRENDING_MIN_DAILY_VIEWS = 500L
+const val TRENDING_MIN_DAILY_VIEWS = 100L
 
 /**
  * Wikimedia project domains this app knows how to ask the Pageviews
