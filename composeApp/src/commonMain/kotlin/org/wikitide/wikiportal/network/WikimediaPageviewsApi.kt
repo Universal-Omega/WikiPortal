@@ -28,7 +28,7 @@ class WikimediaPageviewsApi(
     ): Result<List<WikimediaPageviewsArticle>> {
         var lastFailure: Result<List<WikimediaPageviewsArticle>>? = null
         for (daysAgo in 1..3) {
-            val result = fetchForDate(project, dateForPageviews(daysAgo), limit)
+            val result = fetchForDate(project, wikimediaDatePath(daysAgo), limit)
             if (result.isSuccess) return result
             lastFailure = result
         }
