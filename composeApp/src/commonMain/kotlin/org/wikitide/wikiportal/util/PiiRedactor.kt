@@ -63,7 +63,7 @@ fun redactPii(text: String): String {
 
     // IPv6, compressed form using "::".
     result = result.replace(
-        Regex("""(?<![0-9a-fA-F:.])[0-9a-fA-F:]*::[0-9a-fA-F:]*(?![0-9a-fA-F:.])"""),
+        Regex("""(?<![0-9a-fA-F:.])(?:(?:[0-9a-fA-F]{1,4}:){1,7}:(?:[0-9a-fA-F]{1,4}:)*[0-9a-fA-F]{0,4}|::(?:[0-9a-fA-F]{1,4}:)*[0-9a-fA-F]{1,4})(?![0-9a-fA-F:.])"""),
         "[REDACTED IP]",
     )
 

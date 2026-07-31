@@ -23,11 +23,16 @@ import dev.datlag.kcef.KCEFBuilder.Settings.LogSeverity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koin.core.context.startKoin
+import org.koin.core.logger.Level
 import org.wikitide.wikiportal.di.appModules
+import org.wikitide.wikiportal.util.AppLogKoinLogger
 import java.io.File
 
 fun main() {
-    startKoin { modules(appModules()) }
+    startKoin {
+        logger(AppLogKoinLogger(Level.DEBUG))
+        modules(appModules())
+    }
 
     application {
         var kcefInitialized by remember { mutableStateOf(false) }

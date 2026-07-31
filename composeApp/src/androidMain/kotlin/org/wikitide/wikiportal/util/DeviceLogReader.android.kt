@@ -1,6 +1,5 @@
 package org.wikitide.wikiportal.util
 
-import android.os.Process
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -88,8 +87,7 @@ private fun mergeContinuations(rawLines: List<RawLine>): List<LogEntry> {
 
 actual suspend fun readDeviceLogs(maxLines: Int): List<LogEntry> = withContext(Dispatchers.IO) {
     try {
-        val pid = Process.myPid()
-        val process = Runtime.getRuntime().exec(arrayOf("logcat", "-d", "-v", "threadtime", "--pid=$pid"))
+        val process = Runtime.getRuntime().exec(arrayOf("logcat", "-d", "-v", "threadtime"))
         val lines = process.inputStream.bufferedReader().readLines()
         process.waitFor()
         val rawLines = lines.mapNotNull { parseRawLine(it) }
