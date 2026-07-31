@@ -636,7 +636,7 @@ private fun TrendingCard(
             if (expandable) {
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp), color = MaterialTheme.colorScheme.surfaceVariant)
                 TextButton(onClick = onOpenTrending, modifier = Modifier.fillMaxWidth()) {
-                    Text("More top read")
+                    Text("More trending")
                     Icon(Icons.Filled.ChevronRight, contentDescription = null, modifier = Modifier.size(18.dp))
                 }
             }
@@ -706,7 +706,7 @@ private fun TrendArrow(trend: TrendDirection?) {
     )
 }
 
-private fun formatViewCount(views: Long): String {
+internal fun formatViewCount(views: Long): String {
     val (divisor, suffix) = when {
         views >= 1_000_000 -> 1_000_000.0 to "M"
         views >= 1_000 -> 1_000.0 to "K"
