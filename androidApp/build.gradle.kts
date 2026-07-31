@@ -51,7 +51,6 @@ android {
 
         debug {
             isDebuggable = true
-            isShrinkResources = true
             applicationIdSuffix = ".debug"
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
