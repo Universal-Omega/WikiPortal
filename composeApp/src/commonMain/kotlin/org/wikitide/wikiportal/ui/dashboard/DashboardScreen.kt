@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,16 +21,21 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -54,15 +60,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.wikitide.wikiportal.data.TabsRepository
+import org.wikitide.wikiportal.data.model.SavedPage
+import org.wikitide.wikiportal.network.PageSummaryDto
+import org.wikitide.wikiportal.network.RecentChangeEntry
 import org.wikitide.wikiportal.network.TrendingArticle
 import org.wikitide.wikiportal.ui.components.ArticleCard
+import org.wikitide.wikiportal.ui.components.CompactArticleChip
 import org.wikitide.wikiportal.ui.components.OpenTabIndicator
 import org.wikitide.wikiportal.ui.components.WikiSwitcherChip
 
@@ -71,6 +83,7 @@ import org.wikitide.wikiportal.ui.components.WikiSwitcherChip
 fun DashboardScreen(
     onArticleClick: (wikiId: String, title: String) -> Unit,
     onOpenWikiPicker: () -> Unit,
+    onOpenCategoryBrowse: () -> Unit,
     exploreViewModel: ExploreViewModel = koinViewModel(),
     searchViewModel: SearchViewModel = koinViewModel(),
     relevantLinksViewModel: RelevantLinksViewModel = koinViewModel(),
@@ -191,6 +204,8 @@ fun DashboardScreen(
                         onArticleClick = onArticleClick,
                         onOpenWikiPicker = onOpenWikiPicker,
                         onRefresh = exploreViewModel::refresh,
+                        onShuffleRandom = exploreViewModel::shuffleRandomPick,
+                        onOpenCategoryBrowse = onOpenCategoryBrowse,
                     )
                     else -> RelevantLinksTabContent(
                         state = relevantState,
@@ -331,15 +346,23 @@ private fun FeedTabContent(
     onArticleClick: (wikiId: String, title: String) -> Unit,
     onOpenWikiPicker: () -> Unit,
     onRefresh: () -> Unit,
+    onShuffleRandom: () -> Unit,
+    onOpenCategoryBrowse: () -> Unit,
 ) {
+    val wikiId = state.wiki?.id.orEmpty()
+    val nothingToShowYet = state.isLoading && state.recentChanges.isEmpty() && state.continueReading.isEmpty() &&
+        state.savedPages.isEmpty() && state.trending.isEmpty()
+    val fullyFailed = !state.isLoading && state.recentChanges.isEmpty() && state.continueReading.isEmpty() &&
+        state.savedPages.isEmpty() && state.trending.isEmpty() && state.errorMessage != null
+
     PullToRefreshBox(isRefreshing = state.isLoading, onRefresh = onRefresh, modifier = Modifier.fillMaxSize()) {
         when {
-            state.isLoading && state.articles.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            nothingToShowYet -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
-            state.articles.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            fullyFailed -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Couldn't load articles", style = MaterialTheme.typography.titleMedium)
+                    Text("Couldn't load this wiki", style = MaterialTheme.typography.titleMedium)
                     state.errorMessage?.let {
                         Text(
                             it,
@@ -363,26 +386,64 @@ private fun FeedTabContent(
                         TrendingCard(
                             wikiName = state.wiki?.name.orEmpty(),
                             trending = state.trending,
-                            onArticleClick = { title -> onArticleClick(state.wiki?.id.orEmpty(), title) },
+                            onArticleClick = { title -> onArticleClick(wikiId, title) },
+                        )
+                    }
+                }
+                if (state.continueReading.isNotEmpty()) {
+                    item {
+                        HorizontalArticleRow(
+                            title = "Continue reading",
+                            pages = state.continueReading,
+                            showImages = state.showImages,
+                            onClick = { title -> onArticleClick(wikiId, title) },
+                        )
+                    }
+                }
+                if (state.savedPages.isNotEmpty()) {
+                    item {
+                        HorizontalArticleRow(
+                            title = "Saved",
+                            pages = state.savedPages,
+                            showImages = state.showImages,
+                            onClick = { title -> onArticleClick(wikiId, title) },
                         )
                     }
                 }
                 item {
-                    Text(
-                        text = "Random articles from ${state.wiki?.name.orEmpty()}",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = if (state.trending.isNotEmpty()) 8.dp else 0.dp, bottom = 4.dp),
+                    CategoryBrowseEntry(onClick = onOpenCategoryBrowse)
+                }
+                item {
+                    RandomPickCard(
+                        page = state.randomPick,
+                        showImages = state.showImages,
+                        onClick = { title -> onArticleClick(wikiId, title) },
+                        onShuffle = onShuffleRandom,
                     )
                 }
-                items(state.articles, key = { it.pageid }) { page ->
-                    ArticleCard(
-                        title = page.title,
-                        extract = page.extract.orEmpty(),
-                        thumbnailUrl = page.thumbnail?.source,
-                        showImages = state.showImages,
-                        onClick = { onArticleClick(state.wiki?.id.orEmpty(), page.title) },
-                        trailingContent = if (page.title in openTitles) {
+                item {
+                    Text(
+                        text = "Recent activity on ${state.wiki?.name.orEmpty()}",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+                    )
+                }
+                if (state.recentChanges.isEmpty() && !state.isLoading) {
+                    item {
+                        Text(
+                            "No recent activity to show here",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = 8.dp),
+                        )
+                    }
+                }
+                items(state.recentChanges, key = { it.title }) { change ->
+                    RecentChangeRow(
+                        change = change,
+                        onClick = { onArticleClick(wikiId, change.title) },
+                        trailingContent = if (change.title in openTitles) {
                             { OpenTabIndicator() }
                         } else {
                             null
@@ -391,9 +452,134 @@ private fun FeedTabContent(
                 }
                 item {
                     TextButton(onClick = onRefresh, modifier = Modifier.padding(vertical = 12.dp)) {
-                        Text("Show more")
+                        Text("Refresh")
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HorizontalArticleRow(
+    title: String,
+    pages: List<SavedPage>,
+    showImages: Boolean,
+    onClick: (title: String) -> Unit,
+) {
+    Column {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(bottom = 8.dp),
+        )
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            items(pages, key = { it.title }) { page ->
+                CompactArticleChip(
+                    title = page.title,
+                    thumbnailUrl = page.thumbnailUrl,
+                    showImage = showImages,
+                    onClick = { onClick(page.title) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CategoryBrowseEntry(onClick: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Filled.Category,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(end = 12.dp),
+            )
+            Text("Browse by category", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+private fun RandomPickCard(
+    page: PageSummaryDto?,
+    showImages: Boolean,
+    onClick: (title: String) -> Unit,
+    onShuffle: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable(enabled = page != null) { page?.let { onClick(it.title) } },
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 14.dp, top = 14.dp, bottom = 14.dp, end = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Random pick",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Spacer(Modifier.size(2.dp))
+                Text(
+                    page?.title ?: "Loading...",
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            if (showImages && !page?.thumbnail?.source.isNullOrBlank()) {
+                AsyncImage(
+                    model = page?.thumbnail?.source,
+                    contentDescription = null,
+                    modifier = Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)),
+                    contentScale = ContentScale.Crop,
+                )
+            }
+            IconButton(onClick = onShuffle) {
+                Icon(Icons.Filled.Shuffle, contentDescription = "Shuffle")
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecentChangeRow(
+    change: RecentChangeEntry,
+    onClick: () -> Unit,
+    trailingContent: (@Composable () -> Unit)?,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
+            Text(change.title, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            if (!change.user.isNullOrBlank()) {
+                Spacer(Modifier.size(2.dp))
+                Text(
+                    "Edited by ${change.user}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+                )
+            }
+            trailingContent?.let {
+                Spacer(Modifier.size(6.dp))
+                it()
             }
         }
     }
