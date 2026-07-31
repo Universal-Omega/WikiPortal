@@ -10,9 +10,23 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Feedback
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
@@ -25,6 +39,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import org.koin.compose.koinInject
 import org.wikitide.wikiportal.data.AppRepository
@@ -47,6 +63,7 @@ fun SettingsScreen(
     val showImages by repository.showImages.collectAsState()
     val openLinksExternally by repository.openLinksExternally.collectAsState()
     val confirmExternalNavigation by repository.confirmExternalNavigation.collectAsState()
+    val uriHandler = LocalUriHandler.current
 
     Column(Modifier.fillMaxSize()) {
         TopAppBar(
@@ -57,13 +74,13 @@ fun SettingsScreen(
 
         LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
             item { SectionLabel("Wiki") }
-            item { SettingsRow(title = "Current wiki", subtitle = activeWiki.name, onClick = onOpenWikiPicker) }
+            item { SettingsRow(icon = Icons.Filled.Public, title = "Current wiki", subtitle = activeWiki.name, onClick = onOpenWikiPicker) }
 
             item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
             item { SectionLabel("Appearance") }
             item {
                 Column(Modifier.padding(horizontal = 20.dp)) {
-                    Text("Theme", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 4.dp))
+                    RowLabel(icon = Icons.Filled.DarkMode, text = "Theme")
                     ThemeMode.entries.forEach { mode ->
                         Row(
                             modifier = Modifier.fillMaxWidth().clickable { repository.setThemeMode(mode) }.padding(vertical = 6.dp),
@@ -77,6 +94,7 @@ fun SettingsScreen(
             }
             item {
                 SwitchRow(
+                    icon = Icons.Filled.Palette,
                     title = "Dynamic color",
                     subtitle = "Match app colors to your device wallpaper (Android 12+)",
                     checked = dynamicColor,
@@ -85,7 +103,7 @@ fun SettingsScreen(
             }
             item {
                 Column(Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
-                    Text("Article text size", style = MaterialTheme.typography.titleMedium)
+                    RowLabel(icon = Icons.Filled.TextFields, text = "Article text size")
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("A", style = MaterialTheme.typography.bodyMedium)
                         Slider(
@@ -104,6 +122,7 @@ fun SettingsScreen(
             item { SectionLabel("Reading") }
             item {
                 SwitchRow(
+                    icon = Icons.Filled.Image,
                     title = "Show images",
                     subtitle = "Show thumbnails in Dashboard, Search, Tabs, and Saved",
                     checked = showImages,
@@ -112,6 +131,7 @@ fun SettingsScreen(
             }
             item {
                 SwitchRow(
+                    icon = Icons.AutoMirrored.Filled.OpenInNew,
                     title = "Open links in browser",
                     subtitle = "Always open article links outside the app instead of in the reader",
                     checked = openLinksExternally,
@@ -120,6 +140,7 @@ fun SettingsScreen(
             }
             item {
                 SwitchRow(
+                    icon = Icons.Filled.Shield,
                     title = "Confirm before leaving a site",
                     subtitle = "Ask before a tab loads a link to a site outside your wikis",
                     checked = confirmExternalNavigation,
@@ -131,6 +152,7 @@ fun SettingsScreen(
             item { SectionLabel("Beta") }
             item {
                 SettingsRow(
+                    icon = Icons.Filled.Feedback,
                     title = "Send feedback",
                     subtitle = "Report a bug, share an idea, or flag what's confusing",
                     onClick = onOpenFeedback,
@@ -138,22 +160,42 @@ fun SettingsScreen(
             }
 
             item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
+            item { SectionLabel("Diagnostics") }
+            item {
+                SettingsRow(
+                    icon = Icons.Filled.Description,
+                    title = "App logs",
+                    subtitle = "Recent app activity, useful when troubleshooting a problem",
+                    onClick = onOpenLogs,
+                )
+            }
+
+            item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
             item { SectionLabel("About") }
             item {
-                Column(Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
-                    Text("WikiPortal", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        "A universal MediaWiki client. Version ${versionProvider.versionName}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                Row(Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
+                    Icon(
+                        Icons.Filled.Info,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(24.dp).padding(top = 2.dp),
                     )
+                    Column(Modifier.padding(start = 16.dp)) {
+                        Text("WikiPortal", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "A universal MediaWiki client. Version ${versionProvider.versionName}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
             item {
                 SettingsRow(
-                    title = "App logs",
-                    subtitle = "Recent app activity, useful when troubleshooting a problem",
-                    onClick = onOpenLogs,
+                    icon = Icons.Filled.Code,
+                    title = "GitHub repository",
+                    subtitle = "View the source, file an issue, or see what's changed",
+                    onClick = { uriHandler.openUri("https://github.com/Universal-Omega/WikiPortal") },
                 )
             }
         }
@@ -171,23 +213,40 @@ private fun SectionLabel(text: String) {
 }
 
 @Composable
-private fun SettingsRow(title: String, subtitle: String, onClick: () -> Unit) {
-    Column(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 12.dp)) {
-        Text(title, style = MaterialTheme.typography.titleMedium)
-        Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun RowLabel(icon: ImageVector, text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 4.dp)) {
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+        Text(text, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(start = 12.dp))
     }
 }
 
 @Composable
-private fun SwitchRow(title: String, subtitle: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+private fun SettingsRow(icon: ImageVector, title: String, subtitle: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(24.dp))
+        Column(Modifier.padding(start = 16.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+private fun SwitchRow(icon: ImageVector, title: String, subtitle: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth().clickable { onCheckedChange(!checked) }.padding(horizontal = 20.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(Modifier.weight(1f).padding(end = 12.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
-            Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(24.dp))
+            Column(Modifier.padding(start = 16.dp, end = 12.dp)) {
+                Text(title, style = MaterialTheme.typography.titleMedium)
+                Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
         Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
