@@ -161,7 +161,7 @@ fun FeedbackScreen(onBack: () -> Unit, viewModel: FeedbackViewModel = koinViewMo
                         Text("Send")
                     }
                 }
-                OutlinedButton(onClick = { copyFeedback() }) { Text("Copy feedback") }
+                // OutlinedButton(onClick = { copyFeedback() }) { Text("Copy feedback") }
             }
         }
     }
