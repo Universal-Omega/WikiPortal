@@ -1,0 +1,70 @@
+name: Release
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - '*.md'
+      - '*.json'
+      - '**/wcokey.txt'
+
+concurrency:
+  group: "release"
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Generate access token
+      id: app-token
+      uses: actions/create-github-app-token@v3
+      with:
+        client-id: ${{ vars.APP_CLIENT_ID }}
+        private-key: ${{ secrets.APP_PRIVATE_KEY }}
+        owner: ${{ github.repository_owner }}
+        permission-contents: read
+        repositories: WikiPortal-secrets
+
+    - uses: actions/checkout@v6
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v5
+      with:
+        distribution: temurin
+        java-version: 17
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
+    - name: Fetch keystore
+      id: fetch_keystore
+      run: |
+        TMP_KEYSTORE_FILE_PATH="${RUNNER_TEMP}"/keystore
+        mkdir -p "${TMP_KEYSTORE_FILE_PATH}"
+        curl -H "Authorization: token ${{ steps.app-token.outputs.token }}" -o "${TMP_KEYSTORE_FILE_PATH}/release_keystore.keystore" "https://raw.githubusercontent.com/${GITHUB_REPOSITORY_OWNER}/WikiPortal-secrets/HEAD/keystore.jks"
+        curl -H "Authorization: token ${{ steps.app-token.outputs.token }}" -o "keystore_password.txt" "https://raw.githubusercontent.com/${GITHUB_REPOSITORY_OWNER}/WikiPortal-secrets/HEAD/keystore_password.txt"
+        KEY_PWD="$(cat keystore_password.txt)"
+        echo "::add-mask::${KEY_PWD}"
+        echo "key_pwd=$KEY_PWD" >> $GITHUB_OUTPUT
+
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v5
+      with:
+        cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+
+    - name: Run Gradle
+      run: ./gradlew :androidApp:bundleRelease
+      env:
+        SIGNING_KEY_ALIAS: "key0"
+        SIGNING_KEY_PASSWORD: ${{ steps.fetch_keystore.outputs.key_pwd }}
+        SIGNING_STORE_PASSWORD: ${{ steps.fetch_keystore.outputs.key_pwd }}
+
+    - name: Upload release bundle
+      uses: actions/upload-artifact@v7
+      with:
+        name: release-bundle
+        path: androidApp/build/outputs/bundle/release/*.aab
