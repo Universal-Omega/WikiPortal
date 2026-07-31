@@ -30,7 +30,7 @@ private fun civilDateFromEpochDay(epochDay: Long): Triple<Int, Int, Int> {
  * WikimediaPageviewsApi or WikimediaFeaturedFeedApi, can step back
  * further when even yesterday's report isn't published yet.
  */
-fun dateForPageviews(daysAgo: Int): String {
+fun wikimediaDatePath(daysAgo: Int): String {
     val nowMillis = Clock.System.now().toEpochMilliseconds()
     // This is plain division, not floor division. nowMillis is always
     // non-negative for any real-world date, so this doesn't need the
