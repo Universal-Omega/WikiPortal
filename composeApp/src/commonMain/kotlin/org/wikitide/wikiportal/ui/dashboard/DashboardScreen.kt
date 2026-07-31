@@ -363,7 +363,7 @@ private fun FeedTabContent(
             fullyFailed -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("Couldn't load this wiki", style = MaterialTheme.typography.titleMedium)
-                    state.errorMessage?.let {
+                    state.errorMessage.let {
                         Text(
                             it,
                             style = MaterialTheme.typography.bodySmall,
@@ -543,7 +543,7 @@ private fun RandomPickCard(
             }
             if (showImages && !page?.thumbnail?.source.isNullOrBlank()) {
                 AsyncImage(
-                    model = page?.thumbnail?.source,
+                    model = page.thumbnail.source,
                     contentDescription = null,
                     modifier = Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)),
                     contentScale = ContentScale.Crop,
