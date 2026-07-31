@@ -31,6 +31,9 @@ data object ArticleRoute : Route
 data object CategoryBrowseRoute : Route
 
 @Serializable
+data object TrendingRoute : Route
+
+@Serializable
 data object LogsRoute : Route
 
 @Serializable
