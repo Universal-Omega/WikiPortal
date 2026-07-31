@@ -1,17 +1,40 @@
 package org.wikitide.wikiportal.network
 
+/** Which day-over-day direction a trending page's views are moving. */
+enum class TrendDirection { UP, DOWN, FLAT }
+
 /**
  * A trending or most-viewed page, from whichever source applies to
- * the active wiki: Wikimedia's Pageviews API for Wikimedia-hosted
- * projects, see [wikimediaProjectDomain], or the wiki's own
+ * the active wiki: Wikipedia's own featured-content feed for
+ * Wikipedia domains, see WikimediaFeaturedFeedApi, the plain
+ * Pageviews API for other Wikimedia-hosted projects that feed doesn't
+ * cover, see [wikimediaProjectDomain], or the wiki's own
  * MatomoAnalytics extension for any wiki that actually has it
- * installed.
+ * installed. description, thumbnailUrl, trend, and isItalicized are
+ * only ever populated by the featured feed. The other two sources
+ * leave them null or false, since neither currently exposes anything
+ * equivalent.
  */
 data class TrendingArticle(
     val title: String,
     val views: Long?,
     val url: String? = null,
+    val description: String? = null,
+    val thumbnailUrl: String? = null,
+    val trend: TrendDirection? = null,
+    val isItalicized: Boolean = false,
 )
+
+/**
+ * The daily view floor a page needs to clear to count as genuinely
+ * trending, rather than just whatever happens to be the highest of a
+ * handful of views on a very small wiki or language. Shared by both
+ * Wikimedia sources, see WikimediaFeaturedFeedApi and
+ * WikimediaPageviewsApi. Matomo has no equivalent yet, since its API
+ * doesn't currently expose enough to filter this way, see
+ * MatomoAnalyticsApi.
+ */
+const val TRENDING_MIN_DAILY_VIEWS = 500L
 
 /**
  * Wikimedia project domains this app knows how to ask the Pageviews
