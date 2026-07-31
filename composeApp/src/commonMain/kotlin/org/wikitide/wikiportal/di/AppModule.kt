@@ -13,6 +13,7 @@ import org.wikitide.wikiportal.data.WikiMetadataRefresher
 import org.wikitide.wikiportal.navigation.Navigator
 import org.wikitide.wikiportal.navigation.navigationModule
 import org.wikitide.wikiportal.network.ActionApiClient
+import org.wikitide.wikiportal.network.FeedbackApi
 import org.wikitide.wikiportal.network.MatomoAnalyticsApi
 import org.wikitide.wikiportal.network.MediaWikiApi
 import org.wikitide.wikiportal.network.RestApiClient
@@ -21,6 +22,7 @@ import org.wikitide.wikiportal.network.createHttpClient
 import org.wikitide.wikiportal.ui.dashboard.ExploreViewModel
 import org.wikitide.wikiportal.ui.dashboard.RelevantLinksViewModel
 import org.wikitide.wikiportal.ui.dashboard.SearchViewModel
+import org.wikitide.wikiportal.ui.feedback.FeedbackViewModel
 import org.wikitide.wikiportal.ui.settings.AddWikiViewModel
 
 /**
@@ -40,6 +42,7 @@ val commonModule = module {
     singleOf(::MediaWikiApi)
     singleOf(::WikimediaPageviewsApi)
     singleOf(::MatomoAnalyticsApi)
+    singleOf(::FeedbackApi)
     singleOf(::WikiMetadataRefresher)
     singleOf(::AppRepository)
     singleOf(::TabsRepository)
@@ -49,6 +52,7 @@ val commonModule = module {
     viewModelOf(::SearchViewModel)
     viewModelOf(::RelevantLinksViewModel)
     viewModelOf(::AddWikiViewModel)
+    viewModelOf(::FeedbackViewModel)
 }
 
 fun appModules(): List<Module> = listOf(commonModule, navigationModule, platformModule())
