@@ -5,6 +5,7 @@ import org.koin.dsl.module
 import org.koin.dsl.navigation3.navigation
 import org.wikitide.wikiportal.ui.article.ArticleHostScreen
 import org.wikitide.wikiportal.ui.dashboard.DashboardScreen
+import org.wikitide.wikiportal.ui.feedback.FeedbackScreen
 import org.wikitide.wikiportal.ui.saved.SavedScreen
 import org.wikitide.wikiportal.ui.settings.AddWikiScreen
 import org.wikitide.wikiportal.ui.settings.LogsScreen
@@ -42,6 +43,7 @@ val navigationModule = module {
         SettingsScreen(
             onOpenWikiPicker = { navigator.navigateTo(WikiPickerRoute) },
             onOpenLogs = { navigator.navigateTo(LogsRoute) },
+            onOpenFeedback = { navigator.navigateTo(FeedbackRoute) },
         )
     }
 
@@ -61,6 +63,11 @@ val navigationModule = module {
     navigation<LogsRoute> {
         val navigator = get<Navigator>()
         LogsScreen(onBack = { navigator.backStack.removeLastOrNull() })
+    }
+
+    navigation<FeedbackRoute> {
+        val navigator = get<Navigator>()
+        FeedbackScreen(onBack = { navigator.backStack.removeLastOrNull() })
     }
 
     navigation<ArticleRoute> {
