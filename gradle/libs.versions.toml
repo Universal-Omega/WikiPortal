@@ -30,7 +30,7 @@ minSdk = "26"
 compileSdk = "37"
 targetSdk = "37"
 
-versionCode = "7"
+versionCode = "1"
 versionName = "1.0.0"
 
 [libraries]

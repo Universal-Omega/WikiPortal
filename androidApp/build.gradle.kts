@@ -34,7 +34,7 @@ android {
     }
 
     buildTypes {
-        getByName("release") {
+        release {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -45,8 +45,35 @@ android {
             if (signingConfigs.names.contains("release")) {
                 signingConfig = signingConfigs.getByName("release")
             } else {
-                logger.warn("No prerelease signing config!")
+                logger.warn("No release signing config!")
             }
+        }
+
+        debug {
+            isDebuggable = true
+            applicationIdSuffix = ".debug"
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+    }
+
+    flavorDimensions += "channel"
+    productFlavors {
+        create("production") {
+            dimension = "channel"
+            versionCode = libs.versions.versionCode.get().toInt() * 10
+        }
+        create("beta") {
+            dimension = "channel"
+            versionNameSuffix = "-beta"
+            versionCode = libs.versions.versionCode.get().toInt() * 10 + 1
+        }
+        create("alpha") {
+            dimension = "channel"
+            versionNameSuffix = "-alpha"
+            versionCode = libs.versions.versionCode.get().toInt() * 10 + 2
         }
     }
 

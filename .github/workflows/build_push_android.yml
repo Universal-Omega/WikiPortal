@@ -27,10 +27,10 @@ jobs:
         cache-read-only: false
 
     - name: Run Gradle
-      run: ./gradlew :androidApp:assembleDebug
+      run: ./gradlew :androidApp:assembleAlphaDebug
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v7
       with:
-        name: pull-request-build
-        path: "**/build/outputs/**"
+        name: debug-build
+        path: "androidApp/build/outputs/apk/alpha/debug/*.apk"

@@ -5,9 +5,9 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import org.wikitide.wikiportal.BuildKonfig
 import org.wikitide.wikiportal.network.FeedbackApi
 import org.wikitide.wikiportal.util.AppLog
+import org.wikitide.wikiportal.util.AppVersionProvider
 
 enum class FeedbackCategory(val label: String) {
     BUG("Something's broken"),
@@ -27,7 +27,10 @@ data class FeedbackUiState(
     val errorMessage: String? = null,
 )
 
-class FeedbackViewModel(private val api: FeedbackApi) : ViewModel() {
+class FeedbackViewModel(
+    private val api: FeedbackApi,
+    private val versionProvider: AppVersionProvider,
+) : ViewModel() {
 
     private val _state = MutableStateFlow(FeedbackUiState())
     val state: StateFlow<FeedbackUiState> = _state
@@ -67,7 +70,7 @@ class FeedbackViewModel(private val api: FeedbackApi) : ViewModel() {
                 category = current.category.label,
                 displayName = current.displayName,
                 contact = current.contact,
-                appVersion = BuildKonfig.VERSION_NAME,
+                appVersion = versionProvider.versionName,
                 logs = logs,
             )
             result.onSuccess {
@@ -87,7 +90,7 @@ class FeedbackViewModel(private val api: FeedbackApi) : ViewModel() {
         val current = _state.value
         return buildString {
             appendLine("Category: ${current.category.label}")
-            appendLine("Version: ${BuildKonfig.VERSION_NAME}")
+            appendLine("Version: ${versionProvider.versionName}")
             if (current.displayName.isNotBlank()) appendLine("From: ${current.displayName}")
             if (current.contact.isNotBlank()) appendLine("Contact: ${current.contact}")
             appendLine()

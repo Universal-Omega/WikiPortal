@@ -28,6 +28,7 @@ import org.wikitide.wikiportal.ui.dashboard.SearchViewModel
 import org.wikitide.wikiportal.ui.dashboard.TrendingViewModel
 import org.wikitide.wikiportal.ui.feedback.FeedbackViewModel
 import org.wikitide.wikiportal.ui.settings.AddWikiViewModel
+import org.wikitide.wikiportal.util.AppVersionProvider
 
 /**
  * Provided per platform. This constructs the right SqlDriver,
@@ -52,6 +53,7 @@ val commonModule = module {
     singleOf(::AppRepository)
     singleOf(::TrendingLoader)
     singleOf(::TabsRepository)
+    singleOf(::AppVersionProvider)
     singleOf(::Navigator)
 
     viewModelOf(::ExploreViewModel)

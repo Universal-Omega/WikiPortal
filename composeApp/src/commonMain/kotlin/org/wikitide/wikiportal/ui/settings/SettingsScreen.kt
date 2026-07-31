@@ -27,13 +27,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.koin.compose.koinInject
-import org.wikitide.wikiportal.BuildKonfig
 import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.model.ThemeMode
+import org.wikitide.wikiportal.util.AppVersionProvider
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(onOpenWikiPicker: () -> Unit, onOpenLogs: () -> Unit, onOpenFeedback: () -> Unit, repository: AppRepository = koinInject()) {
+fun SettingsScreen(
+    onOpenWikiPicker: () -> Unit,
+    onOpenLogs: () -> Unit,
+    onOpenFeedback: () -> Unit,
+    repository: AppRepository = koinInject(),
+    versionProvider: AppVersionProvider = koinInject(),
+) {
     val activeWiki by repository.activeWiki.collectAsState()
     val themeMode by repository.themeMode.collectAsState()
     val dynamicColor by repository.dynamicColor.collectAsState()
@@ -137,7 +143,7 @@ fun SettingsScreen(onOpenWikiPicker: () -> Unit, onOpenLogs: () -> Unit, onOpenF
                 Column(Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
                     Text("WikiPortal", style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "A universal MediaWiki client. Version ${BuildKonfig.VERSION_NAME}",
+                        "A universal MediaWiki client. Version ${versionProvider.versionName}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
