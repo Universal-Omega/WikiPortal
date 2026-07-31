@@ -22,15 +22,15 @@ private fun civilDateFromEpochDay(epochDay: Long): Triple<Int, Int, Int> {
 }
 
 /**
- * Wikimedia's Pageviews API reports by UTC calendar day, and "today"
- * is normally incomplete or not yet published. This is the UTC date
+ * Wikimedia's REST APIs report by UTC calendar day, and "today" is
+ * normally incomplete or not yet published. This is the UTC date
  * [daysAgo] days back from now, formatted "YYYY/MM/DD" to drop
- * straight into the API's URL path. [daysAgo] equal to 1 is
- * "yesterday", the usual first thing to try. Larger values exist so
- * WikimediaPageviewsApi can step back further when even yesterday's
- * report isn't published yet.
+ * straight into a URL path. [daysAgo] equal to 1 is "yesterday", the
+ * usual first thing to try. Larger values exist so a caller,
+ * WikimediaPageviewsApi or WikimediaFeaturedFeedApi, can step back
+ * further when even yesterday's report isn't published yet.
  */
-fun dateForPageviews(daysAgo: Int): String {
+fun wikimediaDatePath(daysAgo: Int): String {
     val nowMillis = Clock.System.now().toEpochMilliseconds()
     // This is plain division, not floor division. nowMillis is always
     // non-negative for any real-world date, so this doesn't need the

@@ -20,6 +20,12 @@ data class SearchResults(
     val rewrittenQuery: String? = null,
 )
 
+/** One entry from a recentchanges query, see getRecentChanges. */
+data class RecentChangeEntry(
+    val title: String,
+    val user: String?,
+)
+
 /**
  * A thin wrapper around the MediaWiki Action API. Every method here just
  * describes its own request, meaning URL, params, and response type, and
@@ -178,23 +184,58 @@ class MediaWikiApi(
             ),
         ).map { it.query?.categorymembers?.map { member -> member.title }.orEmpty() }
 
-    suspend fun getProjectNamespaceActivity(site: WikiSite, limit: Int = 20): Result<List<String>> =
+    /**
+     * Recent edits and new pages in [namespace], newest first. This is a
+     * standard, fully generic MediaWiki API call, nothing wiki specific
+     * about it, so unlike trending it works identically on any install
+     * regardless of hosting or which extensions are enabled. Namespace 0
+     * is the main article namespace, used for the Dashboard feed's
+     * "Recent activity" section. Namespace 4 is Project, used as the
+     * fallback for the Relevant tab on wikis without a curated category,
+     * see RelevantLinksConfig.
+     */
+    suspend fun getRecentChanges(site: WikiSite, namespace: Int, limit: Int = 20): Result<List<RecentChangeEntry>> =
         actionApi.get<RecentChangesResponse>(
             site.apiUrl,
             mapOf(
                 "action" to "query",
                 "list" to "recentchanges",
-                "rcnamespace" to 4,
+                "rcnamespace" to namespace,
                 "rclimit" to limit,
-                "rcprop" to "title",
+                "rcprop" to "title|user",
                 "rctype" to "edit|new",
             ),
         ).map { response ->
             // recentchanges can list the same page more than once, for
-            // repeat edits. This removes duplicates while keeping recency
-            // order.
-            response.query?.recentchanges?.map { it.title }?.distinct().orEmpty()
+            // repeat edits. This keeps the first, most recent, entry for
+            // each title and drops the rest.
+            response.query?.recentchanges
+                ?.distinctBy { it.title }
+                ?.map { RecentChangeEntry(title = it.title, user = it.user) }
+                .orEmpty()
         }
+
+    /**
+     * Category titles, like "Category:Geography", matching [query] by
+     * name. Used to look a category up by name before browsing its
+     * members with getCategoryMembers. This intentionally uses the
+     * plain list=search form instead of the generator=search form
+     * getRandomArticles and search use, since a category name lookup
+     * has no extract or thumbnail worth fetching.
+     */
+    suspend fun searchCategories(site: WikiSite, query: String, limit: Int = 15): Result<List<String>> {
+        if (query.isBlank()) return Result.success(emptyList())
+        return actionApi.get<CategorySearchResponse>(
+            site.apiUrl,
+            mapOf(
+                "action" to "query",
+                "list" to "search",
+                "srsearch" to query,
+                "srnamespace" to 14,
+                "srlimit" to limit,
+            ),
+        ).map { response -> response.query?.search?.map { it.title }.orEmpty() }
+    }
 
     /**
      * The real rendered page, byte for byte the same HTML a browser, or

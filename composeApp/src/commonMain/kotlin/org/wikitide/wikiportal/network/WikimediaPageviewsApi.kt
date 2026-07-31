@@ -28,7 +28,7 @@ class WikimediaPageviewsApi(
     ): Result<List<WikimediaPageviewsArticle>> {
         var lastFailure: Result<List<WikimediaPageviewsArticle>>? = null
         for (daysAgo in 1..3) {
-            val result = fetchForDate(project, dateForPageviews(daysAgo), limit)
+            val result = fetchForDate(project, wikimediaDatePath(daysAgo), limit)
             if (result.isSuccess) return result
             lastFailure = result
         }
@@ -53,6 +53,7 @@ class WikimediaPageviewsApi(
                 // any wiki's raw pageview counts and aren't interesting
                 // as "trending". They are just always there.
                 ?.filterNot { it.article == "Main_Page" || it.article.startsWith("Special:") }
+                ?.filter { it.views >= TRENDING_MIN_DAILY_VIEWS }
                 ?.take(limit)
                 .orEmpty()
         }
