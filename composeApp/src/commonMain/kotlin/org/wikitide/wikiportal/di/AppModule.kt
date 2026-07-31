@@ -17,12 +17,14 @@ import org.wikitide.wikiportal.network.FeedbackApi
 import org.wikitide.wikiportal.network.MatomoAnalyticsApi
 import org.wikitide.wikiportal.network.MediaWikiApi
 import org.wikitide.wikiportal.network.RestApiClient
+import org.wikitide.wikiportal.network.WikimediaFeaturedFeedApi
 import org.wikitide.wikiportal.network.WikimediaPageviewsApi
 import org.wikitide.wikiportal.network.createHttpClient
 import org.wikitide.wikiportal.ui.dashboard.CategoryBrowseViewModel
 import org.wikitide.wikiportal.ui.dashboard.ExploreViewModel
 import org.wikitide.wikiportal.ui.dashboard.RelevantLinksViewModel
 import org.wikitide.wikiportal.ui.dashboard.SearchViewModel
+import org.wikitide.wikiportal.ui.dashboard.TrendingViewModel
 import org.wikitide.wikiportal.ui.feedback.FeedbackViewModel
 import org.wikitide.wikiportal.ui.settings.AddWikiViewModel
 
@@ -42,6 +44,7 @@ val commonModule = module {
     singleOf(::RestApiClient)
     singleOf(::MediaWikiApi)
     singleOf(::WikimediaPageviewsApi)
+    singleOf(::WikimediaFeaturedFeedApi)
     singleOf(::MatomoAnalyticsApi)
     singleOf(::FeedbackApi)
     singleOf(::WikiMetadataRefresher)
@@ -53,6 +56,7 @@ val commonModule = module {
     viewModelOf(::SearchViewModel)
     viewModelOf(::RelevantLinksViewModel)
     viewModelOf(::CategoryBrowseViewModel)
+    viewModelOf(::TrendingViewModel)
     viewModelOf(::AddWikiViewModel)
     viewModelOf(::FeedbackViewModel)
 }
