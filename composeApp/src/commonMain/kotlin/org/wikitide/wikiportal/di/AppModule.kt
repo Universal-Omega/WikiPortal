@@ -19,6 +19,7 @@ import org.wikitide.wikiportal.network.MediaWikiApi
 import org.wikitide.wikiportal.network.RestApiClient
 import org.wikitide.wikiportal.network.WikimediaPageviewsApi
 import org.wikitide.wikiportal.network.createHttpClient
+import org.wikitide.wikiportal.ui.dashboard.CategoryBrowseViewModel
 import org.wikitide.wikiportal.ui.dashboard.ExploreViewModel
 import org.wikitide.wikiportal.ui.dashboard.RelevantLinksViewModel
 import org.wikitide.wikiportal.ui.dashboard.SearchViewModel
@@ -51,6 +52,7 @@ val commonModule = module {
     viewModelOf(::ExploreViewModel)
     viewModelOf(::SearchViewModel)
     viewModelOf(::RelevantLinksViewModel)
+    viewModelOf(::CategoryBrowseViewModel)
     viewModelOf(::AddWikiViewModel)
     viewModelOf(::FeedbackViewModel)
 }
