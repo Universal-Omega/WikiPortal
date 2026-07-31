@@ -8,10 +8,10 @@ import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import org.koin.core.module.Module
 import org.koin.dsl.module
-import org.wikitide.wikiportal.BuildKonfig
 import org.wikitide.wikiportal.data.store.OfflineArticleFileStore
 import org.wikitide.wikiportal.data.store.SqlDelightWikiPortalStore
 import org.wikitide.wikiportal.data.store.WikiPortalStore
+import org.wikitide.wikiportal.util.AndroidAppVersionProvider
 import org.wikitide.wikiportal.util.AndroidLogExporter
 import org.wikitide.wikiportal.util.AndroidOfflineArticleFileStore
 import org.wikitide.wikiportal.util.AppVersionProvider
@@ -31,16 +31,8 @@ actual fun platformModule(): Module = module {
         )
         AndroidSqliteDriver(openHelper)
     }
+    single<AppVersionProvider> { AndroidAppVersionProvider(get()) }
     single<LogExporter> { AndroidLogExporter(get()) }
     single<OfflineArticleFileStore> { AndroidOfflineArticleFileStore(get()) }
     single<WikiPortalStore> { SqlDelightWikiPortalStore(get(), get()) }
-    single<AppVersionProvider> {
-        val context = get<Context>()
-        val realVersionName = context.packageManager
-            .getPackageInfo(context.packageName, 0)
-            .versionName
-        object : AppVersionProvider {
-            override val versionName: String = realVersionName ?: BuildKonfig.VERSION_NAME
-        }
-    }
 }
