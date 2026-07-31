@@ -7,7 +7,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import org.wikitide.wikiportal.BuildKonfig
 import org.wikitide.wikiportal.network.FeedbackApi
-import org.wikitide.wikiportal.network.FeedbackConfig
 import org.wikitide.wikiportal.util.AppLog
 
 enum class FeedbackCategory(val label: String) {
@@ -57,10 +56,6 @@ class FeedbackViewModel(private val api: FeedbackApi) : ViewModel() {
         val current = _state.value
         if (current.message.isBlank()) {
             _state.value = current.copy(errorMessage = "Add a description of what happened before sending.")
-            return
-        }
-        if (!FeedbackConfig.isConfigured) {
-            _state.value = current.copy(errorMessage = "Feedback form isn't set up yet. Use \"Copy feedback\" instead.")
             return
         }
 
