@@ -3,7 +3,9 @@ package org.wikitide.wikiportal.navigation
 import org.koin.core.annotation.KoinExperimentalAPI
 import org.koin.dsl.module
 import org.koin.dsl.navigation3.navigation
+import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.ui.article.ArticleHostScreen
+import org.wikitide.wikiportal.ui.dashboard.CategoryBrowseScreen
 import org.wikitide.wikiportal.ui.dashboard.DashboardScreen
 import org.wikitide.wikiportal.ui.feedback.FeedbackScreen
 import org.wikitide.wikiportal.ui.saved.SavedScreen
@@ -20,6 +22,16 @@ val navigationModule = module {
         DashboardScreen(
             onArticleClick = { wikiId, title -> navigator.openArticle(wikiId, title) },
             onOpenWikiPicker = { navigator.navigateTo(WikiPickerRoute) },
+            onOpenCategoryBrowse = { navigator.navigateTo(CategoryBrowseRoute) },
+        )
+    }
+
+    navigation<CategoryBrowseRoute> {
+        val navigator = get<Navigator>()
+        val repository = get<AppRepository>()
+        CategoryBrowseScreen(
+            onArticleClick = { title -> navigator.openArticle(repository.activeWiki.value.id, title) },
+            onBack = { navigator.backStack.removeLastOrNull() },
         )
     }
 
