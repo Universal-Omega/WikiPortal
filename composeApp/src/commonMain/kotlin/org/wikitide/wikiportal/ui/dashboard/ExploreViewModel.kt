@@ -16,6 +16,7 @@ import org.wikitide.wikiportal.network.MediaWikiApi
 import org.wikitide.wikiportal.network.PageSummaryDto
 import org.wikitide.wikiportal.network.RecentChangeEntry
 import org.wikitide.wikiportal.network.TrendingArticle
+import org.wikitide.wikiportal.network.WikimediaFeaturedFeedApi
 import org.wikitide.wikiportal.network.WikimediaPageviewsApi
 import org.wikitide.wikiportal.network.friendlyNetworkErrorMessage
 import org.wikitide.wikiportal.network.wikimediaProjectDomain
@@ -35,6 +36,12 @@ data class ExploreUiState(
     val errorMessage: String? = null,
     val mainPageTitle: String? = null,
     val trending: List<TrendingArticle> = emptyList(),
+    // True only when trending came from Wikipedia's own featured feed,
+    // see WikimediaFeaturedFeedApi, which is the only source with
+    // enough data, a full ranked list plus descriptions, to back the
+    // "More top read" screen. The plain Pageviews fallback and Matomo
+    // both leave this false.
+    val trendingExpandable: Boolean = false,
 )
 
 private data class ExploreCoreState(
@@ -54,6 +61,7 @@ class ExploreViewModel(
     private val repository: AppRepository,
     private val api: MediaWikiApi,
     private val wikimediaPageviewsApi: WikimediaPageviewsApi,
+    private val wikimediaFeaturedFeedApi: WikimediaFeaturedFeedApi,
     private val matomoAnalyticsApi: MatomoAnalyticsApi,
 ) : ViewModel() {
 
@@ -61,6 +69,7 @@ class ExploreViewModel(
     private val _isLoading = MutableStateFlow(true)
     private val _errorMessage = MutableStateFlow<String?>(null)
     private val _trending = MutableStateFlow<List<TrendingArticle>>(emptyList())
+    private val _trendingExpandable = MutableStateFlow(false)
     private val _randomPick = MutableStateFlow<PageSummaryDto?>(null)
 
     private var randomBacklog: List<PageSummaryDto> = emptyList()
@@ -75,8 +84,9 @@ class ExploreViewModel(
             ExploreLocalState(history, saved)
         },
         _trending,
+        _trendingExpandable,
         _randomPick,
-    ) { core, local, trending, randomPick ->
+    ) { core, local, trending, trendingExpandable, randomPick ->
         val wikiId = core.wiki.id
         ExploreUiState(
             wiki = core.wiki,
@@ -89,6 +99,7 @@ class ExploreViewModel(
             errorMessage = core.errorMessage,
             mainPageTitle = core.wiki.mainPageTitle,
             trending = trending,
+            trendingExpandable = trendingExpandable,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ExploreUiState())
 
@@ -140,9 +151,9 @@ class ExploreViewModel(
             }
         }
         // Whichever trending source, if any, applies to this wiki. See
-        // TrendingArticle's comment. Both branches are best effort and
-        // silent. A wiki with neither, the common case for custom or
-        // arbitrary wikis, or a non-Wikimedia wiki without the
+        // TrendingArticle's comment. All branches are best effort and
+        // silent. A wiki with none of them, the common case for custom
+        // or arbitrary wikis, or a non-Wikimedia wiki without the
         // MatomoAnalytics extension, just gets an empty trending
         // section, not an error. Unlike the Wikimedia check, there is
         // no cheap way to pre-filter which wikis are even worth trying
@@ -150,16 +161,31 @@ class ExploreViewModel(
         // itself before doing anything else.
         viewModelScope.launch {
             _trending.value = emptyList()
+            _trendingExpandable.value = false
             val wikimediaProject = wikimediaProjectDomain(wiki.baseUrl)
-            val trending = if (wikimediaProject != null) {
-                wikimediaPageviewsApi.getTopArticles(wikimediaProject).getOrNull()
-                    ?.map { TrendingArticle(title = it.article.replace('_', ' '), views = it.views) }
+            val trending: List<TrendingArticle>
+            val expandable: Boolean
+            if (wikimediaProject != null) {
+                val featured = wikimediaFeaturedFeedApi.getMostRead(wikimediaProject, limit = 5)
+                val featuredArticles = featured.getOrNull()?.articles.orEmpty()
+                if (featuredArticles.isNotEmpty()) {
+                    trending = featuredArticles
+                    expandable = true
+                } else {
+                    trending = wikimediaPageviewsApi.getTopArticles(wikimediaProject).getOrNull()
+                        ?.map { TrendingArticle(title = it.article.replace('_', ' '), views = it.views) }
+                        .orEmpty()
+                    expandable = false
+                }
             } else {
-                matomoAnalyticsApi.getTopPages(wiki).getOrNull()
+                trending = matomoAnalyticsApi.getTopPages(wiki).getOrNull()
                     ?.map { TrendingArticle(title = it.title, views = it.views, url = it.url.takeIf { u -> u.isNotBlank() }) }
+                    .orEmpty()
+                expandable = false
             }
             if (repository.activeWiki.value.id == wiki.id) {
-                _trending.value = trending.orEmpty()
+                _trending.value = trending
+                _trendingExpandable.value = expandable
             }
         }
         randomBacklog = emptyList()
