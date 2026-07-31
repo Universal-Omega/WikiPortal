@@ -3,6 +3,7 @@ package org.wikitide.wikiportal.network
 import io.ktor.client.HttpClient
 import io.ktor.client.request.forms.FormDataContent
 import io.ktor.client.request.post
+import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.Parameters
 import org.wikitide.wikiportal.util.AppLog
