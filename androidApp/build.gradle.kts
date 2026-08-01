@@ -57,6 +57,12 @@ android {
                 "proguard-rules.pro"
             )
         }
+
+        create("sideload") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".sideload"
+            versionNameSuffix = "-sideload"
+        }
     }
 
     flavorDimensions += "channel"
