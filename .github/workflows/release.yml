@@ -18,6 +18,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
     - name: Generate access token
       id: app-token
@@ -57,7 +58,12 @@ jobs:
         cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
     - name: Run Gradle
-      run: ./gradlew :androidApp:bundleProductionRelease :androidApp:bundleBetaRelease :androidApp:bundleAlphaRelease
+      run: >
+        ./gradlew
+        :androidApp:bundleProductionRelease
+        :androidApp:bundleBetaRelease
+        :androidApp:bundleAlphaRelease
+        :androidApp:assembleProductionSideload
       env:
         SIGNING_KEY_ALIAS: "key0"
         SIGNING_KEY_PASSWORD: ${{ steps.fetch_keystore.outputs.key_pwd }}
@@ -80,3 +86,9 @@ jobs:
       with:
         name: release-bundle-alpha
         path: androidApp/build/outputs/bundle/alphaRelease/*.aab
+
+    - name: Upload production sideload APK
+      uses: actions/upload-artifact@v7
+      with:
+        name: release-apk-production-sideload
+        path: androidApp/build/outputs/apk/production/sideload/*.apk
