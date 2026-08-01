@@ -20,7 +20,7 @@ actual fun platformModule(): Module = module {
     single<SqlDriver> {
         AndroidSqliteDriver(
             WikiPortalDatabase.Schema.synchronous(),
-            get<Context>(), "wikiportal.db"
+            get<Context>(), "wikiportal.db",
         )
     }
     single<AppVersionProvider> { AndroidAppVersionProvider(get()) }
