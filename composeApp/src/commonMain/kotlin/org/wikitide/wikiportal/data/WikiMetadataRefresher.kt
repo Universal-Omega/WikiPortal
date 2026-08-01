@@ -120,6 +120,7 @@ class WikiMetadataRefresher(private val api: MediaWikiApi) {
             // change in that case.
             skin = resolveDefaultSkin(site, deriveWikiDefaultSkin(resolvedQuery.skins), uncuratedDefault, curatedSkins),
             mainPageTitle = resolved.mainpage?.takeIf { it.isNotBlank() } ?: "Main Page",
+            mainPageIsDomainRoot = resolved.mainpageisdomainroot,
         )
     }
 
