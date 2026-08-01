@@ -64,6 +64,7 @@ jobs:
                 CFBundleShortVersionString: $(MARKETING_VERSION)
                 CFBundleVersion: $(CURRENT_PROJECT_VERSION)
                 LSRequiresIPhoneOS: true
+                CADisableMinimumFrameDurationOnPhone: true
                 UIApplicationSceneManifest:
                   UIApplicationSupportsMultipleScenes: false
                 UILaunchScreen: {}
