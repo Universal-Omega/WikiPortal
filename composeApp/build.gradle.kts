@@ -106,7 +106,7 @@ kotlin {
         named("desktopMain") {
             dependencies {
                 implementation(compose.desktop.currentOs)
-                implementation(libs.ktor.client.cio)
+                implementation(libs.ktor.client.okhttp)
                 implementation(libs.sqldelight.sqlite.driver)
             }
         }
