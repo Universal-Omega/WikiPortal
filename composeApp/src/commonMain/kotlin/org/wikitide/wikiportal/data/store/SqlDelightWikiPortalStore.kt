@@ -1,10 +1,8 @@
 package org.wikitide.wikiportal.data.store
 
-import app.cash.sqldelight.async.coroutines.await
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import app.cash.sqldelight.async.coroutines.awaitAsOne
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
-import app.cash.sqldelight.db.QueryResult
 import app.cash.sqldelight.db.SqlDriver
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -21,14 +19,14 @@ import org.wikitide.wikiportal.db.WikiPortalDatabase
  * read with awaitAsList(), awaitAsOne(), or awaitAsOneOrNull(). Generated
  * INSERT, UPDATE, and DELETE functions are already plain suspend funs
  * under generateAsync, so they are just called directly, with no
- * .await() needed on those. .await() is only for schema creation and
- * migration, which go through the lower-level SqlSchema.create(driver)
- * and SqlSchema.migrate(driver, old, new), both of which return
- * QueryResult.AsyncValue<Unit>.
+ * .await() needed on those.
  *
- * Schema setup happens lazily, on first use, rather than being
- * choreographed across four different driver-construction call sites,
- * one per platform. See [ensureSchema].
+ * Schema setup, creating tables on a fresh database or migrating an
+ * existing one, happens per platform, see [ensurePlatformSchemaReady],
+ * since Android and iOS can do this more reliably through their own
+ * driver constructors, while desktop and web still need it done by
+ * hand to keep it lazy. Either way, [ensureSchema] only ever triggers
+ * it once, behind a mutex, on first real use.
  */
 class SqlDelightWikiPortalStore(
     private val driver: SqlDriver,
@@ -46,40 +44,14 @@ class SqlDelightWikiPortalStore(
     private var schemaReady = false
 
     /**
-     * A fresh database, [queries.wikiTableExists] false, gets
-     * [WikiPortalDatabase.Schema.create], which builds the latest
-     * schema directly, nothing to migrate yet.
-     *
-     * An existing database gets [WikiPortalDatabase.Schema.migrate]
-     * instead, starting from whatever PRAGMA user_version currently
-     * reads. That pragma is SQLite's own field for exactly this,
-     * stored in the database file's header rather than in any table
-     * of ours, so there's nothing here for a future schema change to
-     * accidentally disturb. A database that predates this versioning
-     * setup reads 0 there too, same as a genuinely empty one, which is
-     * the one thing the pragma alone can't tell apart, hence still
-     * checking wikiTableExists first. SQLDelight's own numbering
-     * starts at 1, so that case treats 0 as 1, migrations/1.sqm is
-     * what brings it up to date from there.
-     *
-     * Either way, the resulting version is written back to the same
-     * pragma before returning, so later launches skip straight past
-     * both branches.
+     * Delegates to [ensurePlatformSchemaReady] and only ever runs
+     * that once per store instance.
      */
     private suspend fun ensureSchema() {
         if (schemaReady) return
         schemaMutex.withLock {
             if (schemaReady) return@withLock
-            val latestVersion = WikiPortalDatabase.Schema.version
-            if (queries.wikiTableExists().awaitAsOne()) {
-                val currentVersion = driver.readUserVersion().takeIf { it > 0L } ?: 1L
-                if (currentVersion < latestVersion) {
-                    WikiPortalDatabase.Schema.migrate(driver, currentVersion, latestVersion).await()
-                }
-            } else {
-                WikiPortalDatabase.Schema.create(driver).await()
-            }
-            driver.writeUserVersion(latestVersion)
+            ensurePlatformSchemaReady(driver)
             schemaReady = true
         }
     }
@@ -262,23 +234,4 @@ class SqlDelightWikiPortalStore(
         ensureSchema()
         queries.clearOpenTabs()
     }
-}
-
-/** Reads SQLite's own schema version field. 0 if it was never set. */
-private suspend fun SqlDriver.readUserVersion(): Long =
-    executeQuery(
-        identifier = null,
-        sql = "PRAGMA user_version",
-        mapper = { cursor -> QueryResult.AsyncValue { if (cursor.next().await()) cursor.getLong(0) ?: 0L else 0L } },
-        parameters = 0,
-    ).await()
-
-/**
- * PRAGMA doesn't support bind parameters for the value in SQLite, so
- * this has to inline the number into the SQL text directly rather than
- * passing it as a `?`. That's fine here since it only ever comes from
- * WikiPortalDatabase.Schema.version, never from anything a person typed.
- */
-private suspend fun SqlDriver.writeUserVersion(version: Long) {
-    execute(identifier = null, sql = "PRAGMA user_version = $version", parameters = 0).await()
 }
