@@ -32,11 +32,11 @@ class IosOfflineArticleFileStore : OfflineArticleFileStore {
     private fun path(fileName: String) = "$directory/$fileName"
 
     override suspend fun write(fileName: String, content: String) {
-        (content as NSString).writeToFile(path(fileName), atomically = true, encoding = NSUTF8StringEncoding, error = null)
+        NSString.create(string = content).writeToFile(path(fileName), atomically = true, encoding = NSUTF8StringEncoding, error = null)
     }
 
     override suspend fun read(fileName: String): String? =
-        NSString.stringWithContentsOfFile(path(fileName), encoding = NSUTF8StringEncoding, error = null) as String?
+        NSString.stringWithContentsOfFile(path(fileName), encoding = NSUTF8StringEncoding, error = null)
 
     override suspend fun delete(fileName: String) {
         NSFileManager.defaultManager.removeItemAtPath(path(fileName), error = null)
