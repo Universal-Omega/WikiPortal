@@ -287,7 +287,7 @@ class AppRepository(
 
     /**
      * Updates just a wiki's cached main page title, without touching
-     * anything else [refreshWikiMetadata] owns. Used by ExploreViewModel's
+     * anything else [refreshWikiMetadata] owns. Used by FeedViewModel's
      * own lighter, opportunistic fetch for when the full metadata refresh
      * hasn't resolved a main page title yet, for example after an earlier
      * refresh attempt failed while offline. This takes [wikiId] rather

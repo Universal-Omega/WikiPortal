@@ -46,7 +46,7 @@ data class WikiSite(
      * same siteinfo call that resolves articlePathPrefix,
      * discoveredFaviconUrl, and availableSkins. Null until
      * WikiMetadataRefresher has resolved it at least once. See
-     * ExploreViewModel and ArticleHostScreen's "go to main page" button
+     * FeedViewModel and ArticleHostScreen's "go to main page" button
      * for where this is used, and AppRepository.updateMainPageTitle for
      * the one place it's updated outside of a full metadata refresh.
      */

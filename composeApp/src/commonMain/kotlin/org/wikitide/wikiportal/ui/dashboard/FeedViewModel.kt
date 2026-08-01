@@ -25,7 +25,7 @@ private const val ROW_LIMIT = 12
 /** How many trending articles the Dashboard card itself shows, before "More trending". */
 private const val TRENDING_CARD_LIMIT = 5
 
-data class ExploreUiState(
+data class FeedUiState(
     val wiki: WikiSite? = null,
     val recentChanges: List<RecentChangeEntry> = emptyList(),
     val continueReading: List<SavedPage> = emptyList(),
@@ -39,7 +39,7 @@ data class ExploreUiState(
     val trendingExpandable: Boolean = false,
 )
 
-private data class ExploreCoreState(
+private data class FeedCoreState(
     val wiki: WikiSite,
     val recentChanges: List<RecentChangeEntry>,
     val showImages: Boolean,
@@ -47,12 +47,12 @@ private data class ExploreCoreState(
     val errorMessage: String?,
 )
 
-private data class ExploreLocalState(
+private data class FeedLocalState(
     val continueReading: List<SavedPage>,
     val savedPages: List<SavedPage>,
 )
 
-class ExploreViewModel(
+class FeedViewModel(
     private val repository: AppRepository,
     private val api: MediaWikiApi,
     private val trendingLoader: TrendingLoader,
@@ -67,21 +67,21 @@ class ExploreViewModel(
 
     private var randomBacklog: List<PageSummaryDto> = emptyList()
 
-    val uiState: StateFlow<ExploreUiState> = combine(
+    val uiState: StateFlow<FeedUiState> = combine(
         combine(
             repository.activeWiki, _recentChanges, repository.showImages, _isLoading, _errorMessage,
         ) { wiki, recentChanges, showImages, isLoading, errorMessage ->
-            ExploreCoreState(wiki, recentChanges, showImages, isLoading, errorMessage)
+            FeedCoreState(wiki, recentChanges, showImages, isLoading, errorMessage)
         },
         combine(repository.history, repository.savedPages) { history, saved ->
-            ExploreLocalState(history, saved)
+            FeedLocalState(history, saved)
         },
         _trending,
         _trendingExpandable,
         _randomPick,
     ) { core, local, trending, trendingExpandable, randomPick ->
         val wikiId = core.wiki.id
-        ExploreUiState(
+        FeedUiState(
             wiki = core.wiki,
             recentChanges = core.recentChanges,
             continueReading = local.continueReading.filter { it.wikiId == wikiId }.take(ROW_LIMIT),
@@ -94,7 +94,7 @@ class ExploreViewModel(
             trending = trending,
             trendingExpandable = trendingExpandable,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ExploreUiState())
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), FeedUiState())
 
     private var loadedForWikiId: String? = null
 
@@ -124,7 +124,7 @@ class ExploreViewModel(
                     _recentChanges.value = changes
                 }.onFailure { e ->
                     _recentChanges.value = emptyList()
-                    AppLog.e("ExploreViewModel", "getRecentChanges failed for ${wiki.id}", e)
+                    AppLog.e("FeedViewModel", "getRecentChanges failed for ${wiki.id}", e)
                     _errorMessage.value = friendlyNetworkErrorMessage(e)
                 }
                 _isLoading.value = false
@@ -134,7 +134,7 @@ class ExploreViewModel(
         // isn't already cached, see WikiSite.mainPageTitle. It's saved
         // across sessions, and also kept fresh by WikiMetadataRefresher
         // during its own revalidation. In practice this fires at most
-        // once ever per wiki, not once per Explore visit or
+        // once ever per wiki, not once per Feed visit or
         // pull-to-refresh like before.
         if (wiki.mainPageTitle == null) {
             viewModelScope.launch {
@@ -180,7 +180,7 @@ class ExploreViewModel(
 
     private suspend fun fetchRandomBatch(wiki: WikiSite) {
         val articles = api.getRandomArticles(wiki, count = 10).getOrElse { e ->
-            AppLog.e("ExploreViewModel", "getRandomArticles failed for ${wiki.id}", e)
+            AppLog.e("FeedViewModel", "getRandomArticles failed for ${wiki.id}", e)
             emptyList()
         }
         if (repository.activeWiki.value.id != wiki.id) return
