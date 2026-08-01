@@ -5,12 +5,10 @@ import ComposeApp
 struct iOSApp: App {
 
     init() {
-        DispatchQueue.main.async {
-            // Named `initKoin()` in Kotlin, but Kotlin/Native's Objective-C
-            // exporter treats any `init`-prefixed function as an ObjC-style
-            // initializer and renames it on export to avoid the collision.
-            MainViewControllerKt.doInitKoin()
-        }
+        // Named `initKoin()` in Kotlin, but Kotlin/Native's Objective-C
+        // exporter treats any `init`-prefixed function as an ObjC-style
+        // initializer and renames it on export to avoid the collision.
+        MainViewControllerKt.doInitKoin()
     }
 
     var body: some Scene {
