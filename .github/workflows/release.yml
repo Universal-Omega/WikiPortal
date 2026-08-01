@@ -2,7 +2,7 @@ name: Release
 
 on:
   push:
-    branches: [ main, articlepath-api ]
+    branches: [ main ]
     paths-ignore:
       - '*.md'
       - '*.json'
