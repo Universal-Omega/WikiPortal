@@ -54,7 +54,7 @@ class MediaWikiApi(
      * This returns the whole query object, meaning general, skins, and
      * extensions, not just general. It is the same request either way,
      * and callers that don't need skins or extensions, for example
-     * ExploreViewModel, which only wants mainpage, just ignore them.
+     * FeedViewModel, which only wants mainpage, just ignore them.
      */
     suspend fun getSiteInfo(site: WikiSite): Result<SiteInfoQuery?> =
         actionApi.get<SiteInfoResponse>(

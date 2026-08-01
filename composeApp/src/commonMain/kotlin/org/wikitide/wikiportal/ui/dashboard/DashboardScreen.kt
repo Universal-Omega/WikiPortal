@@ -89,12 +89,12 @@ fun DashboardScreen(
     onOpenWikiPicker: () -> Unit,
     onOpenCategoryBrowse: () -> Unit,
     onOpenTrending: () -> Unit,
-    exploreViewModel: ExploreViewModel = koinViewModel(),
+    feedViewModel: FeedViewModel = koinViewModel(),
     searchViewModel: SearchViewModel = koinViewModel(),
     relevantLinksViewModel: RelevantLinksViewModel = koinViewModel(),
     tabsRepository: TabsRepository = koinInject(),
 ) {
-    val exploreState by exploreViewModel.uiState.collectAsState()
+    val feedState by feedViewModel.uiState.collectAsState()
     val searchState by searchViewModel.state.collectAsState()
     val relevantState by relevantLinksViewModel.state.collectAsState()
     val tabs by tabsRepository.tabs.collectAsState()
@@ -104,9 +104,9 @@ fun DashboardScreen(
     // Titles within the current wiki that already have an open tab. This
     // drives the "Open" indicator, so tapping one of these jumps to the
     // existing tab, see App.kt's openArticle, instead of opening a
-    // duplicate. This works the same way the old Explore screen did it.
-    val openTitles = remember(tabs, exploreState.wiki?.id) {
-        tabs.filter { it.wikiId == exploreState.wiki?.id }.map { it.title }.toSet()
+    // duplicate.
+    val openTitles = remember(tabs, feedState.wiki?.id) {
+        tabs.filter { it.wikiId == feedState.wiki?.id }.map { it.title }.toSet()
     }
 
     Box(Modifier.fillMaxSize()) {
@@ -148,16 +148,16 @@ fun DashboardScreen(
                             // lands in a tab exactly like any other link.
                             IconButton(
                                 onClick = {
-                                    val wikiId = exploreState.wiki?.id ?: return@IconButton
-                                    val mainPage = exploreState.mainPageTitle ?: return@IconButton
+                                    val wikiId = feedState.wiki?.id ?: return@IconButton
+                                    val mainPage = feedState.mainPageTitle ?: return@IconButton
                                     onArticleClick(wikiId, mainPage)
                                 },
-                                enabled = exploreState.wiki != null && exploreState.mainPageTitle != null,
+                                enabled = feedState.wiki != null && feedState.mainPageTitle != null,
                             ) {
                                 Icon(imageVector = Icons.Filled.Home, contentDescription = "Go to main page")
                             }
                             WikiSwitcherChip(
-                                wikiName = exploreState.wiki?.name.orEmpty(),
+                                wikiName = feedState.wiki?.name.orEmpty(),
                                 onClick = onOpenWikiPicker,
                                 modifier = Modifier.weight(1f, fill = false),
                             )
@@ -204,18 +204,18 @@ fun DashboardScreen(
                 }
                 when (tabIndex) {
                     0 -> FeedTabContent(
-                        state = exploreState,
+                        state = feedState,
                         openTitles = openTitles,
                         onArticleClick = onArticleClick,
                         onOpenWikiPicker = onOpenWikiPicker,
-                        onRefresh = exploreViewModel::refresh,
-                        onShuffleRandom = exploreViewModel::shuffleRandomPick,
+                        onRefresh = feedViewModel::refresh,
+                        onShuffleRandom = feedViewModel::shuffleRandomPick,
                         onOpenCategoryBrowse = onOpenCategoryBrowse,
                         onOpenTrending = onOpenTrending,
                     )
                     else -> RelevantLinksTabContent(
                         state = relevantState,
-                        onArticleClick = { title -> exploreState.wiki?.id?.let { onArticleClick(it, title) } },
+                        onArticleClick = { title -> feedState.wiki?.id?.let { onArticleClick(it, title) } },
                         onRefresh = relevantLinksViewModel::refresh,
                     )
                 }
@@ -347,7 +347,7 @@ private fun FullScreenSearchOverlay(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FeedTabContent(
-    state: ExploreUiState,
+    state: FeedUiState,
     openTitles: Set<String>,
     onArticleClick: (wikiId: String, title: String) -> Unit,
     onOpenWikiPicker: () -> Unit,
