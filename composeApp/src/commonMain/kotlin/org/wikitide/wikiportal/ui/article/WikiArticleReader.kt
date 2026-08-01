@@ -1,6 +1,7 @@
 package org.wikitide.wikiportal.ui.article
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -135,17 +136,20 @@ fun WikiArticleReader(
         }
     }
 
-    LaunchedEffect(Unit) {
+    DisposableEffect(Unit) {
         webViewState.webSettings.apply {
             isJavaScriptEnabled = true
             androidWebSettings.apply {
                 domStorageEnabled = true
+                isAlgorithmicDarkeningAllowed = true
             }
         }
+        onDispose {}
     }
 
-    LaunchedEffect(textScale) {
+    DisposableEffect(textScale) {
         webViewState.webSettings.androidWebSettings.textZoom = (textScale * 100).toInt()
+        onDispose {}
     }
 
     // Tracks the last genuinely known good page state for this tab's
