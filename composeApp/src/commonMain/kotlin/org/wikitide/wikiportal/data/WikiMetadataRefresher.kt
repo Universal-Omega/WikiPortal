@@ -103,7 +103,7 @@ class WikiMetadataRefresher(private val api: MediaWikiApi) {
         return site.copy(
             name = sitename,
             scriptPath = workingScriptPath,
-            articlePathPrefix = deriveArticlePathPrefix(resolved.base, resolved.mainpage),
+            articlePathPrefix = deriveArticlePathPrefix(site.baseUrl, resolved.articlepath),
             discoveredFaviconUrl = resolveFavicon(resolved.favicon, site),
             // This falls back to whatever is already cached, not null or
             // empty, if this particular probe came back empty. See
@@ -120,6 +120,7 @@ class WikiMetadataRefresher(private val api: MediaWikiApi) {
             // change in that case.
             skin = resolveDefaultSkin(site, deriveWikiDefaultSkin(resolvedQuery.skins), uncuratedDefault, curatedSkins),
             mainPageTitle = resolved.mainpage?.takeIf { it.isNotBlank() } ?: "Main Page",
+            mainPageIsDomainRoot = resolved.mainpageisdomainroot,
         )
     }
 

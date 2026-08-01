@@ -1,0 +1,3 @@
+import kotlin.Boolean;
+
+ALTER TABLE Wiki ADD COLUMN mainPageIsDomainRoot INTEGER AS Boolean NOT NULL DEFAULT 0;

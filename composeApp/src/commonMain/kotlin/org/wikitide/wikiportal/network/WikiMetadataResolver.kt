@@ -8,8 +8,8 @@ import org.wikitide.wikiportal.data.model.WikiSkins
  * Script paths tried, in order, when probing a wiki whose script path
  * isn't already known, for a new custom wiki being added, or has
  * stopped working, for an existing custom wiki being revalidated. See
- * org.wikitide.wikiportal.data.WikiMetadataRefresher. This covers the
- * large majority of real-world MediaWiki installs:
+ * WikiMetadataRefresher. This covers the large majority of real-world
+ * MediaWiki installs:
  *  - "/w" is the short URL pattern used by WMF wikis, Miraheze, and others
  *  - "" is a root install, with api.php directly in the web root
  *  - "/wiki" serves both articles and the API under /wiki/
@@ -20,18 +20,18 @@ import org.wikitide.wikiportal.data.model.WikiSkins
 val COMMON_SCRIPT_PATHS = listOf("/w", "", "/wiki", "/mediawiki")
 
 /**
- * Strips the encoded main page title off the end of `base` to recover
- * the wiki's real article path prefix. For example base equal to
- * "https://x/wiki/Main_Page" and mainpage equal to "Main Page" becomes
- * "https://x/wiki/". This returns null if it can't be derived, in which
- * case callers fall back to the "/wiki/" convention
+ * Works out the wiki's real article path prefix, the part that goes
+ * before a page title to build a working article URL, from
+ * general.articlepath, something like "/w/$1". Returns null if
+ * articlepath is missing or doesn't contain "$1", in which case callers
+ * fall back to the "/wiki/" convention, see WikiSite.cleanUrlPrefix.
  */
-fun deriveArticlePathPrefix(base: String?, mainpage: String?): String? {
-    if (base.isNullOrBlank() || mainpage.isNullOrBlank()) return null
-    val underscored = mainpage.replace(" ", "_")
-    if (base.endsWith(underscored)) return base.removeSuffix(underscored)
-    if (base.endsWith(mainpage)) return base.removeSuffix(mainpage)
-    return null
+fun deriveArticlePathPrefix(baseUrl: String, articlepath: String?): String? {
+    val trimmed = articlepath?.takeIf { it.isNotBlank() } ?: return null
+    if (!trimmed.contains("\$1")) return null
+    val prefix = trimmed.substringBefore("\$1")
+    if (prefix.contains("://")) return prefix
+    return if (prefix.startsWith("/")) "$baseUrl$prefix" else "$baseUrl/$prefix"
 }
 
 fun resolveFaviconUrl(favicon: String?, baseUrl: String): String? {

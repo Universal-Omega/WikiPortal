@@ -83,6 +83,7 @@ class AddWikiViewModel(
             var availableSkins: List<SkinOption>? = null
             var uncuratedDefaultSkin: SkinOption? = null
             var wikiDefaultSkin: SkinOption? = null
+            var mainPageIsDomainRoot = false
             var lastError: Throwable? = null
 
             // This always tries every candidate path. A failure on one
@@ -105,7 +106,8 @@ class AddWikiViewModel(
                     resolvedSite = candidate
                     sitename = info.sitename
                     lang = info.lang
-                    articlePathPrefix = deriveArticlePathPrefix(info.base, info.mainpage)
+                    articlePathPrefix = deriveArticlePathPrefix(candidate.baseUrl, info.articlepath)
+                    mainPageIsDomainRoot = info.mainpageisdomainroot
                     faviconUrl = resolveFaviconUrl(info.favicon, candidate.baseUrl)
                         ?: api.getFaviconUrlFromHtml(candidate).getOrNull()
                     val skinsReported = result.getOrNull()?.skins.orEmpty()
@@ -137,6 +139,7 @@ class AddWikiViewModel(
                         availableSkins = availableSkins,
                         uncuratedDefaultSkin = uncuratedDefaultSkin,
                         skin = resolveDefaultSkin(resolvedSite, wikiDefaultSkin, uncuratedDefaultSkin, availableSkins),
+                        mainPageIsDomainRoot = mainPageIsDomainRoot,
                     ),
                 )
                 _state.value = AddWikiUiState(done = true)

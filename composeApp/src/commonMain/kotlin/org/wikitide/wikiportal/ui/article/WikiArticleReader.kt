@@ -307,6 +307,10 @@ fun extractCanonicalTitle(url: String?, site: WikiSite): String? {
         return decodeTitle(queryTitle)
     }
 
+    if (isRootMainPageUrl(url, site)) {
+        return site.mainPageTitle
+    }
+
     val wikiPrefix = site.cleanUrlPrefix()
     if (url.startsWith(wikiPrefix)) {
         val raw = url.removePrefix(wikiPrefix).substringBefore("?").substringBefore("#")
@@ -318,7 +322,13 @@ fun extractCanonicalTitle(url: String?, site: WikiSite): String? {
 
 fun looksLikeArticleRequest(url: String, site: WikiSite): Boolean {
     val withoutQuery = url.substringBefore("?")
-    return withoutQuery.startsWith(site.indexUrl) || url.startsWith(site.cleanUrlPrefix())
+    return withoutQuery.startsWith(site.indexUrl) || url.startsWith(site.cleanUrlPrefix()) || isRootMainPageUrl(url, site)
+}
+
+private fun isRootMainPageUrl(url: String, site: WikiSite): Boolean {
+    if (!site.mainPageIsDomainRoot) return false
+    val path = url.substringBefore("?").substringBefore("#")
+    return path == site.baseUrl || path == "${site.baseUrl}/"
 }
 
 fun withAppSkin(url: String, site: WikiSite): String? = runCatching {

@@ -152,6 +152,13 @@ sqldelight {
             packageName.set("org.wikitide.wikiportal.db")
             generateAsync.set(true)
             dialect(libs.sqldelight.dialect)
+            // Where generateCommonMainWikiPortalDatabaseSchema writes a
+            // <version>.db snapshot of the schema. verifyMigrations
+            // replays migrations/*.sqm against that snapshot during
+            // ./gradlew check and fails the build if the result
+            // doesn't match this module's own CREATE TABLE statements.
+            schemaOutputDirectory.set(file("src/commonMain/sqldelight/databases"))
+            verifyMigrations.set(true)
         }
     }
 }

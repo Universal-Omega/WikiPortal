@@ -52,6 +52,12 @@ data class WikiSite(
      */
     val mainPageTitle: String? = null,
     /**
+     * The wiki's own general.mainpageisdomainroot from that same
+     * siteinfo call, true when $wgMainPageIsDomainRoot is set
+     * to true.
+     */
+    val mainPageIsDomainRoot: Boolean = false,
+    /**
      * Which [WikiFolder] this wiki is grouped under in the wiki picker,
      * or null for a wiki that sits ungrouped. Presets are seeded with
      * one of [PresetFolders] here so the picker can show a small number
