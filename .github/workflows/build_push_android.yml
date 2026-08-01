@@ -8,6 +8,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
     - uses: actions/checkout@v7
 
@@ -26,11 +27,24 @@ jobs:
         cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
         cache-read-only: false
 
-    - name: Run Gradle
+    - name: Build debug APK
       run: ./gradlew :androidApp:assembleAlphaDebug
 
-    - name: Upload Artifact
+    - name: Build signed sideload APK
+      env:
+        SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+        SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+      run: ./gradlew :androidApp:assembleAlphaSideload
+
+    - name: Upload Debug Artifact
       uses: actions/upload-artifact@v7
       with:
         name: debug-build
-        path: "androidApp/build/outputs/apk/alpha/debug/*.apk"
+        path: androidApp/build/outputs/apk/alpha/debug/*.apk
+
+    - name: Upload Sideload Artifact
+      uses: actions/upload-artifact@v7
+      with:
+        name: sideload-build
+        path: androidApp/build/outputs/apk/alpha/sideload/*.apk
