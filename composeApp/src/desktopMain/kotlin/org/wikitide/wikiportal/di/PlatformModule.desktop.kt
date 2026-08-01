@@ -14,7 +14,7 @@ import java.io.File
 
 actual fun platformModule(): Module = module {
     single<SqlDriver> {
-        val dir = File(System.getProperty("user.home"), ".wikiportal").apply {
+        val dir = File(System.getProperty("user.home"), ".wikiportal").apply { mkdirs() }
         JdbcSqliteDriver(
             "jdbc:sqlite:${File(dir, "wikiportal.db").absolutePath}",
             schema = WikiPortalDatabase.Schema.synchronous(),
