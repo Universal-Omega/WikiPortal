@@ -45,7 +45,6 @@ data class SiteGeneral(
     val sitename: String? = null,
     val lang: String? = null,
     val mainpage: String? = null,
-    val base: String? = null,
     val favicon: String? = null,
     val articlepath: String? = null,
 )
