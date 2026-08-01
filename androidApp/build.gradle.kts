@@ -57,6 +57,14 @@ android {
                 "proguard-rules.pro"
             )
         }
+
+        create("beta") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".beta"
+            versionNameSuffix = "-beta"
+            signingConfig = signingConfigs.findByName("release")
+            matchingFallbacks += listOf("release")
+        }
     }
 
     flavorDimensions += "channel"
