@@ -47,6 +47,7 @@ data class SiteGeneral(
     val mainpage: String? = null,
     val favicon: String? = null,
     val articlepath: String? = null,
+    val mainpageisdomainroot: Boolean = false,
 )
 
 /**
