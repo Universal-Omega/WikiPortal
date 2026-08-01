@@ -58,12 +58,10 @@ android {
             )
         }
 
-        create("beta") {
+        create("sideload") {
             initWith(getByName("release"))
-            applicationIdSuffix = ".beta"
-            versionNameSuffix = "-beta"
-            signingConfig = signingConfigs.findByName("release")
-            matchingFallbacks += listOf("release")
+            applicationIdSuffix = ".sideload"
+            versionNameSuffix = "-sideload"
         }
     }
 
