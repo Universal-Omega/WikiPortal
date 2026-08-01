@@ -105,7 +105,7 @@ class AddWikiViewModel(
                     resolvedSite = candidate
                     sitename = info.sitename
                     lang = info.lang
-                    articlePathPrefix = deriveArticlePathPrefix(info.base, info.mainpage)
+                    articlePathPrefix = deriveArticlePathPrefix(candidate.baseUrl, info.articlepath)
                     faviconUrl = resolveFaviconUrl(info.favicon, candidate.baseUrl)
                         ?: api.getFaviconUrlFromHtml(candidate).getOrNull()
                     val skinsReported = result.getOrNull()?.skins.orEmpty()
