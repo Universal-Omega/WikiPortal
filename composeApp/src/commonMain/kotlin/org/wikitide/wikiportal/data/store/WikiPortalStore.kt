@@ -88,15 +88,4 @@ object SettingKeys {
 
     /** Which open tab, see [WikiPortalStore.openTabs], was active. */
     const val ACTIVE_TAB_ID = "active_tab_id"
-
-    /**
-     * The database schema version this install was last brought up to
-     * date with, see SqlDelightWikiPortalStore.ensureSchema. Stored as
-     * a plain setting rather than SQLite's own PRAGMA user_version so
-     * the same read and write path works identically across every
-     * driver this app uses, JDBC, Android, native, and the WASM Web
-     * Worker one, rather than depending on each one's own pragma
-     * support.
-     */
-    const val SCHEMA_VERSION = "db_schema_version"
 }
