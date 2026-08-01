@@ -103,7 +103,7 @@ class WikiMetadataRefresher(private val api: MediaWikiApi) {
         return site.copy(
             name = sitename,
             scriptPath = workingScriptPath,
-            articlePathPrefix = deriveArticlePathPrefix(site.baseUrl, resolved.articlepath, resolved.base, resolved.mainpage),
+            articlePathPrefix = deriveArticlePathPrefix(site.baseUrl, resolved.articlepath),
             discoveredFaviconUrl = resolveFavicon(resolved.favicon, site),
             // This falls back to whatever is already cached, not null or
             // empty, if this particular probe came back empty. See
