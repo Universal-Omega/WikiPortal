@@ -1,6 +1,5 @@
 package org.wikitide.wikiportal.data.store
 
-import app.cash.sqldelight.async.coroutines.await
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import app.cash.sqldelight.async.coroutines.awaitAsOne
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
@@ -20,13 +19,11 @@ import org.wikitide.wikiportal.db.WikiPortalDatabase
  * read with awaitAsList(), awaitAsOne(), or awaitAsOneOrNull(). Generated
  * INSERT, UPDATE, and DELETE functions are already plain suspend funs
  * under generateAsync, so they are just called directly, with no
- * .await() needed on those. .await() is only for schema creation, which
- * goes through the lower-level SqlSchema.create(driver), which returns
- * QueryResult.AsyncValue<Unit>.
+ * .await() needed on those.
  *
- * Schema creation is lazy and idempotent, using CREATE TABLE IF NOT
- * EXISTS, so it is simplest to just do it here on first use rather than
- * choreograph it across four different driver-construction call sites.
+ * Schema setup itself, creating tables on a fresh database or
+ * migrating an existing one, happens per platform rather than here,
+ * see [ensurePlatformSchemaReady].
  */
 class SqlDelightWikiPortalStore(
     private val driver: SqlDriver,
@@ -43,13 +40,17 @@ class SqlDelightWikiPortalStore(
     private val schemaMutex = Mutex()
     private var schemaReady = false
 
+    /**
+     * Delegates to [ensurePlatformSchemaReady] and only ever runs
+     * that once per store instance. See that function's own comment
+     * for how each platform actually brings its database up to date.
+     */
     private suspend fun ensureSchema() {
         if (schemaReady) return
         schemaMutex.withLock {
-            if (!schemaReady) {
-                WikiPortalDatabase.Schema.create(driver).await()
-                schemaReady = true
-            }
+            if (schemaReady) return@withLock
+            ensurePlatformSchemaReady(driver)
+            schemaReady = true
         }
     }
 
@@ -79,6 +80,7 @@ class SqlDelightWikiPortalStore(
                 availableSkins = it.availableSkins,
                 skinIsUserSet = it.skinIsUserSet,
                 mainPageTitle = it.mainPageTitle,
+                mainPageIsDomainRoot = it.mainPageIsDomainRoot,
                 folderId = it.folderId,
             )
         }
@@ -89,7 +91,7 @@ class SqlDelightWikiPortalStore(
         queries.upsertWiki(
             site.id, site.name, site.description, site.baseUrl, site.scriptPath, site.skin,
             site.articlePathPrefix, site.discoveredFaviconUrl, site.isCustom, site.availableSkins, site.skinIsUserSet,
-            site.mainPageTitle, site.folderId,
+            site.mainPageTitle, site.folderId, site.mainPageIsDomainRoot,
         )
     }
 
