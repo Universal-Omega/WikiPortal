@@ -2,5 +2,7 @@
 <resources>
     <style name="Theme.WikiPortal" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:isLightTheme">true</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
     </style>
 </resources>
