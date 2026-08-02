@@ -1,5 +1,6 @@
 package org.wikitide.wikiportal.data.model
 
+import io.ktor.http.URLBuilder
 import kotlinx.serialization.Serializable
 
 /** Describes a single MediaWiki site the app can connect to. */
@@ -86,19 +87,33 @@ data class WikiSite(
             return if (base.any { it.code == skin }) base else base + SkinOption(skin, skin)
         }
 
-    fun articleUrl(title: String, useAppSkin: Boolean = true, safeMode: Boolean = true): String {
+    fun articleUrl(
+        title: String,
+        useAppSkin: Boolean = true,
+        safeMode: Boolean = true,
+    ): String {
         val encoded = title.replace(" ", "_")
-        return buildString {
-            append(indexUrl)
-            append("?title=")
-            append(encoded)
-            if (useAppSkin) {
-                append("&useskin=")
-                append(skin)
-                if (safeMode) append("&safemode=1")
-            }
-        }
+        val base = articlePathPrefix?.let { prefix -> "$prefix$encoded" } ?: "$indexUrl?title=$encoded"
+        if (!useAppSkin) return base
+        return withSkinParams(base, safeMode) ?: base
     }
+
+    /**
+     * Sets, or clears, this wiki's own useskin and safemode params on
+     * an arbitrary url. Shared by [articleUrl], building this wiki's
+     * own urls from a title, and by WikiArticleReader's
+     * RequestInterceptor, rewriting a url this app is about to
+     * navigate to that already turned out to belong to this wiki.
+     * Returns null if [url] isn't a parseable url at all.
+     */
+    fun withSkinParams(url: String, safeMode: Boolean = true): String? = runCatching {
+        val builder = URLBuilder(url)
+        builder.parameters.apply {
+            set("useskin", skin)
+            if (safeMode) set("safemode", "1") else remove("safemode")
+        }
+        builder.buildString()
+    }.getOrNull()
 
     fun cleanUrlPrefix(): String = articlePathPrefix ?: "$baseUrl/wiki/"
 
