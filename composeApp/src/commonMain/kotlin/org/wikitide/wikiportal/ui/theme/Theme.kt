@@ -54,7 +54,7 @@ expect fun platformDynamicColorScheme(useDark: Boolean): ColorScheme?
 fun WikiPortalTheme(
     themeMode: ThemeMode,
     useDynamicColor: Boolean,
-    onDarkThemeResolved: (Boolean) -> Unit = {},
+    onDarkThemeResolved: (ThemeMode) -> Unit = {},
     content: @Composable () -> Unit,
 ) {
     val systemDark = isSystemInDarkTheme()
