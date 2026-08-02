@@ -7,6 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.view.WindowCompat
 import org.wikitide.wikiportal.WikiPortalApp
 import org.wikitide.wikiportal.util.AndroidLogExportBridge
@@ -26,6 +27,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         AndroidLogExportBridge.launcher = { suggestedName -> createDocumentLauncher.launch(suggestedName) }
         enableEdgeToEdge()
+
         // Without this, a side display cutout in landscape, for example
         // a punch-hole or notch camera on the long edge, makes the
         // system letterbox that sliver of screen instead of letting our
@@ -41,9 +43,18 @@ class MainActivity : ComponentActivity() {
                 WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
             }
         }
+
         setContent {
             WikiPortalApp(
                 onDarkThemeResolved = { useDark ->
+                    AppCompatDelegate.setDefaultNightMode(
+                        if (useDark) {
+                            AppCompatDelegate.MODE_NIGHT_YES
+                        } else {
+                            AppCompatDelegate.MODE_NIGHT_NO
+                        }
+                    )
+
                     val controller = WindowCompat.getInsetsController(window, window.decorView)
                     controller.isAppearanceLightStatusBars = !useDark
                     controller.isAppearanceLightNavigationBars = !useDark
