@@ -153,7 +153,7 @@ fun SettingsScreen(
                 SwitchRow(
                     icon = Icons.Filled.Shield,
                     title = "Disable safe mode",
-                    subtitle = "Load pages without MediaWiki's safemode restrictions on gadgets and scripts",
+                    subtitle = "Load pages without MediaWiki's safemode restrictions on gadgets and scripts. Can also be set per wiki from its options menu.",
                     checked = disableSafeMode,
                     onCheckedChange = repository::setDisableSafeMode,
                 )
