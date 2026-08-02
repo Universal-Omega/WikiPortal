@@ -39,7 +39,7 @@ class IndieWikiBuddyApi(
     suspend fun fetchAllSites(): List<Pair<String, IwbSiteDto>> = coroutineScope {
         IWB_LANGS.map { lang ->
             async {
-                restApi.get<List<IwbSiteDto>>("$IWB_DATA_BASE_URL/sites$lang.json")
+                restApi.get<Array<IwbSiteDto>>("$IWB_DATA_BASE_URL/sites$lang.json")
                     .onFailure { AppLog.w("IndieWikiBuddyApi", "Couldn't fetch sites$lang.json: ${it.message}") }
                     .getOrNull()
                     ?.map { lang to it }
