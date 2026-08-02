@@ -134,8 +134,8 @@ fun SettingsScreen(
             item {
                 SwitchRow(
                     icon = Icons.AutoMirrored.Filled.OpenInNew,
-                    title = "Open links in browser",
-                    subtitle = "Always open article links outside the app instead of in the reader",
+                    title = "Open outside links in browser",
+                    subtitle = "Links to sites outside your saved wikis open in your browser instead of the in-app reader",
                     checked = openLinksExternally,
                     onCheckedChange = repository::setOpenLinksExternally,
                 )
