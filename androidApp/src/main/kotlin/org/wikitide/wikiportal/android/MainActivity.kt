@@ -2,6 +2,7 @@ package org.wikitide.wikiportal.android
 
 import android.app.UiModeManager
 import android.content.Context
+import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
@@ -11,6 +12,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.WindowCompat
 import org.wikitide.wikiportal.WikiPortalApp
+import org.wikitide.wikiportal.data.model.ThemeMode
 import org.wikitide.wikiportal.util.AndroidLogExportBridge
 
 class MainActivity : ComponentActivity() {
@@ -50,16 +52,22 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             WikiPortalApp(
-                onDarkThemeResolved = { useDark ->
+                onDarkThemeResolved = { themeMode ->
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                         val uiModeManager = getSystemService(Context.UI_MODE_SERVICE) as UiModeManager
                         uiModeManager.setApplicationNightMode(
-                            if (useDark) {
-                                UiModeManager.MODE_NIGHT_YES
-                            } else {
-                                UiModeManager.MODE_NIGHT_NO
+                            when (themeMode) {
+                                ThemeMode.SYSTEM -> UiModeManager.MODE_NIGHT_FOLLOW_SYSTEM
+                                ThemeMode.LIGHT -> UiModeManager.MODE_NIGHT_NO
+                                ThemeMode.DARK -> UiModeManager.MODE_NIGHT_YES
                             }
                         )
+                    }
+
+                    val useDark = when (themeMode) {
+                        ThemeMode.SYSTEM -> resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
+                        ThemeMode.LIGHT -> false
+                        ThemeMode.DARK -> true
                     }
 
                     val controller = WindowCompat.getInsetsController(window,window.decorView)
