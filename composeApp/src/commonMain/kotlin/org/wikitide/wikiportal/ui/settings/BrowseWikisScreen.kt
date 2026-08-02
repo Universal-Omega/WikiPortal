@@ -2,6 +2,7 @@ package org.wikitide.wikiportal.ui.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,7 +17,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
@@ -24,8 +27,10 @@ import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.TravelExplore
+import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -53,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
+import org.wikitide.wikiportal.data.model.IndieWikiLanguages
 import org.wikitide.wikiportal.data.model.IndieWikiSite
 import org.wikitide.wikiportal.network.iwbFaviconUrl
 
@@ -66,6 +72,8 @@ fun BrowseWikisScreen(
     val sites by browseViewModel.sites.collectAsState()
     val isRefreshing by browseViewModel.isRefreshing.collectAsState()
     val searchQuery by browseViewModel.searchQuery.collectAsState()
+    val languageFilter by browseViewModel.languageFilter.collectAsState()
+    val officialOnly by browseViewModel.officialOnly.collectAsState()
     val addState by addWikiViewModel.state.collectAsState()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -75,21 +83,38 @@ fun BrowseWikisScreen(
         addState.errorMessage?.let { snackbarHostState.showSnackbar(it) }
     }
 
+    // Every language actually present, most common first, so the chip
+    // row leads with whatever's most useful to narrow down by rather
+    // than a fixed or alphabetical order that could bury English, the
+    // vast majority of entries, several chips deep.
+    val availableLanguages = remember(sites) {
+        sites.groupingBy { it.language }.eachCount().entries
+            .sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
+            .map { it.key }
+    }
+
     // Search matches against the wiki's own name, its origin label
     // ("1000xRESIST Fandom Wiki"), and its language, so searching a
     // wiki's old Fandom name still finds its independent replacement.
-    val filtered = remember(sites, searchQuery) {
+    // Sorted by name and then language, not just name, so a wiki with
+    // more than one language edition, which otherwise reads as the
+    // same title repeated with no way to tell entries apart, groups
+    // together with its language badges lined up right next to each
+    // other rather than scattered through the list.
+    val filtered = remember(sites, searchQuery, languageFilter, officialOnly) {
         val query = searchQuery.trim()
-        val matched = if (query.isBlank()) {
-            sites
-        } else {
-            sites.filter {
-                it.destinationName.contains(query, ignoreCase = true) ||
+        sites
+            .asSequence()
+            .filter { languageFilter == null || it.language == languageFilter }
+            .filter { !officialOnly || it.isOfficial }
+            .filter {
+                query.isBlank() ||
+                    it.destinationName.contains(query, ignoreCase = true) ||
                     it.originsLabel.contains(query, ignoreCase = true) ||
-                    it.language.contains(query, ignoreCase = true)
+                    IndieWikiLanguages.displayName(it.language).contains(query, ignoreCase = true)
             }
-        }
-        matched.sortedBy { it.destinationName.lowercase() }
+            .sortedWith(compareBy({ it.destinationName.lowercase() }, { it.language }))
+            .toList()
     }
 
     Scaffold(
@@ -127,6 +152,13 @@ fun BrowseWikisScreen(
                     singleLine = true,
                     shape = MaterialTheme.shapes.large,
                 )
+                BrowseFilterRow(
+                    officialOnly = officialOnly,
+                    onOfficialOnlyChange = browseViewModel::setOfficialOnly,
+                    languages = availableLanguages,
+                    selectedLanguage = languageFilter,
+                    onLanguageSelected = browseViewModel::setLanguageFilter,
+                )
             }
         },
     ) { innerPadding ->
@@ -155,7 +187,7 @@ fun BrowseWikisScreen(
             filtered.isEmpty() -> {
                 Box(Modifier.fillMaxSize().padding(innerPadding).padding(24.dp), contentAlignment = Alignment.TopCenter) {
                     Text(
-                        "No wikis match \"$searchQuery\".",
+                        "No wikis match the current search and filters.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -166,7 +198,7 @@ fun BrowseWikisScreen(
                     modifier = Modifier.fillMaxSize().padding(innerPadding),
                     contentPadding = PaddingValues(vertical = 8.dp),
                 ) {
-                    items(filtered, key = { it.id }) { site ->
+                    items(filtered, key = { it.id + it.language }) { site ->
                         IndieWikiRow(
                             site = site,
                             enabled = !addState.isChecking,
@@ -177,6 +209,43 @@ fun BrowseWikisScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun BrowseFilterRow(
+    officialOnly: Boolean,
+    onOfficialOnlyChange: (Boolean) -> Unit,
+    languages: List<String>,
+    selectedLanguage: String?,
+    onLanguageSelected: (String?) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        FilterChip(
+            selected = officialOnly,
+            onClick = { onOfficialOnlyChange(!officialOnly) },
+            label = { Text("Official") },
+            leadingIcon = if (officialOnly) {
+                { Icon(Icons.Filled.VerifiedUser, contentDescription = null, modifier = Modifier.size(16.dp)) }
+            } else {
+                null
+            },
+        )
+        FilterChip(
+            selected = selectedLanguage == null,
+            onClick = { onLanguageSelected(null) },
+            label = { Text("All languages") },
+        )
+        languages.forEach { language ->
+            FilterChip(
+                selected = selectedLanguage == language,
+                onClick = { onLanguageSelected(if (selectedLanguage == language) null else language) },
+                label = { Text(IndieWikiLanguages.displayName(language)) },
+            )
         }
     }
 }
@@ -205,14 +274,56 @@ private fun IndieWikiRow(site: IndieWikiSite, enabled: Boolean, onClick: () -> U
             )
         }
         Column(Modifier.weight(1f)) {
-            Text(site.destinationName, style = MaterialTheme.typography.titleMedium)
-            Text(
-                "Independent alternative to ${site.originsLabel}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Text(site.destinationName, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                LanguageBadge(site.language)
+                if (site.isOfficial) OfficialBadge()
+                Text(
+                    "Alternative to ${site.originsLabel}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+            }
         }
+    }
+}
+
+/** A small pill showing which language edition a row is, so an identically-named wiki in more than one language doesn't just read as a repeated entry. */
+@Composable
+private fun LanguageBadge(language: String) {
+    Text(
+        text = language,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSecondaryContainer,
+        modifier = Modifier
+            .background(MaterialTheme.colorScheme.secondaryContainer, RoundedCornerShape(4.dp))
+            .padding(horizontal = 6.dp, vertical = 2.dp),
+    )
+}
+
+/** A small pill marking a wiki Indie Wiki Buddy tags as the game or franchise's own official wiki, not just a fan-run one. */
+@Composable
+private fun OfficialBadge() {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .background(MaterialTheme.colorScheme.tertiaryContainer, RoundedCornerShape(4.dp))
+            .padding(horizontal = 6.dp, vertical = 2.dp),
+    ) {
+        Icon(
+            Icons.Filled.VerifiedUser,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onTertiaryContainer,
+            modifier = Modifier.size(11.dp),
+        )
+        Text(
+            "Official",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onTertiaryContainer,
+            modifier = Modifier.padding(start = 3.dp),
+        )
     }
 }
