@@ -42,6 +42,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,6 +57,7 @@ import coil3.compose.AsyncImage
 import org.koin.compose.koinInject
 import org.wikitide.wikiportal.data.TabsRepository
 import org.wikitide.wikiportal.data.model.ArticleTab
+import org.wikitide.wikiportal.ui.components.DestructiveConfirmDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,6 +70,7 @@ fun TabsScreen(
     val previews by tabsRepository.previews.collectAsState()
     val activeTabId by tabsRepository.activeTabId.collectAsState()
     val gridState = rememberLazyGridState()
+    var showCloseAllConfirm by remember { mutableStateOf(false) }
 
     LaunchedEffect(activeTabId) {
         val index = tabs.indexOfFirst { it.id == activeTabId }
@@ -80,7 +85,7 @@ fun TabsScreen(
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } },
                 actions = {
                     if (tabs.isNotEmpty()) {
-                        IconButton(onClick = { tabsRepository.closeAllTabs(); onBack() }) {
+                        IconButton(onClick = { showCloseAllConfirm = true }) {
                             Icon(Icons.Filled.DeleteSweep, contentDescription = "Close all tabs")
                         }
                     }
@@ -112,6 +117,16 @@ fun TabsScreen(
                 }
             }
         }
+    }
+
+    if (showCloseAllConfirm) {
+        DestructiveConfirmDialog(
+            title = "Close all tabs?",
+            text = "This closes every open tab. It can't be undone.",
+            confirmLabel = "Close all",
+            onConfirm = { tabsRepository.closeAllTabs(); onBack() },
+            onDismiss = { showCloseAllConfirm = false },
+        )
     }
 }
 
