@@ -303,9 +303,9 @@ private fun SingleArticleTab(
 
                     if (openBlankInNewTabState.value && requestsNewTab(url)) {
                         val cleanUrl = withoutNewTabMarker(url)
-                        val newTabSite = targetSite ?: site
-                        val newTabTitle = targetSite?.let { extractCanonicalTitle(cleanUrl, it) } ?: newTabSite.name
-                        tabsRepository.openTabForUrl(newTabSite, cleanUrl, newTabTitle)
+                        val fallbackTitle = targetSite?.name ?: runCatching { Url(cleanUrl).host }.getOrNull().orEmpty()
+                        val newTabTitle = targetSite?.let { extractCanonicalTitle(cleanUrl, it) } ?: fallbackTitle
+                        tabsRepository.openTabForUrl(targetSite, cleanUrl, newTabTitle)
                         return WebRequestInterceptResult.Reject
                     }
 
@@ -911,10 +911,11 @@ private fun SingleArticleTab(
 
     pendingExternalUrl?.let { url ->
         val host = runCatching { Url(url).host }.getOrNull()?.ifBlank { null }
+        val currentWikiName = siteName ?: site.name
         AlertDialog(
             onDismissRequest = { pendingExternalUrl = null },
-            title = { Text("Leave ${site.name}?") },
-            text = { Text("This link goes to ${host ?: "an outside site"}, not ${site.name}.") },
+            title = { Text("Leave $currentWikiName?") },
+            text = { Text("This link goes to ${host ?: "an outside site"}, not $currentWikiName.") },
             confirmButton = {
                 TextButton(
                     onClick = {
