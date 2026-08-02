@@ -87,6 +87,10 @@ class AppRepository(
     private val _openBlankInNewTab = MutableStateFlow(false)
     val openBlankInNewTab: StateFlow<Boolean> = _openBlankInNewTab
 
+    /** On by default. When off, adding a wiki never suggests an independent alternative, see IndieWikiDirectory. */
+    private val _indieWikiSuggestionsEnabled = MutableStateFlow(true)
+    val indieWikiSuggestionsEnabled: StateFlow<Boolean> = _indieWikiSuggestionsEnabled
+
     private val _savedPages = MutableStateFlow<List<SavedPage>>(emptyList())
     val savedPages: StateFlow<List<SavedPage>> = _savedPages
 
@@ -192,6 +196,7 @@ class AppRepository(
             store.getSetting(SettingKeys.CONFIRM_EXTERNAL_NAVIGATION)?.let { _confirmExternalNavigation.value = it.toBoolean() }
             store.getSetting(SettingKeys.DISABLE_SAFE_MODE)?.let { _disableSafeMode.value = it.toBoolean() }
             store.getSetting(SettingKeys.OPEN_BLANK_IN_NEW_TAB)?.let { _openBlankInNewTab.value = it.toBoolean() }
+            store.getSetting(SettingKeys.INDIE_WIKI_SUGGESTIONS_ENABLED)?.let { _indieWikiSuggestionsEnabled.value = it.toBoolean() }
 
             _savedPages.value = store.savedPages()
             _history.value = store.history()
@@ -483,6 +488,11 @@ class AppRepository(
     fun setOpenBlankInNewTab(enabled: Boolean) {
         _openBlankInNewTab.value = enabled
         appScope.launch { store.setSetting(SettingKeys.OPEN_BLANK_IN_NEW_TAB, enabled.toString()) }
+    }
+
+    fun setIndieWikiSuggestionsEnabled(enabled: Boolean) {
+        _indieWikiSuggestionsEnabled.value = enabled
+        appScope.launch { store.setSetting(SettingKeys.INDIE_WIKI_SUGGESTIONS_ENABLED, enabled.toString()) }
     }
 
     fun allWikisNow(): List<WikiSite> = _presetWikis.value + _customWikis.value
