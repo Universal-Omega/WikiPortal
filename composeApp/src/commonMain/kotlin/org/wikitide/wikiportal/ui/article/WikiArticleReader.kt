@@ -15,6 +15,7 @@ import com.multiplatform.webview.web.rememberWebViewStateWithHTMLData
 import io.ktor.http.URLBuilder
 import io.ktor.http.decodeURLQueryComponent
 import kotlinx.coroutines.delay
+import org.wikitide.wikiportal.BuildKonfig
 import org.wikitide.wikiportal.data.model.AuthDomains
 import org.wikitide.wikiportal.data.model.WikiSite
 import org.wikitide.wikiportal.util.offline.offlineLoadIdentityUrl
@@ -143,6 +144,7 @@ fun WikiArticleReader(
     DisposableEffect(Unit) {
         webViewState.webSettings.apply {
             isJavaScriptEnabled = true
+            customUserAgentString = "WikiPortal/${BuildKonfig.VERSION_NAME} (https://wikiportal.app)"
             androidWebSettings.apply {
                 domStorageEnabled = true
                 isAlgorithmicDarkeningAllowed = true
