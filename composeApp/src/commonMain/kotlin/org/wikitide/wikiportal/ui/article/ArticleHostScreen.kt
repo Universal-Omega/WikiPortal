@@ -310,14 +310,14 @@ private fun SingleArticleTab(
                     }
 
                     if (targetSite == null) {
-                        if (openLinksExternallyState.value) {
-                            uriHandler.openUri(url)
-                            return WebRequestInterceptResult.Reject
-                        }
-
                         if (isOnExternalSiteState.value || !confirmExternalNavigationState.value) {
                             isOnExternalSite = true
-                            return WebRequestInterceptResult.Allow
+                            if (openLinksExternallyState.value) {
+                                uriHandler.openUri(url)
+                            } else {
+                                return WebRequestInterceptResult.Allow
+                            }
+                            return WebRequestInterceptResult.Reject
                         }
 
                         pendingExternalUrl = url
@@ -921,7 +921,11 @@ private fun SingleArticleTab(
                     onClick = {
                         pendingExternalUrl = null
                         isOnExternalSite = true
-                        scope.launch { navigator.loadUrl(url) }
+                        if (openLinksExternally) {
+                            uriHandler.openUri(url)
+                        } else {
+                            scope.launch { navigator.loadUrl(url) }
+                        }
                     },
                 ) { Text("Continue") }
             },
