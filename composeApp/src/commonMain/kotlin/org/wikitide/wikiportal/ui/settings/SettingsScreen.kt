@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.TextFields
+import androidx.compose.material.icons.filled.TravelExplore
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -65,6 +66,7 @@ fun SettingsScreen(
     val confirmExternalNavigation by repository.confirmExternalNavigation.collectAsState()
     val disableSafeMode by repository.disableSafeMode.collectAsState()
     val openBlankInNewTab by repository.openBlankInNewTab.collectAsState()
+    val indieWikiSuggestionsEnabled by repository.indieWikiSuggestionsEnabled.collectAsState()
     val uriHandler = LocalUriHandler.current
 
     Column(Modifier.fillMaxSize()) {
@@ -77,6 +79,15 @@ fun SettingsScreen(
         LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
             item { SectionLabel("Wiki") }
             item { SettingsRow(icon = Icons.Filled.Public, title = "Current wiki", subtitle = activeWiki.name, onClick = onOpenWikiPicker) }
+            item {
+                SwitchRow(
+                    icon = Icons.Filled.TravelExplore,
+                    title = "Suggest independent wikis",
+                    subtitle = "When adding a wiki that moved off Fandom or a similar host, suggest its independent replacement",
+                    checked = indieWikiSuggestionsEnabled,
+                    onCheckedChange = repository::setIndieWikiSuggestionsEnabled,
+                )
+            }
 
             item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
             item { SectionLabel("Appearance") }
