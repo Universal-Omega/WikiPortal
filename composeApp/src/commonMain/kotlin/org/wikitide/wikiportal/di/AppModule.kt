@@ -8,6 +8,7 @@ import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import org.wikitide.wikiportal.data.AppRepository
+import org.wikitide.wikiportal.data.IndieWikiDirectory
 import org.wikitide.wikiportal.data.TabsRepository
 import org.wikitide.wikiportal.data.TrendingLoader
 import org.wikitide.wikiportal.data.WikiMetadataRefresher
@@ -15,6 +16,7 @@ import org.wikitide.wikiportal.navigation.Navigator
 import org.wikitide.wikiportal.navigation.navigationModule
 import org.wikitide.wikiportal.network.ActionApiClient
 import org.wikitide.wikiportal.network.FeedbackApi
+import org.wikitide.wikiportal.network.IndieWikiBuddyApi
 import org.wikitide.wikiportal.network.MatomoAnalyticsApi
 import org.wikitide.wikiportal.network.MediaWikiApi
 import org.wikitide.wikiportal.network.RestApiClient
@@ -28,6 +30,7 @@ import org.wikitide.wikiportal.ui.dashboard.SearchViewModel
 import org.wikitide.wikiportal.ui.dashboard.TrendingViewModel
 import org.wikitide.wikiportal.ui.feedback.FeedbackViewModel
 import org.wikitide.wikiportal.ui.settings.AddWikiViewModel
+import org.wikitide.wikiportal.ui.settings.BrowseWikisViewModel
 import org.wikitide.wikiportal.util.AppVersionProvider
 
 /**
@@ -49,6 +52,8 @@ val commonModule = module {
     singleOf(::WikimediaFeaturedFeedApi)
     singleOf(::MatomoAnalyticsApi)
     singleOf(::FeedbackApi)
+    singleOf(::IndieWikiBuddyApi)
+    singleOf(::IndieWikiDirectory)
     singleOf(::WikiMetadataRefresher)
     singleOf(::AppRepository)
     singleOf(::TrendingLoader)
@@ -62,6 +67,7 @@ val commonModule = module {
     viewModelOf(::CategoryBrowseViewModel)
     viewModelOf(::TrendingViewModel)
     viewModelOf(::AddWikiViewModel)
+    viewModelOf(::BrowseWikisViewModel)
     viewModelOf(::FeedbackViewModel)
 }
 
