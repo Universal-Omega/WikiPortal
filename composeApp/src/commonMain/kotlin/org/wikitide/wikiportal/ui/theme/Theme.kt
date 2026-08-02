@@ -6,6 +6,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.graphics.Color
 import org.wikitide.wikiportal.data.model.ThemeMode
@@ -64,9 +65,10 @@ fun WikiPortalTheme(
         ThemeMode.DARK -> true
     }
 
-    LaunchedEffect(useDark) {
+    SideEffect { onDarkThemeResolved(useDark) }
+    /*LaunchedEffect(useDark) {
         onDarkThemeResolved(useDark)
-    }
+    }*/
 
     val dynamicScheme = if (useDynamicColor && dynamicColorSchemeAvailable()) platformDynamicColorScheme(useDark) else null
     val colorScheme = dynamicScheme ?: if (useDark) DarkColors else LightColors
