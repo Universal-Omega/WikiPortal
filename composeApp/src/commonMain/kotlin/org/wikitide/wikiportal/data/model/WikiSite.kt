@@ -86,7 +86,7 @@ data class WikiSite(
             return if (base.any { it.code == skin }) base else base + SkinOption(skin, skin)
         }
 
-    fun articleUrl(title: String, useAppSkin: Boolean = true): String {
+    fun articleUrl(title: String, useAppSkin: Boolean = true, safeMode: Boolean = true): String {
         val encoded = title.replace(" ", "_")
         return buildString {
             append(indexUrl)
@@ -95,7 +95,7 @@ data class WikiSite(
             if (useAppSkin) {
                 append("&useskin=")
                 append(skin)
-                append("&safemode=1")
+                if (safeMode) append("&safemode=1")
             }
         }
     }
