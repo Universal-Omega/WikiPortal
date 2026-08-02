@@ -59,6 +59,7 @@ import org.koin.compose.navigation3.koinEntryProvider
 import org.koin.core.annotation.KoinExperimentalAPI
 import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.TabsRepository
+import org.wikitide.wikiportal.data.model.ThemeMode
 import org.wikitide.wikiportal.navigation.ArticleRoute
 import org.wikitide.wikiportal.navigation.DashboardRoute
 import org.wikitide.wikiportal.navigation.Navigator
@@ -121,7 +122,7 @@ private val navConfig = SavedStateConfiguration {
 
 @OptIn(KoinExperimentalAPI::class)
 @Composable
-fun WikiPortalApp(onDarkThemeResolved: (Boolean) -> Unit = {}) {
+fun WikiPortalApp(onDarkThemeResolved: (ThemeMode) -> Unit = {}) {
     // Coil3 caches images by default even without this setup, but adding
     // crossfade avoids a blank flash before the image pops in, which can
     // look like it is still loading even when it was actually a cache
