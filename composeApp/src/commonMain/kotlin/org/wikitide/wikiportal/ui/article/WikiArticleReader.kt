@@ -340,15 +340,6 @@ private fun isRootMainPageUrl(url: String, site: WikiSite): Boolean {
     return path == site.baseUrl || path == "${site.baseUrl}/"
 }
 
-fun withAppSkin(url: String, site: WikiSite, safeMode: Boolean = true): String? = runCatching {
-    val builder = URLBuilder(url)
-    builder.parameters.apply {
-        set("useskin", site.skin)
-        if (safeMode) set("safemode", "1") else remove("safemode")
-    }
-    builder.buildString()
-}.getOrNull()
-
 /** Query param a page's target="_blank" links and window.open calls get tagged with, see [NEW_TAB_SCRIPT]. */
 private const val NEW_TAB_PARAM = "wikiportalNewTab"
 
