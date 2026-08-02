@@ -53,19 +53,21 @@ class MainActivity : ComponentActivity() {
         setContent {
             WikiPortalApp(
                 onDarkThemeResolved = { themeMode ->
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        val uiModeManager = getSystemService(Context.UI_MODE_SERVICE) as UiModeManager
+                        uiModeManager.setApplicationNightMode(
+                            when (themeMode) {
+                                ThemeMode.SYSTEM -> UiModeManager.MODE_NIGHT_AUTO
+                                ThemeMode.LIGHT -> UiModeManager.MODE_NIGHT_NO
+                                ThemeMode.DARK -> UiModeManager.MODE_NIGHT_YES
+                            }
+                        )
+                    }
+
                     val useDark = when (themeMode) {
                         ThemeMode.SYSTEM -> resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
                         ThemeMode.LIGHT -> false
                         ThemeMode.DARK -> true
-                    }
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                        val uiModeManager = getSystemService(Context.UI_MODE_SERVICE) as UiModeManager
-                        uiModeManager.setApplicationNightMode(
-                            when (useDark) {
-                                false -> UiModeManager.MODE_NIGHT_NO
-                                true -> UiModeManager.MODE_NIGHT_YES
-                            }
-                        )
                     }
 
                     val controller = WindowCompat.getInsetsController(window,window.decorView)
