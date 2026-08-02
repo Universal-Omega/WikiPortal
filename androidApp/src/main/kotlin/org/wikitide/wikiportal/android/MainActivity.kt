@@ -57,7 +57,7 @@ class MainActivity : ComponentActivity() {
                         val uiModeManager = getSystemService(Context.UI_MODE_SERVICE) as UiModeManager
                         uiModeManager.setApplicationNightMode(
                             when (themeMode) {
-                                ThemeMode.SYSTEM -> UiModeManager.MODE_NIGHT_FOLLOW_SYSTEM
+                                ThemeMode.SYSTEM -> UiModeManager.MODE_NIGHT_AUTO
                                 ThemeMode.LIGHT -> UiModeManager.MODE_NIGHT_NO
                                 ThemeMode.DARK -> UiModeManager.MODE_NIGHT_YES
                             }
