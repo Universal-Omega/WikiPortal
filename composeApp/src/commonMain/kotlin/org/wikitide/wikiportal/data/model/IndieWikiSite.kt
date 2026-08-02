@@ -26,6 +26,27 @@ data class IndieWikiSite(
     val isOfficial: Boolean get() = "official" in tags
 }
 
+/**
+ * Full names for the language codes Indie Wiki Buddy's sites*.json
+ * files come in, see IndieWikiBuddyApi.IWB_LANGS, for anywhere a
+ * language needs to actually be read rather than just filtered on.
+ * Falls back to the bare code itself for anything not in this fixed
+ * list, which should never actually happen barring a new language
+ * file being added upstream before this list is.
+ */
+object IndieWikiLanguages {
+    private val displayNames: Map<String, String> = mapOf(
+        "CA" to "Catalan", "DE" to "German", "EN" to "English", "ES" to "Spanish",
+        "FI" to "Finnish", "FR" to "French", "HR" to "Croatian", "HU" to "Hungarian",
+        "IT" to "Italian", "JA" to "Japanese", "KO" to "Korean", "LZH" to "Literary Chinese",
+        "NL" to "Dutch", "PL" to "Polish", "PT" to "Portuguese", "RU" to "Russian",
+        "SV" to "Swedish", "TH" to "Thai", "TOK" to "Toki Pona", "TR" to "Turkish",
+        "UK" to "Ukrainian", "ZH" to "Chinese",
+    )
+
+    fun displayName(code: String): String = displayNames[code] ?: code
+}
+
 @Serializable
 data class IndieWikiOrigin(
     val originBaseUrl: String,
