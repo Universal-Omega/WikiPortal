@@ -17,7 +17,7 @@
             android:exported="true"
             android:configChanges="orientation|screenSize|keyboard|keyboardHidden|uiMode"
             android:windowSoftInputMode="adjustResize"
-            android:theme="@android:style/Theme.Material.Light.NoActionBar">
+            android:theme="@style/Theme.WikiPortal">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
