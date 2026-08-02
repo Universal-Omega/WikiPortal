@@ -60,9 +60,9 @@ class MainActivity : AppCompatActivity() {
                         AppCompatDelegate.setDefaultNightMode(nightMode)
                     }
 
-                    /* val controller = WindowCompat.getInsetsController(window, window.decorView)
+                    val controller = WindowCompat.getInsetsController(window, window.decorView)
                     controller.isAppearanceLightStatusBars = !useDark
-                    controller.isAppearanceLightNavigationBars = !useDark */
+                    controller.isAppearanceLightNavigationBars = !useDark
                 },
             )
         }
