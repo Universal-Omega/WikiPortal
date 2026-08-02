@@ -336,7 +336,7 @@ private fun SingleArticleTab(
                     // and static assets that have no business carrying a
                     // skin param.
                     if (!isAuthRequest && !looksLikeArticleRequest(url, targetSite)) return WebRequestInterceptResult.Allow
-                    val rewritten = withAppSkin(url, targetSite, safeMode = !disableSafeModeState.value) ?: return WebRequestInterceptResult.Allow
+                    val rewritten = targetSite.withSkinParams(url, safeMode = !disableSafeModeState.value) ?: return WebRequestInterceptResult.Allow
                     scope.launch { navigator.loadUrl(rewritten) }
                     return WebRequestInterceptResult.Reject
                 }
@@ -449,6 +449,13 @@ private fun SingleArticleTab(
     // as it was left.
     LaunchedEffect(isActive, nativeWebViewRef) {
         nativeWebViewRef?.let { setWebViewActive(it, isActive) }
+    }
+
+    LaunchedEffect(disableSafeMode) {
+        if (openOfflineFromStart || isOnExternalSite || AuthDomains.matches(pageState.url)) return@LaunchedEffect
+        val currentUrl = pageState.url.ifBlank { return@LaunchedEffect }
+        val rewritten = site.withSkinParams(currentUrl, safeMode = !disableSafeMode) ?: return@LaunchedEffect
+        if (rewritten != currentUrl) navigator.loadUrl(rewritten)
     }
 
     val currentTitle = pageState.canonicalTitle.ifBlank { initialTitle }
