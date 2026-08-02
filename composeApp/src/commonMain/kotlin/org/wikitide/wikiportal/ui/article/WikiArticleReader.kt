@@ -143,8 +143,8 @@ fun WikiArticleReader(
 
     DisposableEffect(Unit) {
         webViewState.webSettings.apply {
-            customUserAgentString = USER_AGENT
             isJavaScriptEnabled = true
+            customUserAgentString = USER_AGENT
             androidWebSettings.apply {
                 domStorageEnabled = true
                 isAlgorithmicDarkeningAllowed = true
