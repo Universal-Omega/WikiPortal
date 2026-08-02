@@ -96,6 +96,10 @@ fun WikiArticleReader(
     historyNavTrigger: Int = 0,
     /** The tab's last known live address, see ArticleTab.currentUrl. Null for a freshly-opened tab. */
     restoreUrl: String? = null,
+    /** Off by default. When on, pages load without MediaWiki's safemode=1 param. Already resolved by the caller from the app-wide setting and this wiki's own override, see WikiSite.effectiveDisableSafeMode. */
+    disableSafeMode: Boolean = false,
+    /** Off by default. When on, target="_blank" links and window.open calls open a real new tab instead of navigating in place. */
+    openBlankInNewTab: Boolean = false,
     onWebViewReady: (NativeWebView) -> Unit = {},
     onStateChanged: (WikiPageState) -> Unit,
     modifier: Modifier = Modifier,
@@ -104,7 +108,7 @@ fun WikiArticleReader(
         when {
             openOfflineFromStart -> ""
             restoreUrl != null -> restoreUrl
-            else -> site.articleUrl(title)
+            else -> site.articleUrl(title, safeMode = !disableSafeMode)
         }
     }
 
@@ -132,7 +136,7 @@ fun WikiArticleReader(
             // it. Either way, falling back to the live article beats
             // leaving a blank tab or whatever was last rendered stuck
             // on screen.
-            navigator.loadUrl(site.articleUrl(offlineDisplayTitle))
+            navigator.loadUrl(site.articleUrl(offlineDisplayTitle, safeMode = !disableSafeMode))
         }
     }
 
@@ -215,6 +219,7 @@ fun WikiArticleReader(
         // below. The title fields stay whatever they last genuinely
         // were until the JS lookup resolves.
         if (loading is LoadingState.Finished) {
+            if (openBlankInNewTab) navigator.evaluateJavaScript(NEW_TAB_SCRIPT) {}
             delay(150)
             navigator.evaluateJavaScript("window.location.href") { rawUrl ->
                 val liveUrl = rawUrl.trim().removeSurrounding("\"").ifBlank { null } ?: url
@@ -335,14 +340,45 @@ private fun isRootMainPageUrl(url: String, site: WikiSite): Boolean {
     return path == site.baseUrl || path == "${site.baseUrl}/"
 }
 
-fun withAppSkin(url: String, site: WikiSite): String? = runCatching {
+/** Query param a page's target="_blank" links and window.open calls get tagged with, see [NEW_TAB_SCRIPT]. */
+private const val NEW_TAB_PARAM = "wikiportalNewTab"
+
+fun requestsNewTab(url: String): Boolean = runCatching { URLBuilder(url).parameters.contains(NEW_TAB_PARAM) }.getOrDefault(false)
+
+fun withoutNewTabMarker(url: String): String = runCatching {
     val builder = URLBuilder(url)
-    builder.parameters.apply {
-        set("useskin", site.skin)
-        set("safemode", "1")
-    }
+    builder.parameters.remove(NEW_TAB_PARAM)
     builder.buildString()
-}.getOrNull()
+}.getOrDefault(url)
+
+/**
+ * Makes target="_blank" links and window.open calls navigate the
+ * current WebView to the same url with [NEW_TAB_PARAM] tagged on,
+ * rather than either doing nothing or replacing the page in place.
+ * ArticleHostScreen's RequestInterceptor watches for that tag to open a
+ * real new tab and strips it before actually loading anything. Reapplied
+ * on every finished load, since a fresh document has none of this in
+ * place yet.
+ */
+private const val NEW_TAB_SCRIPT = """
+(function() {
+    function tag(url) {
+        return url + (url.indexOf('?') === -1 ? '?' : '&') + '$NEW_TAB_PARAM=1';
+    }
+    window.open = function(url) {
+        if (url) window.location.href = tag(url);
+        return null;
+    };
+    document.addEventListener('click', function(event) {
+        var el = event.target;
+        while (el && el.tagName !== 'A') el = el.parentElement;
+        if (el && el.target === '_blank' && el.href) {
+            event.preventDefault();
+            window.location.href = tag(el.href);
+        }
+    }, true);
+})();
+"""
 
 private fun decodeTitle(raw: String): String {
     val spaced = raw.replace("_", " ")

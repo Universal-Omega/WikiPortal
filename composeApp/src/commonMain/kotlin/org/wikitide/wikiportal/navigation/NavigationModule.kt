@@ -11,6 +11,7 @@ import org.wikitide.wikiportal.ui.dashboard.TrendingScreen
 import org.wikitide.wikiportal.ui.feedback.FeedbackScreen
 import org.wikitide.wikiportal.ui.saved.SavedScreen
 import org.wikitide.wikiportal.ui.settings.AddWikiScreen
+import org.wikitide.wikiportal.ui.settings.BrowseWikisScreen
 import org.wikitide.wikiportal.ui.settings.LogsScreen
 import org.wikitide.wikiportal.ui.settings.SettingsScreen
 import org.wikitide.wikiportal.ui.settings.WikiPickerScreen
@@ -75,12 +76,21 @@ val navigationModule = module {
         WikiPickerScreen(
             onBack = { navigator.backStack.removeLastOrNull() },
             onAddCustomWiki = { navigator.navigateTo(AddWikiRoute) },
+            onBrowseWikis = { navigator.navigateTo(BrowseWikisRoute) },
         )
     }
 
     navigation<AddWikiRoute> {
         val navigator = get<Navigator>()
-        AddWikiScreen(onDone = { navigator.backStack.removeLastOrNull() })
+        AddWikiScreen(
+            onDone = { navigator.backStack.removeLastOrNull() },
+            onBrowseWikis = { navigator.navigateTo(BrowseWikisRoute) },
+        )
+    }
+
+    navigation<BrowseWikisRoute> {
+        val navigator = get<Navigator>()
+        BrowseWikisScreen(onDone = { navigator.backStack.removeLastOrNull() })
     }
 
     navigation<LogsRoute> {

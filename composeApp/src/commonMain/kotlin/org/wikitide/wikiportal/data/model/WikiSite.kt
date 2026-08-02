@@ -1,5 +1,6 @@
 package org.wikitide.wikiportal.data.model
 
+import io.ktor.http.URLBuilder
 import kotlinx.serialization.Serializable
 
 /** Describes a single MediaWiki site the app can connect to. */
@@ -68,6 +69,15 @@ data class WikiSite(
      * WikiPickerScreen. See AppRepository.moveWikiToFolder.
      */
     val folderId: String? = null,
+    /**
+     * Overrides the app-wide "Disable safe mode" setting on for this
+     * one wiki, without having to turn it on for every wiki. Combined
+     * with the global setting, not a replacement for it, see
+     * ArticleHostScreen's effectiveDisableSafeMode: either one being on
+     * is enough to disable safe mode for this wiki. See
+     * AppRepository.setWikiDisableSafeMode.
+     */
+    val disableSafeMode: Boolean = false,
 ) {
     val apiUrl: String get() = "$baseUrl$scriptPath/api.php"
     val indexUrl: String get() = "$baseUrl$scriptPath/index.php"
@@ -86,19 +96,33 @@ data class WikiSite(
             return if (base.any { it.code == skin }) base else base + SkinOption(skin, skin)
         }
 
-    fun articleUrl(title: String, useAppSkin: Boolean = true): String {
+    fun articleUrl(
+        title: String,
+        useAppSkin: Boolean = true,
+        safeMode: Boolean = true,
+    ): String {
         val encoded = title.replace(" ", "_")
-        return buildString {
-            append(indexUrl)
-            append("?title=")
-            append(encoded)
-            if (useAppSkin) {
-                append("&useskin=")
-                append(skin)
-                append("&safemode=1")
-            }
-        }
+        val base = articlePathPrefix?.let { prefix -> "$prefix$encoded" } ?: "$indexUrl?title=$encoded"
+        if (!useAppSkin) return base
+        return withSkinParams(base, safeMode) ?: base
     }
+
+    /**
+     * Sets, or clears, this wiki's own useskin and safemode params on
+     * an arbitrary url. Shared by [articleUrl], building this wiki's
+     * own urls from a title, and by WikiArticleReader's
+     * RequestInterceptor, rewriting a url this app is about to
+     * navigate to that already turned out to belong to this wiki.
+     * Returns null if [url] isn't a parseable url at all.
+     */
+    fun withSkinParams(url: String, safeMode: Boolean = true): String? = runCatching {
+        val builder = URLBuilder(url)
+        builder.parameters.apply {
+            set("useskin", skin)
+            if (safeMode) set("safemode", "1") else remove("safemode")
+        }
+        builder.buildString()
+    }.getOrNull()
 
     fun cleanUrlPrefix(): String = articlePathPrefix ?: "$baseUrl/wiki/"
 
@@ -109,6 +133,16 @@ data class WikiSite(
 
 @Serializable
 data class SkinOption(val code: String, val name: String)
+
+/**
+ * Whether safe mode should actually be off for this wiki right now:
+ * either the app-wide "Disable safe mode" setting is on, or this wiki
+ * has its own [WikiSite.disableSafeMode] override on. Either one is
+ * enough; this is never a way to force safe mode back on for a wiki
+ * when the app-wide setting is already disabling it everywhere.
+ */
+fun WikiSite.effectiveDisableSafeMode(globalDisableSafeMode: Boolean): Boolean =
+    globalDisableSafeMode || disableSafeMode
 
 /**
  * Skins this app has actually been tested against and is willing to

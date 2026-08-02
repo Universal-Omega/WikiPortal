@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.TextFields
+import androidx.compose.material.icons.filled.TravelExplore
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -63,6 +64,9 @@ fun SettingsScreen(
     val showImages by repository.showImages.collectAsState()
     val openLinksExternally by repository.openLinksExternally.collectAsState()
     val confirmExternalNavigation by repository.confirmExternalNavigation.collectAsState()
+    val disableSafeMode by repository.disableSafeMode.collectAsState()
+    val openBlankInNewTab by repository.openBlankInNewTab.collectAsState()
+    val indieWikiSuggestionsEnabled by repository.indieWikiSuggestionsEnabled.collectAsState()
     val uriHandler = LocalUriHandler.current
 
     Column(Modifier.fillMaxSize()) {
@@ -75,6 +79,15 @@ fun SettingsScreen(
         LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
             item { SectionLabel("Wiki") }
             item { SettingsRow(icon = Icons.Filled.Public, title = "Current wiki", subtitle = activeWiki.name, onClick = onOpenWikiPicker) }
+            item {
+                SwitchRow(
+                    icon = Icons.Filled.TravelExplore,
+                    title = "Suggest independent wikis",
+                    subtitle = "When adding a wiki that moved off Fandom or a similar host, suggest its independent replacement",
+                    checked = indieWikiSuggestionsEnabled,
+                    onCheckedChange = repository::setIndieWikiSuggestionsEnabled,
+                )
+            }
 
             item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
             item { SectionLabel("Appearance") }
@@ -132,8 +145,8 @@ fun SettingsScreen(
             item {
                 SwitchRow(
                     icon = Icons.AutoMirrored.Filled.OpenInNew,
-                    title = "Open links in browser",
-                    subtitle = "Always open article links outside the app instead of in the reader",
+                    title = "Open outside links in browser",
+                    subtitle = "Links to sites outside your saved wikis open in your browser instead of the in-app reader",
                     checked = openLinksExternally,
                     onCheckedChange = repository::setOpenLinksExternally,
                 )
@@ -145,6 +158,24 @@ fun SettingsScreen(
                     subtitle = "Ask before a tab loads a link to a site outside your wikis",
                     checked = confirmExternalNavigation,
                     onCheckedChange = repository::setConfirmExternalNavigation,
+                )
+            }
+            item {
+                SwitchRow(
+                    icon = Icons.Filled.Shield,
+                    title = "Disable safe mode",
+                    subtitle = "Load pages without MediaWiki's safemode restrictions on gadgets and scripts. Can also be set per wiki from its options menu.",
+                    checked = disableSafeMode,
+                    onCheckedChange = repository::setDisableSafeMode,
+                )
+            }
+            item {
+                SwitchRow(
+                    icon = Icons.AutoMirrored.Filled.OpenInNew,
+                    title = "Open new-tab links in a real tab",
+                    subtitle = "Links that open in a new window open a new WikiPortal tab instead of replacing the page",
+                    checked = openBlankInNewTab,
+                    onCheckedChange = repository::setOpenBlankInNewTab,
                 )
             }
 

@@ -79,6 +79,18 @@ class AppRepository(
     private val _confirmExternalNavigation = MutableStateFlow(true)
     val confirmExternalNavigation: StateFlow<Boolean> = _confirmExternalNavigation
 
+    /** Off by default. When on, wiki pages load without MediaWiki's safemode=1 param. */
+    private val _disableSafeMode = MutableStateFlow(false)
+    val disableSafeMode: StateFlow<Boolean> = _disableSafeMode
+
+    /** When on, links with target="_blank" open as a real new browser tab instead of inside the app's WebView. */
+    private val _openBlankInNewTab = MutableStateFlow(false)
+    val openBlankInNewTab: StateFlow<Boolean> = _openBlankInNewTab
+
+    /** On by default. When off, adding a wiki never suggests an independent alternative, see IndieWikiDirectory. */
+    private val _indieWikiSuggestionsEnabled = MutableStateFlow(true)
+    val indieWikiSuggestionsEnabled: StateFlow<Boolean> = _indieWikiSuggestionsEnabled
+
     private val _savedPages = MutableStateFlow<List<SavedPage>>(emptyList())
     val savedPages: StateFlow<List<SavedPage>> = _savedPages
 
@@ -182,6 +194,9 @@ class AppRepository(
             store.getSetting(SettingKeys.SHOW_IMAGES)?.let { _showImages.value = it.toBoolean() }
             store.getSetting(SettingKeys.OPEN_LINKS_EXTERNALLY)?.let { _openLinksExternally.value = it.toBoolean() }
             store.getSetting(SettingKeys.CONFIRM_EXTERNAL_NAVIGATION)?.let { _confirmExternalNavigation.value = it.toBoolean() }
+            store.getSetting(SettingKeys.DISABLE_SAFE_MODE)?.let { _disableSafeMode.value = it.toBoolean() }
+            store.getSetting(SettingKeys.OPEN_BLANK_IN_NEW_TAB)?.let { _openBlankInNewTab.value = it.toBoolean() }
+            store.getSetting(SettingKeys.INDIE_WIKI_SUGGESTIONS_ENABLED)?.let { _indieWikiSuggestionsEnabled.value = it.toBoolean() }
 
             _savedPages.value = store.savedPages()
             _history.value = store.history()
@@ -329,6 +344,25 @@ class AppRepository(
         appScope.launch { store.upsertWiki(updated) }
     }
 
+    /**
+     * Overrides the app-wide "Disable safe mode" setting on for just
+     * this one wiki. See WikiSite.disableSafeMode, and
+     * ArticleHostScreen's effectiveDisableSafeMode for where the two
+     * are combined.
+     */
+    fun setWikiDisableSafeMode(wikiId: String, disableSafeMode: Boolean) {
+        val updated = (_presetWikis.value + _customWikis.value).firstOrNull { it.id == wikiId }
+            ?.copy(disableSafeMode = disableSafeMode)
+            ?: return
+        if (updated.isCustom) {
+            _customWikis.update { list -> list.map { if (it.id == wikiId) updated else it } }
+        } else {
+            _presetWikis.update { list -> list.map { if (it.id == wikiId) updated else it } }
+        }
+        if (_activeWiki.value.id == wikiId) _activeWiki.value = updated
+        appScope.launch { store.upsertWiki(updated) }
+    }
+
     fun addCustomWiki(site: WikiSite) {
         _customWikis.update { list -> list.filterNot { it.id == site.id } + site }
         appScope.launch { store.upsertWiki(site) }
@@ -444,6 +478,21 @@ class AppRepository(
     fun setConfirmExternalNavigation(enabled: Boolean) {
         _confirmExternalNavigation.value = enabled
         appScope.launch { store.setSetting(SettingKeys.CONFIRM_EXTERNAL_NAVIGATION, enabled.toString()) }
+    }
+
+    fun setDisableSafeMode(enabled: Boolean) {
+        _disableSafeMode.value = enabled
+        appScope.launch { store.setSetting(SettingKeys.DISABLE_SAFE_MODE, enabled.toString()) }
+    }
+
+    fun setOpenBlankInNewTab(enabled: Boolean) {
+        _openBlankInNewTab.value = enabled
+        appScope.launch { store.setSetting(SettingKeys.OPEN_BLANK_IN_NEW_TAB, enabled.toString()) }
+    }
+
+    fun setIndieWikiSuggestionsEnabled(enabled: Boolean) {
+        _indieWikiSuggestionsEnabled.value = enabled
+        appScope.launch { store.setSetting(SettingKeys.INDIE_WIKI_SUGGESTIONS_ENABLED, enabled.toString()) }
     }
 
     fun allWikisNow(): List<WikiSite> = _presetWikis.value + _customWikis.value

@@ -62,6 +62,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import org.wikitide.wikiportal.ui.components.DestructiveConfirmDialog
 import org.wikitide.wikiportal.util.AppLog
 import org.wikitide.wikiportal.util.LogEntry
 import org.wikitide.wikiportal.util.LogExporter
@@ -83,6 +84,7 @@ fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
     var appOnly by remember { mutableStateOf(true) }
     var visibleLevels by remember { mutableStateOf(LogLevel.entries.toSet()) }
     var searchQuery by remember { mutableStateOf("") }
+    var showClearConfirm by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val clipboard = LocalClipboard.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -194,7 +196,7 @@ fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
                                     leadingIcon = { Icon(Icons.Filled.DeleteSweep, contentDescription = null) },
                                     onClick = {
                                         menuOpen = false
-                                        scope.launch { clearDeviceLogs(); load() }
+                                        showClearConfirm = true
                                     },
                                 )
                             }
@@ -251,6 +253,16 @@ fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
                 }
             }
         }
+    }
+
+    if (showClearConfirm) {
+        DestructiveConfirmDialog(
+            title = "Clear logs?",
+            text = "This clears the current in-app log buffer. It can't be undone.",
+            confirmLabel = "Clear",
+            onConfirm = { scope.launch { clearDeviceLogs(); load() } },
+            onDismiss = { showClearConfirm = false },
+        )
     }
 }
 
