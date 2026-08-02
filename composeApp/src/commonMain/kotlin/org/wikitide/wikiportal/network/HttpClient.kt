@@ -16,6 +16,8 @@ import kotlinx.serialization.json.Json
 import org.wikitide.wikiportal.BuildKonfig
 import org.wikitide.wikiportal.util.AppLog
 
+const val USER_AGENT = "WikiPortal/${BuildKonfig.VERSION_NAME} (https://wikiportal.app)"
+
 private val mediaWikiJson: Json = Json {
     ignoreUnknownKeys = true
     isLenient = true
@@ -43,7 +45,7 @@ fun <T : HttpClientEngineConfig> HttpClientConfig<T>.configureMediaWikiClient() 
         level = LogLevel.INFO
     }
     defaultRequest {
-        header(HttpHeaders.UserAgent, "WikiPortal/${BuildKonfig.VERSION_NAME} (https://wikiportal.app)")
+        header(HttpHeaders.UserAgent, USER_AGENT)
     }
 }
 
