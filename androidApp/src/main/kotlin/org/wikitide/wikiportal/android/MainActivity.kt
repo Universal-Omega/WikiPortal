@@ -3,16 +3,16 @@ package org.wikitide.wikiportal.android
 import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.view.WindowCompat
 import org.wikitide.wikiportal.WikiPortalApp
 import org.wikitide.wikiportal.util.AndroidLogExportBridge
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     // Registered here, as a property, rather than lazily inside
     // onCreate, since registerForActivityResult must be called before
     // the Activity reaches the started state. AndroidLogExportBridge
@@ -25,7 +25,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        AndroidLogExportBridge.launcher = { suggestedName -> createDocumentLauncher.launch(suggestedName) }
+        AndroidLogExportBridge.launcher = { suggestedName ->
+            createDocumentLauncher.launch(suggestedName)
+        }
+
         enableEdgeToEdge()
 
         // Without this, a side display cutout in landscape, for example
@@ -47,13 +50,15 @@ class MainActivity : ComponentActivity() {
         setContent {
             WikiPortalApp(
                 onDarkThemeResolved = { useDark ->
-                    AppCompatDelegate.setDefaultNightMode(
-                        if (useDark) {
-                            AppCompatDelegate.MODE_NIGHT_YES
-                        } else {
-                            AppCompatDelegate.MODE_NIGHT_NO
-                        }
-                    )
+                    val nightMode = if (useDark) {
+                        AppCompatDelegate.MODE_NIGHT_YES
+                    } else {
+                        AppCompatDelegate.MODE_NIGHT_NO
+                    }
+
+                    if (AppCompatDelegate.getDefaultNightMode() != nightMode) {
+                        AppCompatDelegate.setDefaultNightMode(nightMode)
+                    }
 
                     val controller = WindowCompat.getInsetsController(window, window.decorView)
                     controller.isAppearanceLightStatusBars = !useDark
