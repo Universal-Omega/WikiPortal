@@ -144,9 +144,19 @@ class TabsRepository(
         return id
     }
 
-    fun openTabForUrl(site: WikiSite, url: String, title: String = site.name): String {
+    /**
+     * Opens a tab pointed straight at [url] rather than an article
+     * title, for a link that isn't necessarily this wiki's own article
+     * URL shape, for example a target="_blank" link followed from
+     * within another tab. [site] is the wiki [url] itself actually
+     * belongs to, resolved by the caller, not necessarily whichever tab
+     * the link was clicked from. Null means [url] doesn't match any
+     * saved wiki at all, in which case the new tab opens ungrouped
+     * rather than being attributed to the source tab's wiki.
+     */
+    fun openTabForUrl(site: WikiSite?, url: String, title: String): String {
         val id = "tab-${nowEpochMillis()}-${Random.nextInt(10_000)}"
-        val tab = ArticleTab(id, site.id, site.name, title, createdAtEpochMillis = nowEpochMillis(), currentUrl = url)
+        val tab = ArticleTab(id, site?.id.orEmpty(), site?.name.orEmpty(), title, createdAtEpochMillis = nowEpochMillis(), currentUrl = url)
         insertNewTab(tab)
         return id
     }
