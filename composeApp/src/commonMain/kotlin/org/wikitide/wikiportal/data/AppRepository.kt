@@ -339,6 +339,25 @@ class AppRepository(
         appScope.launch { store.upsertWiki(updated) }
     }
 
+    /**
+     * Overrides the app-wide "Disable safe mode" setting on for just
+     * this one wiki. See WikiSite.disableSafeMode, and
+     * ArticleHostScreen's effectiveDisableSafeMode for where the two
+     * are combined.
+     */
+    fun setWikiDisableSafeMode(wikiId: String, disableSafeMode: Boolean) {
+        val updated = (_presetWikis.value + _customWikis.value).firstOrNull { it.id == wikiId }
+            ?.copy(disableSafeMode = disableSafeMode)
+            ?: return
+        if (updated.isCustom) {
+            _customWikis.update { list -> list.map { if (it.id == wikiId) updated else it } }
+        } else {
+            _presetWikis.update { list -> list.map { if (it.id == wikiId) updated else it } }
+        }
+        if (_activeWiki.value.id == wikiId) _activeWiki.value = updated
+        appScope.launch { store.upsertWiki(updated) }
+    }
+
     fun addCustomWiki(site: WikiSite) {
         _customWikis.update { list -> list.filterNot { it.id == site.id } + site }
         appScope.launch { store.upsertWiki(site) }

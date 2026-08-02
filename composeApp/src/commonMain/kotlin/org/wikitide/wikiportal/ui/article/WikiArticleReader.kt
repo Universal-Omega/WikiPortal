@@ -96,7 +96,7 @@ fun WikiArticleReader(
     historyNavTrigger: Int = 0,
     /** The tab's last known live address, see ArticleTab.currentUrl. Null for a freshly-opened tab. */
     restoreUrl: String? = null,
-    /** Off by default. When on, pages load without MediaWiki's safemode=1 param. */
+    /** Off by default. When on, pages load without MediaWiki's safemode=1 param. Already resolved by the caller from the app-wide setting and this wiki's own override, see WikiSite.effectiveDisableSafeMode. */
     disableSafeMode: Boolean = false,
     /** Off by default. When on, target="_blank" links and window.open calls open a real new tab instead of navigating in place. */
     openBlankInNewTab: Boolean = false,
