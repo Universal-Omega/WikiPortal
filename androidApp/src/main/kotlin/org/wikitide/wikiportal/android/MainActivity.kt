@@ -1,5 +1,7 @@
 package org.wikitide.wikiportal.android
 
+import android.app.UiModeManager
+import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
@@ -7,8 +9,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.view.WindowCompat
 import org.wikitide.wikiportal.WikiPortalApp
 import org.wikitide.wikiportal.util.AndroidLogExportBridge
@@ -51,17 +51,18 @@ class MainActivity : ComponentActivity() {
         setContent {
             WikiPortalApp(
                 onDarkThemeResolved = { useDark ->
-                    val nightMode = if (useDark) {
-                        AppCompatDelegate.MODE_NIGHT_YES
-                    } else {
-                        AppCompatDelegate.MODE_NIGHT_NO
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        val uiModeManager = getSystemService(Context.UI_MODE_SERVICE) as UiModeManager
+                        uiModeManager.setApplicationNightMode(
+                            if (useDark) {
+                                UiModeManager.MODE_NIGHT_YES
+                            } else {
+                                UiModeManager.MODE_NIGHT_NO
+                            }
+                        )
                     }
 
-                    if (AppCompatDelegate.getDefaultNightMode() != nightMode) {
-                        AppCompatDelegate.setDefaultNightMode(nightMode)
-                    }
-
-                    val controller = WindowCompat.getInsetsController(window, window.decorView)
+                    val controller = WindowCompat.getInsetsController(window,window.decorView)
                     controller.isAppearanceLightStatusBars = !useDark
                     controller.isAppearanceLightNavigationBars = !useDark
                 },
