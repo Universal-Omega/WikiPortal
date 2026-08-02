@@ -91,6 +91,7 @@ import org.wikitide.wikiportal.data.TabsRepository
 import org.wikitide.wikiportal.data.model.ArticleTab
 import org.wikitide.wikiportal.data.model.AuthDomains
 import org.wikitide.wikiportal.data.model.SavedPage
+import org.wikitide.wikiportal.data.model.effectiveDisableSafeMode
 import org.wikitide.wikiportal.network.MediaWikiApi
 import org.wikitide.wikiportal.network.PageSummaryDto
 import org.wikitide.wikiportal.ui.tabs.TabsScreen
@@ -181,6 +182,9 @@ private fun SingleArticleTab(
     val offlineKeys by repository.offlineKeys.collectAsState()
     val confirmExternalNavigation by repository.confirmExternalNavigation.collectAsState()
     val disableSafeMode by repository.disableSafeMode.collectAsState()
+    // Off unless the app-wide setting is on, or this wiki has its own
+    // override on, see WikiSite.disableSafeMode. Either one is enough.
+    val effectiveDisableSafeMode = site.effectiveDisableSafeMode(disableSafeMode)
     val openBlankInNewTab by repository.openBlankInNewTab.collectAsState()
     val openLinksExternally by repository.openLinksExternally.collectAsState()
     val uriHandler = LocalUriHandler.current
@@ -336,7 +340,7 @@ private fun SingleArticleTab(
                     // and static assets that have no business carrying a
                     // skin param.
                     if (!isAuthRequest && !looksLikeArticleRequest(url, targetSite)) return WebRequestInterceptResult.Allow
-                    val rewritten = withAppSkin(url, targetSite, safeMode = !disableSafeModeState.value) ?: return WebRequestInterceptResult.Allow
+                    val rewritten = targetSite.withSkinParams(url, safeMode = !targetSite.effectiveDisableSafeMode(disableSafeModeState.value)) ?: return WebRequestInterceptResult.Allow
                     scope.launch { navigator.loadUrl(rewritten) }
                     return WebRequestInterceptResult.Reject
                 }
@@ -449,6 +453,16 @@ private fun SingleArticleTab(
     // as it was left.
     LaunchedEffect(isActive, nativeWebViewRef) {
         nativeWebViewRef?.let { setWebViewActive(it, isActive) }
+    }
+
+    // Reapplies a changed skin or safe mode setting to whatever this
+    // tab is already showing, so neither one requires closing and
+    // reopening every open tab to take effect.
+    LaunchedEffect(site.skin, effectiveDisableSafeMode) {
+        if (openOfflineFromStart || isOnExternalSite) return@LaunchedEffect
+        val currentUrl = pageState.url.ifBlank { return@LaunchedEffect }
+        val rewritten = site.withSkinParams(currentUrl, safeMode = !effectiveDisableSafeMode) ?: return@LaunchedEffect
+        if (rewritten != currentUrl) navigator.loadUrl(rewritten)
     }
 
     val currentTitle = pageState.canonicalTitle.ifBlank { initialTitle }
@@ -832,7 +846,7 @@ private fun SingleArticleTab(
                 allWikis = allWikis,
                 historyNavTrigger = historyNavTrigger,
                 restoreUrl = tab.currentUrl,
-                disableSafeMode = disableSafeMode,
+                disableSafeMode = effectiveDisableSafeMode,
                 openBlankInNewTab = openBlankInNewTab,
                 onWebViewReady = { nativeWebViewRef = it },
                 onStateChanged = { newState -> pageState = newState },

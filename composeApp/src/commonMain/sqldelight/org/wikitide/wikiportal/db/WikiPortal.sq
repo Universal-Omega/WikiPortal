@@ -36,12 +36,13 @@ CREATE TABLE IF NOT EXISTS Wiki (
     skinIsUserSet INTEGER AS Boolean NOT NULL DEFAULT 0,
     mainPageTitle TEXT,
     folderId TEXT,
-    mainPageIsDomainRoot INTEGER AS Boolean NOT NULL DEFAULT 0
+    mainPageIsDomainRoot INTEGER AS Boolean NOT NULL DEFAULT 0,
+    disableSafeMode INTEGER AS Boolean NOT NULL DEFAULT 0
 );
 
 upsertWiki:
-INSERT OR REPLACE INTO Wiki(id, name, description, baseUrl, scriptPath, skin, articlePathPrefix, faviconUrl, isCustom, availableSkins, skinIsUserSet, mainPageTitle, folderId, mainPageIsDomainRoot)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO Wiki(id, name, description, baseUrl, scriptPath, skin, articlePathPrefix, faviconUrl, isCustom, availableSkins, skinIsUserSet, mainPageTitle, folderId, mainPageIsDomainRoot, disableSafeMode)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 deleteWiki:
 DELETE FROM Wiki WHERE id = ?;
