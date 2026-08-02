@@ -87,6 +87,9 @@ object SettingKeys {
     const val CONFIRM_EXTERNAL_NAVIGATION = "confirm_external_navigation"
     const val DISABLE_SAFE_MODE = "disable_safe_mode"
     const val OPEN_BLANK_IN_NEW_TAB = "open_blank_in_new_tab"
+    const val INDIE_WIKI_SUGGESTIONS_ENABLED = "indie_wiki_suggestions_enabled"
+    const val INDIE_WIKI_CACHE = "indie_wiki_cache"
+    const val INDIE_WIKI_CACHE_UPDATED_AT = "indie_wiki_cache_updated_at"
 
     /** Which open tab, see [WikiPortalStore.openTabs], was active. */
     const val ACTIVE_TAB_ID = "active_tab_id"

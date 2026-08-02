@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.TravelExplore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -83,7 +84,7 @@ import org.wikitide.wikiportal.data.model.WikiSite
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, repository: AppRepository = koinInject()) {
+fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWikis: () -> Unit, repository: AppRepository = koinInject()) {
     val activeWiki by repository.activeWiki.collectAsState()
     val presetWikis by repository.presetWikis.collectAsState()
     val customWikis by repository.customWikis.collectAsState()
@@ -268,6 +269,20 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, repository
                     Icon(Icons.Filled.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Text(
                         "Add a wiki by URL",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(start = 12.dp),
+                    )
+                }
+            }
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth().clickable(onClick = onBrowseWikis).padding(horizontal = 20.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Filled.TravelExplore, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Text(
+                        "Browse wikis",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(start = 12.dp),

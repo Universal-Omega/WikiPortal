@@ -25,6 +25,9 @@ data object WikiPickerRoute : Route
 data object AddWikiRoute : Route
 
 @Serializable
+data object BrowseWikisRoute : Route
+
+@Serializable
 data object ArticleRoute : Route
 
 @Serializable
