@@ -63,6 +63,8 @@ fun SettingsScreen(
     val showImages by repository.showImages.collectAsState()
     val openLinksExternally by repository.openLinksExternally.collectAsState()
     val confirmExternalNavigation by repository.confirmExternalNavigation.collectAsState()
+    val disableSafeMode by repository.disableSafeMode.collectAsState()
+    val openBlankInNewTab by repository.openBlankInNewTab.collectAsState()
     val uriHandler = LocalUriHandler.current
 
     Column(Modifier.fillMaxSize()) {
@@ -145,6 +147,24 @@ fun SettingsScreen(
                     subtitle = "Ask before a tab loads a link to a site outside your wikis",
                     checked = confirmExternalNavigation,
                     onCheckedChange = repository::setConfirmExternalNavigation,
+                )
+            }
+            item {
+                SwitchRow(
+                    icon = Icons.Filled.Shield,
+                    title = "Disable safe mode",
+                    subtitle = "Load pages without MediaWiki's safemode restrictions on gadgets and scripts",
+                    checked = disableSafeMode,
+                    onCheckedChange = repository::setDisableSafeMode,
+                )
+            }
+            item {
+                SwitchRow(
+                    icon = Icons.AutoMirrored.Filled.OpenInNew,
+                    title = "Open new-tab links in a real tab",
+                    subtitle = "Links that open in a new window open a new WikiPortal tab instead of replacing the page",
+                    checked = openBlankInNewTab,
+                    onCheckedChange = repository::setOpenBlankInNewTab,
                 )
             }
 
