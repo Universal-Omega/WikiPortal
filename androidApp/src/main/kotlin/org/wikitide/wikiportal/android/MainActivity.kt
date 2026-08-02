@@ -3,6 +3,7 @@ package org.wikitide.wikiportal.android
 import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -12,7 +13,7 @@ import androidx.core.view.WindowCompat
 import org.wikitide.wikiportal.WikiPortalApp
 import org.wikitide.wikiportal.util.AndroidLogExportBridge
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : ComponentActivity() {
     // Registered here, as a property, rather than lazily inside
     // onCreate, since registerForActivityResult must be called before
     // the Activity reaches the started state. AndroidLogExportBridge
