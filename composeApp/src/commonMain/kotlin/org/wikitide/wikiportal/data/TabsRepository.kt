@@ -140,13 +140,24 @@ class TabsRepository(
     fun openTab(site: WikiSite, title: String, openedFromOffline: Boolean = false): String {
         val id = "tab-${nowEpochMillis()}-${Random.nextInt(10_000)}"
         val tab = ArticleTab(id, site.id, site.name, title, createdAtEpochMillis = nowEpochMillis(), openedFromOffline = openedFromOffline)
-        _tabs.update { it + tab }
-        _activeTabId.value = id
-        _activeTabCanGoBack.value = false
-        _materializedTabIds.update { it + id }
-        appScope.launch { store.upsertOpenTab(tab) }
-        persistActiveTabId(id)
+        insertNewTab(tab)
         return id
+    }
+
+    fun openTabForUrl(site: WikiSite, url: String, title: String = site.name): String {
+        val id = "tab-${nowEpochMillis()}-${Random.nextInt(10_000)}"
+        val tab = ArticleTab(id, site.id, site.name, title, createdAtEpochMillis = nowEpochMillis(), currentUrl = url)
+        insertNewTab(tab)
+        return id
+    }
+
+    private fun insertNewTab(tab: ArticleTab) {
+        _tabs.update { it + tab }
+        _activeTabId.value = tab.id
+        _activeTabCanGoBack.value = false
+        _materializedTabIds.update { it + tab.id }
+        appScope.launch { store.upsertOpenTab(tab) }
+        persistActiveTabId(tab.id)
     }
 
     fun setActiveTab(tabId: String) {
