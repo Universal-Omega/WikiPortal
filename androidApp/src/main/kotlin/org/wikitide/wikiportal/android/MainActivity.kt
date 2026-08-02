@@ -59,6 +59,7 @@ class MainActivity : AppCompatActivity() {
                     if (AppCompatDelegate.getDefaultNightMode() != nightMode) {
                         AppCompatDelegate.setDefaultNightMode(nightMode)
                         delegate.applyDayNight()
+                        recreate()
                     }
 
                     val controller = WindowCompat.getInsetsController(window, window.decorView)
