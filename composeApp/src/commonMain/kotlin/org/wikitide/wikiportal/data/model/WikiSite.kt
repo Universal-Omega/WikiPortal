@@ -69,6 +69,15 @@ data class WikiSite(
      * WikiPickerScreen. See AppRepository.moveWikiToFolder.
      */
     val folderId: String? = null,
+    /**
+     * Overrides the app-wide "Disable safe mode" setting on for this
+     * one wiki, without having to turn it on for every wiki. Combined
+     * with the global setting, not a replacement for it, see
+     * ArticleHostScreen's effectiveDisableSafeMode: either one being on
+     * is enough to disable safe mode for this wiki. See
+     * AppRepository.setWikiDisableSafeMode.
+     */
+    val disableSafeMode: Boolean = false,
 ) {
     val apiUrl: String get() = "$baseUrl$scriptPath/api.php"
     val indexUrl: String get() = "$baseUrl$scriptPath/index.php"
@@ -124,6 +133,16 @@ data class WikiSite(
 
 @Serializable
 data class SkinOption(val code: String, val name: String)
+
+/**
+ * Whether safe mode should actually be off for this wiki right now:
+ * either the app-wide "Disable safe mode" setting is on, or this wiki
+ * has its own [WikiSite.disableSafeMode] override on. Either one is
+ * enough; this is never a way to force safe mode back on for a wiki
+ * when the app-wide setting is already disabling it everywhere.
+ */
+fun WikiSite.effectiveDisableSafeMode(globalDisableSafeMode: Boolean): Boolean =
+    globalDisableSafeMode || disableSafeMode
 
 /**
  * Skins this app has actually been tested against and is willing to
