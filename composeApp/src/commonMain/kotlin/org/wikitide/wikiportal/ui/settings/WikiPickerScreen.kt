@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -510,14 +511,13 @@ private fun GroupLabel(text: String) {
  * is skipped by refreshFaviconOnly automatically once it has, since the
  * full refresh already covers favicon as a side effect.
  *
- * A custom wiki's extra actions, changing its skin, moving it to a
- * folder, removing it, sit behind one overflow menu rather than as
- * separate icons in a row, since four icon buttons next to a favicon
- * and two lines of text was cramped enough to be hard to tap
- * accurately. A preset wiki only ever has a skin to change, so it keeps
- * a plain standalone icon instead, see hasExtraActions below. A menu
- * that only ever opens to one item is just an extra tap in front of
- * that same one item.
+ * A wiki's extra actions, changing its skin, toggling safe mode,
+ * moving it to a folder, removing it, sit behind one overflow menu
+ * rather than as separate icons in a row, since that many icon buttons
+ * next to a favicon and two lines of text would be cramped enough to be
+ * hard to tap accurately. Every wiki, preset or custom, has at least a
+ * skin and a safe mode toggle to offer, so this menu is never down to
+ * a single item.
  */
 @Composable
 private fun WikiRow(
@@ -563,42 +563,42 @@ private fun WikiRow(
             )
         }
         if (selected) Icon(Icons.Filled.Check, contentDescription = "Selected", tint = MaterialTheme.colorScheme.primary)
-        val hasExtraActions = onMoveToFolder != null || onRemove != null
-        if (hasExtraActions) {
-            Box {
-                IconButton(onClick = { showMenu = true }) {
-                    Icon(Icons.Filled.MoreVert, contentDescription = "Options for ${wiki.name}")
-                }
-                DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                    DropdownMenuItem(
-                        text = { Text("Change skin") },
-                        leadingIcon = { Icon(Icons.Filled.Palette, contentDescription = null) },
-                        onClick = { showMenu = false; onEditSkin() },
-                    )
-                    if (onMoveToFolder != null) {
-                        DropdownMenuItem(
-                            text = { Text("Move to folder") },
-                            leadingIcon = { Icon(Icons.AutoMirrored.Filled.DriveFileMove, contentDescription = null) },
-                            onClick = { showMenu = false; onMoveToFolder() },
-                        )
-                    }
-                    if (onRemove != null) {
-                        DropdownMenuItem(
-                            text = { Text("Remove") },
-                            leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null) },
-                            onClick = { showMenu = false; onRemove() },
-                        )
-                    }
-                }
+        // Every wiki has at least "Change skin" and "Disable safe mode"
+        // to offer here, custom or preset, so this always goes behind
+        // one overflow menu rather than ever falling back to a single
+        // bare icon.
+        Box {
+            IconButton(onClick = { showMenu = true }) {
+                Icon(Icons.Filled.MoreVert, contentDescription = "Options for ${wiki.name}")
             }
-        } else {
-            // Presets have nothing besides a skin change to offer here,
-            // no move, no remove, so a one item overflow menu would
-            // just be an extra tap hiding the only thing it ever shows.
-            // A plain icon is more honest about there being exactly one
-            // action.
-            IconButton(onClick = onEditSkin) {
-                Icon(Icons.Filled.Palette, contentDescription = "Change skin for ${wiki.name}")
+            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                DropdownMenuItem(
+                    text = { Text("Change skin") },
+                    leadingIcon = { Icon(Icons.Filled.Palette, contentDescription = null) },
+                    onClick = { showMenu = false; onEditSkin() },
+                )
+                DropdownMenuItem(
+                    text = { Text(if (wiki.disableSafeMode) "Enable safe mode" else "Disable safe mode") },
+                    leadingIcon = { Icon(Icons.Filled.Shield, contentDescription = null) },
+                    onClick = {
+                        showMenu = false
+                        repository.setWikiDisableSafeMode(wiki.id, !wiki.disableSafeMode)
+                    },
+                )
+                if (onMoveToFolder != null) {
+                    DropdownMenuItem(
+                        text = { Text("Move to folder") },
+                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.DriveFileMove, contentDescription = null) },
+                        onClick = { showMenu = false; onMoveToFolder() },
+                    )
+                }
+                if (onRemove != null) {
+                    DropdownMenuItem(
+                        text = { Text("Remove") },
+                        leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null) },
+                        onClick = { showMenu = false; onRemove() },
+                    )
+                }
             }
         }
     }
