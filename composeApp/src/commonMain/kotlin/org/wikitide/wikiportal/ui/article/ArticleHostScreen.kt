@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Tab
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -43,6 +44,8 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
@@ -71,6 +74,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -90,6 +94,8 @@ import org.wikitide.wikiportal.data.model.SavedPage
 import org.wikitide.wikiportal.network.MediaWikiApi
 import org.wikitide.wikiportal.network.PageSummaryDto
 import org.wikitide.wikiportal.ui.tabs.TabsScreen
+import org.wikitide.wikiportal.util.ShareOutcome
+import org.wikitide.wikiportal.util.rememberPageSharer
 import org.wikitide.wikiportal.util.offline.captureArticleForOffline
 import org.wikitide.wikiportal.util.offline.offlineLoadIdentityUrl
 import org.wikitide.wikiportal.util.offline.offlineTitlesForWiki
@@ -174,6 +180,10 @@ private fun SingleArticleTab(
     val textScale by repository.textScale.collectAsState()
     val offlineKeys by repository.offlineKeys.collectAsState()
     val confirmExternalNavigation by repository.confirmExternalNavigation.collectAsState()
+    val disableSafeMode by repository.disableSafeMode.collectAsState()
+    val openBlankInNewTab by repository.openBlankInNewTab.collectAsState()
+    val openLinksExternally by repository.openLinksExternally.collectAsState()
+    val uriHandler = LocalUriHandler.current
     val scope = rememberCoroutineScope()
 
     // A link the WebView tried to load that points somewhere outside
@@ -250,6 +260,9 @@ private fun SingleArticleTab(
     // interceptor right away without tearing down and recreating the
     // navigator, which owns the WebView's actual navigation history.
     val confirmExternalNavigationState = rememberUpdatedState(confirmExternalNavigation)
+    val openLinksExternallyState = rememberUpdatedState(openLinksExternally)
+    val openBlankInNewTabState = rememberUpdatedState(openBlankInNewTab)
+    val disableSafeModeState = rememberUpdatedState(disableSafeMode)
     val allWikisState = rememberUpdatedState(allWikis)
     val isOnExternalSiteState = rememberUpdatedState(isOnExternalSite)
     val offlineHtmlState = rememberUpdatedState(offlineHtml)
@@ -288,7 +301,20 @@ private fun SingleArticleTab(
                         else -> allWikisState.value.firstOrNull { url.startsWith(it.baseUrl) }
                     }
 
+                    if (openBlankInNewTabState.value && requestsNewTab(url)) {
+                        val cleanUrl = withoutNewTabMarker(url)
+                        val newTabSite = targetSite ?: site
+                        val newTabTitle = targetSite?.let { extractCanonicalTitle(cleanUrl, it) } ?: newTabSite.name
+                        tabsRepository.openTabForUrl(newTabSite, cleanUrl, newTabTitle)
+                        return WebRequestInterceptResult.Reject
+                    }
+
                     if (targetSite == null) {
+                        if (openLinksExternallyState.value) {
+                            uriHandler.openUri(url)
+                            return WebRequestInterceptResult.Reject
+                        }
+
                         if (isOnExternalSiteState.value || !confirmExternalNavigationState.value) {
                             isOnExternalSite = true
                             return WebRequestInterceptResult.Allow
@@ -310,7 +336,7 @@ private fun SingleArticleTab(
                     // and static assets that have no business carrying a
                     // skin param.
                     if (!isAuthRequest && !looksLikeArticleRequest(url, targetSite)) return WebRequestInterceptResult.Allow
-                    val rewritten = withAppSkin(url, targetSite) ?: return WebRequestInterceptResult.Allow
+                    val rewritten = withAppSkin(url, targetSite, safeMode = !disableSafeModeState.value) ?: return WebRequestInterceptResult.Allow
                     scope.launch { navigator.loadUrl(rewritten) }
                     return WebRequestInterceptResult.Reject
                 }
@@ -489,17 +515,32 @@ private fun SingleArticleTab(
             tab.id, currentTitle, freshSummary?.thumbnail?.source, pageState.displaySiteName.orEmpty(), freshSummary?.extract,
             pageState.url, clearSummary = isOffSiteContent,
         )
-        repository.recordVisit(
-            SavedPage(
-                wikiId = site.id,
-                wikiName = site.name,
-                title = currentTitle,
-                extract = pageSummary?.extract.orEmpty(),
-                thumbnailUrl = pageSummary?.thumbnail?.source,
-                timestampEpochMillis = nowEpochMillis(),
-                url = pageState.url,
-            ),
-        )
+        // Attributed to whichever wiki the page actually is right now,
+        // not necessarily this tab's own site. A page has genuinely
+        // navigated to a different saved wiki when it matches one of
+        // allWikis other than site, and Continue reading on Dashboard
+        // should point back at that wiki, not the one this tab was
+        // originally opened on. Content that matches no known wiki at
+        // all, an outside site or an auth flow, isn't recorded as a
+        // visit to any of them.
+        val visitSite = when {
+            openOfflineFromStart -> site
+            isOffSiteContent -> null
+            else -> allWikis.firstOrNull { pageState.url.startsWith(it.baseUrl) } ?: site
+        }
+        if (visitSite != null) {
+            repository.recordVisit(
+                SavedPage(
+                    wikiId = visitSite.id,
+                    wikiName = visitSite.name,
+                    title = currentTitle,
+                    extract = pageSummary?.extract.orEmpty(),
+                    thumbnailUrl = pageSummary?.thumbnail?.source,
+                    timestampEpochMillis = nowEpochMillis(),
+                    url = pageState.url,
+                ),
+            )
+        }
     }
 
     suspend fun capturePreviewAndRun(action: () -> Unit) {
@@ -511,10 +552,30 @@ private fun SingleArticleTab(
         action()
     }
 
+    // Show "Title - SiteName" only when the current page matches a wiki
+    // we actually know about. Otherwise, for example an external link
+    // followed in this tab, just show the page's own raw title, the
+    // same way an ordinary browser would. There is no reconstructed
+    // suffix for a site we don't have a name for. A page whose title is
+    // already exactly the site's name, for example a wiki's own main
+    // page sharing the wiki's name, skips the suffix entirely rather
+    // than repeating it, e.g. "MediaWiki" rather than "MediaWiki -
+    // MediaWiki".
+    val siteName = pageState.displaySiteName
+    val displayedTitle = when {
+        siteName == null -> pageState.title.ifBlank { currentTitle }
+        currentTitle.equals(siteName, ignoreCase = true) -> siteName
+        currentTitle.endsWith("- $siteName", ignoreCase = true) -> currentTitle
+        else -> "$currentTitle - $siteName"
+    }
+    val sharePage = rememberPageSharer()
+    val snackbarHostState = remember { SnackbarHostState() }
+
     Scaffold(
         contentWindowInsets = WindowInsets(0.dp),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            Column {
+            Box {
                 if (isSearchBarOpen) {
                     TopAppBar(
                         navigationIcon = {
@@ -595,25 +656,6 @@ private fun SingleArticleTab(
                         }
                     },
                     title = {
-                        // Show "Title - SiteName" only when the current
-                        // page matches a wiki we actually know about.
-                        // Otherwise, for example an external link followed
-                        // in this tab, just show the page's own raw
-                        // title, the same way an ordinary browser would.
-                        // There is no reconstructed suffix for a site we
-                        // don't have a name for. A page whose title is
-                        // already exactly the site's name, for example a
-                        // wiki's own main page sharing the wiki's name,
-                        // skips the suffix entirely rather than
-                        // repeating it, e.g. "MediaWiki" rather than
-                        // "MediaWiki - MediaWiki".
-                        val siteName = pageState.displaySiteName
-                        val displayedTitle = when {
-                            siteName == null -> pageState.title.ifBlank { currentTitle }
-                            currentTitle.equals(siteName, ignoreCase = true) -> siteName
-                            currentTitle.endsWith("- $siteName", ignoreCase = true) -> currentTitle
-                            else -> "$currentTitle - $siteName"
-                        }
                         Text(
                             text = displayedTitle,
                             maxLines = 1,
@@ -636,6 +678,28 @@ private fun SingleArticleTab(
                             ) {
                                 Icon(Icons.Filled.Tab, contentDescription = "Tabs")
                             }
+                        }
+
+                        IconButton(
+                            onClick = {
+                                repository.toggleSaved(
+                                    SavedPage(
+                                        wikiId = site.id,
+                                        wikiName = site.name,
+                                        title = currentTitle,
+                                        extract = pageSummary?.extract.orEmpty(),
+                                        thumbnailUrl = pageSummary?.thumbnail?.source,
+                                        timestampEpochMillis = nowEpochMillis(),
+                                        url = pageState.url,
+                                    ),
+                                )
+                            },
+                        ) {
+                            Icon(
+                                imageVector = if (isSaved) Icons.Filled.Bookmark else Icons.Filled.BookmarkBorder,
+                                contentDescription = if (isSaved) "Unsave" else "Save for later",
+                                tint = if (isSaved) MaterialTheme.colorScheme.primary else LocalContentColor.current,
+                            )
                         }
 
                         IconButton(onClick = { isOverflowMenuOpen = true }) {
@@ -685,27 +749,18 @@ private fun SingleArticleTab(
                             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
                             DropdownMenuItem(
-                                text = { Text(if (isSaved) "Unsave" else "Save for later") },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = if (isSaved) Icons.Filled.Bookmark else Icons.Filled.BookmarkBorder,
-                                        contentDescription = null,
-                                        tint = if (isSaved) MaterialTheme.colorScheme.primary else LocalContentColor.current,
-                                    )
-                                },
+                                text = { Text("Share") },
+                                leadingIcon = { Icon(Icons.Filled.Share, contentDescription = null) },
                                 onClick = {
                                     isOverflowMenuOpen = false
-                                    repository.toggleSaved(
-                                        SavedPage(
-                                            wikiId = site.id,
-                                            wikiName = site.name,
-                                            title = currentTitle,
-                                            extract = pageSummary?.extract.orEmpty(),
-                                            thumbnailUrl = pageSummary?.thumbnail?.source,
-                                            timestampEpochMillis = nowEpochMillis(),
-                                            url = pageState.url,
-                                        ),
-                                    )
+                                    scope.launch {
+                                        val outcome = sharePage(displayedTitle, pageState.url)
+                                        if (outcome == ShareOutcome.COPIED_TO_CLIPBOARD) {
+                                            snackbarHostState.showSnackbar("Link copied")
+                                        } else if (outcome == ShareOutcome.FAILED) {
+                                            snackbarHostState.showSnackbar("Couldn't share this page")
+                                        }
+                                    }
                                 },
                             )
 
@@ -747,12 +802,13 @@ private fun SingleArticleTab(
                     // would just be stuck reporting 0 through this whole
                     // phase, which looks like a stall rather than
                     // something actually happening.
+                    val barModifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter)
                     if (openOfflineFromStart && offlineHtml == null) {
-                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                        LinearProgressIndicator(modifier = barModifier)
                     } else {
                         LinearProgressIndicator(
                             progress = { pageState.progress.coerceIn(0, 100) / 100f },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = barModifier,
                         )
                     }
                 }
@@ -776,6 +832,8 @@ private fun SingleArticleTab(
                 allWikis = allWikis,
                 historyNavTrigger = historyNavTrigger,
                 restoreUrl = tab.currentUrl,
+                disableSafeMode = disableSafeMode,
+                openBlankInNewTab = openBlankInNewTab,
                 onWebViewReady = { nativeWebViewRef = it },
                 onStateChanged = { newState -> pageState = newState },
                 modifier = Modifier.fillMaxSize(),
