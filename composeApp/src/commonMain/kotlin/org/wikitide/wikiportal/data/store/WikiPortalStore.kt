@@ -55,6 +55,7 @@ interface WikiPortalStore {
 
     suspend fun history(limit: Int = 200): List<SavedPage>
     suspend fun recordVisit(page: SavedPage)
+    suspend fun removeHistoryEntry(wikiId: String, title: String)
     suspend fun clearHistory()
 
     /**
