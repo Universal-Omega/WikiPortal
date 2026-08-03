@@ -171,6 +171,11 @@ class SqlDelightWikiPortalStore(
         queries.upsertHistoryEntry(page.wikiId, page.wikiName, page.title, page.extract, page.thumbnailUrl, page.timestampEpochMillis, page.url)
     }
 
+    override suspend fun removeHistoryEntry(wikiId: String, title: String) {
+        ensureSchema()
+        queries.deleteHistoryEntry(wikiId, title)
+    }
+
     override suspend fun clearHistory() {
         ensureSchema()
         queries.clearHistory()
