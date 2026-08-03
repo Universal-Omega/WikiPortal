@@ -10,8 +10,11 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
@@ -32,6 +35,7 @@ import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.TabsRepository
 import org.wikitide.wikiportal.data.model.SavedPage
 import org.wikitide.wikiportal.ui.components.ArticleCard
+import org.wikitide.wikiportal.ui.components.DestructiveConfirmDialog
 import org.wikitide.wikiportal.ui.components.OpenTabIndicator
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,14 +52,39 @@ fun SavedScreen(
     val offline by repository.offlineArticles.collectAsState()
     val tabs by tabsRepository.tabs.collectAsState()
     var tab by remember { mutableStateOf(0) }
+    var selectedKeys by remember(tab) { mutableStateOf(setOf<String>()) }
+    var showDeleteSelectedConfirm by remember(tab) { mutableStateOf(false) }
+    val selectionActive = selectedKeys.isNotEmpty()
+    val selectionAllowed = tab != 2
 
     val openKeys = remember(tabs) {
         tabs.map { it.wikiId to it.title }.toSet()
     }
 
+    fun keyOf(page: SavedPage) = page.wikiId + "|" + page.title + page.timestampEpochMillis
+
     Column(Modifier.fillMaxSize()) {
         TopAppBar(
-            title = { Text("Saved", style = MaterialTheme.typography.headlineMedium) },
+            title = {
+                Text(
+                    if (selectionActive) "${selectedKeys.size} selected" else "Saved",
+                    style = MaterialTheme.typography.headlineMedium,
+                )
+            },
+            navigationIcon = {
+                if (selectionActive) {
+                    IconButton(onClick = { selectedKeys = emptySet() }) {
+                        Icon(Icons.Filled.Close, contentDescription = "Cancel selection")
+                    }
+                }
+            },
+            actions = {
+                if (selectionActive) {
+                    IconButton(onClick = { showDeleteSelectedConfirm = true }) {
+                        Icon(Icons.Filled.Delete, contentDescription = "Remove selected")
+                    }
+                }
+            },
             windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
             colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
         )
@@ -85,25 +114,32 @@ fun SavedScreen(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                items(list, key = { it.wikiId + "|" + it.title + it.timestampEpochMillis }) { page: SavedPage ->
+                items(list, key = { keyOf(it) }) { page: SavedPage ->
                     val isOpen = (page.wikiId to page.title) in openKeys
-                    val onDismiss: (() -> Unit)? = when (tab) {
-                        0 -> { { repository.toggleSaved(page) } }
-                        1 -> { { repository.removeOfflineArticle(page.wikiId, page.title) } }
-                        else -> null
-                    }
-                    val dismissLabel = if (tab == 1) "Remove offline copy" else "Remove"
+                    val itemKey = keyOf(page)
+                    val isSelected = itemKey in selectedKeys
                     ArticleCard(
                         title = page.title,
-                        extract = page.wikiName,
+                        extract = page.extract,
                         thumbnailUrl = page.thumbnailUrl,
                         showImages = showImages,
+                        wikiLabel = page.wikiName,
+                        selectionModeActive = selectionAllowed && selectionActive,
+                        selected = isSelected,
                         onClick = {
-                            if (tab == 1) onOfflineArticleClick(page.wikiId, page.title) else onArticleClick(page.wikiId, page.title)
+                            if (selectionAllowed && selectionActive) {
+                                selectedKeys = if (isSelected) selectedKeys - itemKey else selectedKeys + itemKey
+                            } else if (tab == 1) {
+                                onOfflineArticleClick(page.wikiId, page.title)
+                            } else {
+                                onArticleClick(page.wikiId, page.title)
+                            }
                         },
-                        onDismiss = onDismiss,
-                        dismissIcon = Icons.Filled.Delete,
-                        dismissContentDescription = dismissLabel,
+                        onLongClick = if (selectionAllowed) {
+                            { selectedKeys = if (isSelected) selectedKeys - itemKey else selectedKeys + itemKey }
+                        } else {
+                            null
+                        },
                         trailingContent = if (isOpen) {
                             { OpenTabIndicator() }
                         } else {
@@ -113,5 +149,27 @@ fun SavedScreen(
                 }
             }
         }
+    }
+
+    if (showDeleteSelectedConfirm) {
+        val count = selectedKeys.size
+        val confirmText = when (tab) {
+            0 -> if (count == 1) "Remove 1 saved article?" else "Remove $count saved articles?"
+            else -> if (count == 1) "Remove 1 offline copy?" else "Remove $count offline copies?"
+        }
+        DestructiveConfirmDialog(
+            title = confirmText,
+            text = "This can't be undone.",
+            confirmLabel = "Remove",
+            onConfirm = {
+                val source = if (tab == 0) saved else offline
+                val toRemove = source.filter { keyOf(it) in selectedKeys }
+                toRemove.forEach { page ->
+                    if (tab == 0) repository.toggleSaved(page) else repository.removeOfflineArticle(page.wikiId, page.title)
+                }
+                selectedKeys = emptySet()
+            },
+            onDismiss = { showDeleteSelectedConfirm = false },
+        )
     }
 }
