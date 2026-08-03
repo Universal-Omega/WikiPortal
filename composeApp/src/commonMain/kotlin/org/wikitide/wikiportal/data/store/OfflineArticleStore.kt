@@ -12,7 +12,9 @@ class OfflineArticleStore(
     suspend fun save(page: SavedPage, html: String) {
         val fileName = offlineArticleFileName(page.wikiId, page.title)
         files.write(fileName, html)
-        queries.upsertOfflineArticle(page.wikiId, page.wikiName, page.title, page.thumbnailUrl, fileName, page.timestampEpochMillis)
+        queries.upsertOfflineArticle(
+            page.wikiId, page.wikiName, page.title, page.thumbnailUrl, fileName, page.timestampEpochMillis, page.extract,
+        )
     }
 
     suspend fun getHtml(wikiId: String, title: String): String? {
@@ -35,6 +37,7 @@ class OfflineArticleStore(
                 wikiId = it.wikiId,
                 wikiName = it.wikiName,
                 title = it.title,
+                extract = it.extract,
                 thumbnailUrl = it.thumbnailUrl,
                 timestampEpochMillis = it.savedAtEpochMillis,
             )
