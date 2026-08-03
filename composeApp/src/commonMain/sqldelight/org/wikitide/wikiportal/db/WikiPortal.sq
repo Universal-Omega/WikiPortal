@@ -108,6 +108,9 @@ VALUES (?, ?, ?, ?, ?, ?, ?);
 selectRecentHistory:
 SELECT * FROM HistoryEntry ORDER BY visitedAtEpochMillis DESC LIMIT :limit;
 
+deleteHistoryEntry:
+DELETE FROM HistoryEntry WHERE wikiId = ? AND title = ?;
+
 clearHistory:
 DELETE FROM HistoryEntry;
 
