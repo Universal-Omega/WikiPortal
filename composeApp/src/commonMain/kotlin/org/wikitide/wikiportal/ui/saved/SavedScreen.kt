@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -54,8 +55,8 @@ fun SavedScreen(
     var tab by remember { mutableStateOf(0) }
     var selectedKeys by remember(tab) { mutableStateOf(setOf<String>()) }
     var showDeleteSelectedConfirm by remember(tab) { mutableStateOf(false) }
+    var showClearHistoryConfirm by remember { mutableStateOf(false) }
     val selectionActive = selectedKeys.isNotEmpty()
-    val selectionAllowed = tab != 2
 
     val openKeys = remember(tabs) {
         tabs.map { it.wikiId to it.title }.toSet()
@@ -82,6 +83,10 @@ fun SavedScreen(
                 if (selectionActive) {
                     IconButton(onClick = { showDeleteSelectedConfirm = true }) {
                         Icon(Icons.Filled.Delete, contentDescription = "Remove selected")
+                    }
+                } else if (tab == 2 && history.isNotEmpty()) {
+                    IconButton(onClick = { showClearHistoryConfirm = true }) {
+                        Icon(Icons.Filled.DeleteSweep, contentDescription = "Clear history")
                     }
                 }
             },
@@ -124,10 +129,10 @@ fun SavedScreen(
                         thumbnailUrl = page.thumbnailUrl,
                         showImages = showImages,
                         wikiLabel = page.wikiName,
-                        selectionModeActive = selectionAllowed && selectionActive,
+                        selectionModeActive = selectionActive,
                         selected = isSelected,
                         onClick = {
-                            if (selectionAllowed && selectionActive) {
+                            if (selectionActive) {
                                 selectedKeys = if (isSelected) selectedKeys - itemKey else selectedKeys + itemKey
                             } else if (tab == 1) {
                                 onOfflineArticleClick(page.wikiId, page.title)
@@ -135,10 +140,8 @@ fun SavedScreen(
                                 onArticleClick(page.wikiId, page.title)
                             }
                         },
-                        onLongClick = if (selectionAllowed) {
-                            { selectedKeys = if (isSelected) selectedKeys - itemKey else selectedKeys + itemKey }
-                        } else {
-                            null
+                        onLongClick = {
+                            selectedKeys = if (isSelected) selectedKeys - itemKey else selectedKeys + itemKey
                         },
                         trailingContent = if (isOpen) {
                             { OpenTabIndicator() }
@@ -155,21 +158,40 @@ fun SavedScreen(
         val count = selectedKeys.size
         val confirmText = when (tab) {
             0 -> if (count == 1) "Remove 1 saved article?" else "Remove $count saved articles?"
-            else -> if (count == 1) "Remove 1 offline copy?" else "Remove $count offline copies?"
+            1 -> if (count == 1) "Remove 1 offline copy?" else "Remove $count offline copies?"
+            else -> if (count == 1) "Remove 1 history item?" else "Remove $count history items?"
         }
         DestructiveConfirmDialog(
             title = confirmText,
             text = "This can't be undone.",
             confirmLabel = "Remove",
             onConfirm = {
-                val source = if (tab == 0) saved else offline
+                val source = when (tab) {
+                    0 -> saved
+                    1 -> offline
+                    else -> history
+                }
                 val toRemove = source.filter { keyOf(it) in selectedKeys }
                 toRemove.forEach { page ->
-                    if (tab == 0) repository.toggleSaved(page) else repository.removeOfflineArticle(page.wikiId, page.title)
+                    when (tab) {
+                        0 -> repository.toggleSaved(page)
+                        1 -> repository.removeOfflineArticle(page.wikiId, page.title)
+                        else -> repository.removeHistoryEntry(page.wikiId, page.title)
+                    }
                 }
                 selectedKeys = emptySet()
             },
             onDismiss = { showDeleteSelectedConfirm = false },
+        )
+    }
+
+    if (showClearHistoryConfirm) {
+        DestructiveConfirmDialog(
+            title = "Clear history?",
+            text = "This removes every article from your reading history. It can't be undone.",
+            confirmLabel = "Clear",
+            onConfirm = repository::clearHistory,
+            onDismiss = { showClearHistoryConfirm = false },
         )
     }
 }
