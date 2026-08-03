@@ -108,6 +108,9 @@ VALUES (?, ?, ?, ?, ?, ?, ?);
 selectRecentHistory:
 SELECT * FROM HistoryEntry ORDER BY visitedAtEpochMillis DESC LIMIT :limit;
 
+deleteHistoryEntry:
+DELETE FROM HistoryEntry WHERE wikiId = ? AND title = ?;
+
 clearHistory:
 DELETE FROM HistoryEntry;
 
@@ -118,12 +121,13 @@ CREATE TABLE IF NOT EXISTS OfflineArticle (
     thumbnailUrl TEXT,
     htmlFileName TEXT NOT NULL,
     savedAtEpochMillis INTEGER NOT NULL,
+    extract TEXT NOT NULL DEFAULT '',
     PRIMARY KEY (wikiId, title)
 );
 
 upsertOfflineArticle:
-INSERT OR REPLACE INTO OfflineArticle(wikiId, wikiName, title, thumbnailUrl, htmlFileName, savedAtEpochMillis)
-VALUES (?, ?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO OfflineArticle(wikiId, wikiName, title, thumbnailUrl, htmlFileName, savedAtEpochMillis, extract)
+VALUES (?, ?, ?, ?, ?, ?, ?);
 
 getOfflineArticleFileName:
 SELECT htmlFileName FROM OfflineArticle WHERE wikiId = ? AND title = ?;
@@ -135,7 +139,7 @@ selectAllOfflineArticleKeys:
 SELECT wikiId, title FROM OfflineArticle;
 
 selectAllOfflineArticles:
-SELECT wikiId, wikiName, title, thumbnailUrl, savedAtEpochMillis FROM OfflineArticle ORDER BY savedAtEpochMillis DESC;
+SELECT wikiId, wikiName, title, thumbnailUrl, savedAtEpochMillis, extract FROM OfflineArticle ORDER BY savedAtEpochMillis DESC;
 
 -- Only ever populated on the web target. Real platforms (Android,
 -- desktop, iOS) store offline article HTML as actual files instead.

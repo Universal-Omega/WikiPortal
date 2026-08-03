@@ -1,0 +1,1 @@
+ALTER TABLE OfflineArticle ADD COLUMN extract TEXT NOT NULL DEFAULT '';

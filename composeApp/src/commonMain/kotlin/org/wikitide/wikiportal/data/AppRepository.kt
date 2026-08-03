@@ -515,6 +515,11 @@ class AppRepository(
         appScope.launch { store.recordVisit(page) }
     }
 
+    fun removeHistoryEntry(wikiId: String, title: String) {
+        _history.update { list -> list.filterNot { it.wikiId == wikiId && it.title == title } }
+        appScope.launch { store.removeHistoryEntry(wikiId, title) }
+    }
+
     fun clearHistory() {
         _history.value = emptyList()
         appScope.launch { store.clearHistory() }

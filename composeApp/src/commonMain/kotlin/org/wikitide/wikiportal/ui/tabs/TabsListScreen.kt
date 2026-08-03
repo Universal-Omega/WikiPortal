@@ -18,6 +18,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -55,17 +57,40 @@ fun TabsListScreen(
     val previews by tabsRepository.previews.collectAsState()
     val listState = rememberLazyListState()
     var showCloseAllConfirm by remember { mutableStateOf(false) }
+    var showDeleteSelectedConfirm by remember { mutableStateOf(false) }
+    var selectedIds by remember { mutableStateOf(setOf<String>()) }
+    val selectionActive = selectedIds.isNotEmpty()
 
     LaunchedEffect(activeTabId) {
         val index = tabs.indexOfFirst { it.id == activeTabId }
         if (index >= 0) listState.animateScrollToItem(index)
     }
 
+    LaunchedEffect(tabs) {
+        selectedIds = selectedIds.filter { id -> tabs.any { it.id == id } }.toSet()
+    }
+
     Column(Modifier.fillMaxSize()) {
         TopAppBar(
-            title = { Text("Tabs", style = MaterialTheme.typography.headlineMedium) },
+            title = {
+                Text(
+                    if (selectionActive) "${selectedIds.size} selected" else "Tabs",
+                    style = MaterialTheme.typography.headlineMedium,
+                )
+            },
+            navigationIcon = {
+                if (selectionActive) {
+                    IconButton(onClick = { selectedIds = emptySet() }) {
+                        Icon(Icons.Filled.Close, contentDescription = "Cancel selection")
+                    }
+                }
+            },
             actions = {
-                if (tabs.isNotEmpty()) {
+                if (selectionActive) {
+                    IconButton(onClick = { showDeleteSelectedConfirm = true }) {
+                        Icon(Icons.Filled.Delete, contentDescription = "Close selected tabs")
+                    }
+                } else if (tabs.isNotEmpty()) {
                     IconButton(onClick = { showCloseAllConfirm = true }) {
                         Icon(Icons.Filled.DeleteSweep, contentDescription = "Close all tabs")
                     }
@@ -87,6 +112,7 @@ fun TabsListScreen(
             ) {
                 items(tabs, key = { it.id }) { tab ->
                     val isActive = tab.id == activeTabId
+                    val isSelected = tab.id in selectedIds
                     ArticleCard(
                         title = tab.title,
                         extract = tab.extract.orEmpty(),
@@ -94,14 +120,23 @@ fun TabsListScreen(
                         showImages = showImages,
                         previewBitmap = previews[tab.id],
                         wikiLabel = tab.wikiName.takeIf { it.isNotBlank() },
+                        selectionModeActive = selectionActive,
+                        selected = isSelected,
                         modifier = if (isActive) {
                             Modifier.border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary), RoundedCornerShape(12.dp))
                         } else {
                             Modifier
                         },
-                        onClick = { onOpenTab(tab.wikiId, tab.title) },
-                        onDismiss = { tabsRepository.closeTab(tab.id) },
-                        dismissContentDescription = "Close tab",
+                        onClick = {
+                            if (selectionActive) {
+                                selectedIds = if (isSelected) selectedIds - tab.id else selectedIds + tab.id
+                            } else {
+                                onOpenTab(tab.wikiId, tab.title)
+                            }
+                        },
+                        onLongClick = {
+                            selectedIds = if (isSelected) selectedIds - tab.id else selectedIds + tab.id
+                        },
                         trailingContent = if (isActive) {
                             {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -135,6 +170,20 @@ fun TabsListScreen(
             confirmLabel = "Close all",
             onConfirm = tabsRepository::closeAllTabs,
             onDismiss = { showCloseAllConfirm = false },
+        )
+    }
+
+    if (showDeleteSelectedConfirm) {
+        val count = selectedIds.size
+        DestructiveConfirmDialog(
+            title = if (count == 1) "Close 1 tab?" else "Close $count tabs?",
+            text = "This can't be undone.",
+            confirmLabel = "Close",
+            onConfirm = {
+                selectedIds.forEach { id -> tabsRepository.closeTab(id) }
+                selectedIds = emptySet()
+            },
+            onDismiss = { showDeleteSelectedConfirm = false },
         )
     }
 }
