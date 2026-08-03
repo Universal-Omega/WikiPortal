@@ -913,6 +913,7 @@ private fun SingleArticleTab(
                     wikiId = site.id,
                     wikiName = site.name,
                     title = currentTitle,
+                    extract = pageSummary?.extract.orEmpty(),
                     thumbnailUrl = pageSummary?.thumbnail?.source,
                     timestampEpochMillis = nowEpochMillis(),
                 ),
