@@ -3,6 +3,7 @@ package org.wikitide.wikiportal.network
 import org.wikitide.wikiportal.data.model.SkinOption
 import org.wikitide.wikiportal.data.model.WikiSite
 import org.wikitide.wikiportal.data.model.WikiSkins
+import org.wikitide.wikiportal.data.model.skinIsUnset
 
 /**
  * Script paths tried, in order, when probing a wiki whose script path
@@ -112,21 +113,69 @@ fun deriveUncuratedDefaultSkin(skins: List<SkinInfoDto>): SkinOption? {
 }
 
 /**
- * What [site]'s skin should be, given what the wiki itself reports.
- * This only ever touches [site.skin] at all when nobody has ever
- * actually chosen one, meaning neither a preset author, still at
- * [WikiSite.DEFAULT_SKIN] and never overridden, nor the person
+ * The wiki's real main page title, straight off general.mainpage,
+ * falling back to MediaWiki's own "Main Page" default whenever
+ * siteinfo reports it blank or missing entirely.
+ */
+fun deriveMainPageTitle(mainpage: String?): String = mainpage?.takeIf { it.isNotBlank() } ?: "Main Page"
+
+/**
+ * [rawSkinCode] looked up against [curatedSkins] by code, or null if
+ * it isn't one of them. Shared by WikiMetadataRefresher and
+ * AddWikiViewModel's use of MediaWikiApi.getMobileDefaultSkin, since
+ * both need the same "only keep it if this app actually supports it"
+ * check on the raw code that call reads back out of a page's body
+ * class, before it's fit to hand to [resolveDefaultSkin].
+ */
+fun matchCuratedSkin(rawSkinCode: String?, curatedSkins: List<SkinOption>?): SkinOption? =
+    rawSkinCode?.let { code -> curatedSkins?.firstOrNull { it.code == code } }
+
+private val BODY_TAG_REGEX = Regex("""<body\b[^>]*>""", RegexOption.IGNORE_CASE)
+private val CLASS_ATTR_REGEX = Regex("""class\s*=\s*["']([^"']+)["']""", RegexOption.IGNORE_CASE)
+private val SKIN_CLASS_TOKEN_REGEX = Regex("""^skin-(.+)$""")
+
+/**
+ * The skin actually rendering this page, read back out of the body
+ * tag's own skin-$name class, which is the class every MediaWiki skin's
+ * base template writes regardless of which skin it is. This is the
+ * only place a wiki's real active skin is observable at all. Siteinfo
+ * only reports the desktop default, not whatever a phone visiting the
+ * same page might genuinely get switched to by MobileFrontend, see
+ * MediaWikiApi.getMobileDefaultSkin. Returns null if there is no body
+ * tag, no class attribute on it, or no skin-$name token inside that
+ * attribute.
+ */
+fun parseSkinFromBodyClass(html: String): String? {
+    val bodyTag = BODY_TAG_REGEX.find(html)?.value ?: return null
+    val classAttr = CLASS_ATTR_REGEX.find(bodyTag)?.groupValues?.get(1) ?: return null
+    return classAttr.trim().split(Regex("""\s+"""))
+        .firstNotNullOfOrNull { token -> SKIN_CLASS_TOKEN_REGEX.find(token)?.groupValues?.get(1) }
+}
+
+/**
+ * What [site]'s skin should be, given what the wiki itself reports,
+ * and, when it was actually checked, what the wiki genuinely renders
+ * for a phone. This only ever touches [site.skin] at all when nobody
+ * has ever actually chosen one, meaning neither a preset author, still
+ * at [WikiSite.DEFAULT_SKIN] and never overridden, nor the person
  * themselves, see [WikiSite.skinIsUserSet].
  *
- * In that case, this prefers the wiki's own reported default,
- * [wikiDefaultSkin], whenever it's one of this app's curated skins,
- * over this app's own generic fallback.
+ * In that case, [detectedMobileSkin], from
+ * MediaWikiApi.getMobileDefaultSkin and [parseSkinFromBodyClass], wins
+ * first, whenever it is one of [curatedSkins]. A wiki with
+ * MobileFrontend installed and autodetection on can serve a
+ * completely different skin to a phone than whatever it declares as
+ * its desktop default, minerva being the common case, and there is no
+ * siteinfo field for that, only this actual observed render.
  *
- * [curatedSkins] is the wiki's full curated intersection, see
- * [deriveAvailableSkins]. When that comes back
- * genuinely empty, meaning the wiki has nothing curated installed at
- * all, not even [WikiSite.DEFAULT_SKIN] itself, this instead falls
- * back to [uncuratedDefaultSkin], uncurated as it is. Leaving
+ * Failing that, this falls back to prefer the wiki's own reported
+ * default, [wikiDefaultSkin], whenever it's one of this app's
+ * curated skins, over this app's own generic fallback.
+ * [curatedSkins] is the wiki's full curated intersection,
+ * see [deriveAvailableSkins]. When that comes back genuinely empty,
+ * meaning the wiki has nothing curated installed at all, not even
+ * [WikiSite.DEFAULT_SKIN] itself, this instead falls back to
+ * [uncuratedDefaultSkin], uncurated as it is. Leaving
  * [WikiSite.DEFAULT_SKIN] selected in that case would be inaccurate.
  */
 fun resolveDefaultSkin(
@@ -134,9 +183,10 @@ fun resolveDefaultSkin(
     wikiDefaultSkin: SkinOption?,
     uncuratedDefaultSkin: SkinOption?,
     curatedSkins: List<SkinOption>?,
+    detectedMobileSkin: SkinOption? = null,
 ): String {
-    val stillUnset = !site.skinIsUserSet && site.skin == WikiSite.DEFAULT_SKIN
-    if (!stillUnset) return site.skin
+    if (!site.skinIsUnset) return site.skin
+    if (detectedMobileSkin != null) return detectedMobileSkin.code
     if (wikiDefaultSkin != null) return wikiDefaultSkin.code
     if (curatedSkins != null && curatedSkins.isEmpty() && uncuratedDefaultSkin != null) return uncuratedDefaultSkin.code
     return site.skin

@@ -30,8 +30,8 @@ minSdk = "26"
 compileSdk = "37"
 targetSdk = "37"
 
-versionCode = "6"
-versionName = "1.0.4"
+versionCode = "7"
+versionName = "1.0.5"
 
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidxActivityCompose" }

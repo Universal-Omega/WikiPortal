@@ -9,15 +9,19 @@ import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.IndieWikiDirectory
 import org.wikitide.wikiportal.data.model.SkinOption
 import org.wikitide.wikiportal.data.model.WikiSite
+import org.wikitide.wikiportal.data.model.skinIsUnset
 import org.wikitide.wikiportal.network.COMMON_SCRIPT_PATHS
 import org.wikitide.wikiportal.network.MediaWikiApi
 import org.wikitide.wikiportal.network.deriveArticlePathPrefix
 import org.wikitide.wikiportal.network.deriveAvailableSkins
+import org.wikitide.wikiportal.network.deriveMainPageTitle
 import org.wikitide.wikiportal.network.deriveUncuratedDefaultSkin
 import org.wikitide.wikiportal.network.deriveWikiDefaultSkin
+import org.wikitide.wikiportal.network.matchCuratedSkin
 import org.wikitide.wikiportal.network.resolveDefaultSkin
 import org.wikitide.wikiportal.network.resolveFaviconUrl
 import org.wikitide.wikiportal.util.AppLog
+import org.wikitide.wikiportal.util.isMobilePlatform
 
 /** An independent wiki Indie Wiki Buddy knows replaces whatever was actually typed in, offered before resolution proceeds. */
 data class IndieWikiSuggestion(
@@ -125,6 +129,7 @@ class AddWikiViewModel(
         var sitename: String? = null
         var lang: String? = null
         var articlePathPrefix: String? = null
+        var mainPageTitle: String? = null
         var faviconUrl: String? = null
         var availableSkins: List<SkinOption>? = null
         var uncuratedDefaultSkin: SkinOption? = null
@@ -153,6 +158,7 @@ class AddWikiViewModel(
                 sitename = info.sitename
                 lang = info.lang
                 articlePathPrefix = deriveArticlePathPrefix(candidate.baseUrl, info.articlepath)
+                mainPageTitle = deriveMainPageTitle(info.mainpage)
                 mainPageIsDomainRoot = info.mainpageisdomainroot
                 faviconUrl = resolveFaviconUrl(info.favicon, candidate.baseUrl)
                     ?: api.getFaviconUrlFromHtml(candidate).getOrNull()
@@ -176,15 +182,30 @@ class AddWikiViewModel(
             }
             _state.value = AddWikiUiState(errorMessage = message, showScriptPathField = true)
         } else {
+            // resolvedSite always still has the unset skin defaults
+            // here, since this only runs once, the first time this
+            // wiki is added. articlePathPrefix isn't on resolvedSite
+            // itself yet, only in the local var above, hence the copy
+            // here rather than passing resolvedSite as is. Also only
+            // worth doing on a phone or tablet in the first place, see
+            // isMobilePlatform. See MediaWikiApi.getMobileDefaultSkin.
+            val detectedMobileSkinCode = if (resolvedSite.skinIsUnset && isMobilePlatform()) {
+                val siteForMobileCheck = resolvedSite.copy(articlePathPrefix = articlePathPrefix)
+                api.getMobileDefaultSkin(siteForMobileCheck, mainPageTitle).getOrNull()
+            } else {
+                null
+            }
+            val detectedMobileSkin = matchCuratedSkin(detectedMobileSkinCode, availableSkins)
             repository.setActiveWiki(
                 resolvedSite.copy(
                     id = "${resolvedSite.id}-${lang.orEmpty()}",
                     name = sitename,
                     articlePathPrefix = articlePathPrefix,
+                    mainPageTitle = mainPageTitle,
                     discoveredFaviconUrl = faviconUrl,
                     availableSkins = availableSkins,
                     uncuratedDefaultSkin = uncuratedDefaultSkin,
-                    skin = resolveDefaultSkin(resolvedSite, wikiDefaultSkin, uncuratedDefaultSkin, availableSkins),
+                    skin = resolveDefaultSkin(resolvedSite, wikiDefaultSkin, uncuratedDefaultSkin, availableSkins, detectedMobileSkin),
                     mainPageIsDomainRoot = mainPageIsDomainRoot,
                 ),
             )

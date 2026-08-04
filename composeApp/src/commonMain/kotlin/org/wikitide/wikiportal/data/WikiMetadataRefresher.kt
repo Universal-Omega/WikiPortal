@@ -1,14 +1,18 @@
 package org.wikitide.wikiportal.data
 
 import org.wikitide.wikiportal.data.model.WikiSite
+import org.wikitide.wikiportal.data.model.skinIsUnset
 import org.wikitide.wikiportal.network.COMMON_SCRIPT_PATHS
 import org.wikitide.wikiportal.network.MediaWikiApi
 import org.wikitide.wikiportal.network.deriveArticlePathPrefix
 import org.wikitide.wikiportal.network.deriveAvailableSkins
+import org.wikitide.wikiportal.network.deriveMainPageTitle
 import org.wikitide.wikiportal.network.deriveUncuratedDefaultSkin
 import org.wikitide.wikiportal.network.deriveWikiDefaultSkin
+import org.wikitide.wikiportal.network.matchCuratedSkin
 import org.wikitide.wikiportal.network.resolveDefaultSkin
 import org.wikitide.wikiportal.network.resolveFaviconUrl
+import org.wikitide.wikiportal.util.isMobilePlatform
 
 /**
  * A wiki's script path, article path prefix, favicon location, and set
@@ -36,14 +40,13 @@ import org.wikitide.wikiportal.network.resolveFaviconUrl
  *
  * [WikiSite.skin], the person's actual choice of skin once they've made
  * one, is never overwritten here. See [resolveDefaultSkin]'s comment
- * for the one narrow exception, where nobody has ever actually chosen
- * anything and the wiki reports a better default than this app's own
- * generic fallback. [WikiSite.availableSkins], meaning which choices
- * are even offered, is a fully separate, always-refreshed concern.
- * There is no reliable siteinfo signal for "which skin renders best on
- * mobile", so the choice itself is never a discoverable fact, but which
- * skins genuinely exist on the wiki right now is one, siprop=skins, and
- * refreshing that list is exactly the same kind of staleness problem as
+ * for the narrow exception, where nobody has ever actually chosen
+ * anything and either the wiki's own reported default, or what it
+ * genuinely renders for a phone, see MediaWikiApi.getMobileDefaultSkin,
+ * is better than this app's own generic fallback. [WikiSite.availableSkins],
+ * meaning which choices are even offered, is a fully separate,
+ * always-refreshed concern, from the same siprop=skins data, and
+ * refreshing it is exactly the same kind of staleness problem as
  * articlePathPrefix or favicon.
  *
  * The same siteinfo call also reports the wiki's current main page
@@ -100,10 +103,25 @@ class WikiMetadataRefresher(private val api: MediaWikiApi) {
 
         val curatedSkins = deriveAvailableSkins(resolvedQuery.skins)
         val uncuratedDefault = deriveUncuratedDefaultSkin(resolvedQuery.skins)
+        val resolvedArticlePathPrefix = deriveArticlePathPrefix(site.baseUrl, resolved.articlepath)
+        val resolvedMainPageTitle = deriveMainPageTitle(resolved.mainpage)
+        // Only actually fetched when nobody has chosen a skin yet, the
+        // one case resolveDefaultSkin can even use it for, and only on
+        // a phone or tablet in the first place, see isMobilePlatform.
+        // Built on this round's own scriptPath and articlePathPrefix,
+        // not site's old ones, in case either just changed. See
+        // MediaWikiApi.getMobileDefaultSkin.
+        val detectedMobileSkinCode = if (site.skinIsUnset && isMobilePlatform()) {
+            val siteForMobileCheck = site.copy(scriptPath = workingScriptPath, articlePathPrefix = resolvedArticlePathPrefix)
+            api.getMobileDefaultSkin(siteForMobileCheck, resolvedMainPageTitle).getOrNull()
+        } else {
+            null
+        }
+        val detectedMobileSkin = matchCuratedSkin(detectedMobileSkinCode, curatedSkins)
         return site.copy(
             name = sitename,
             scriptPath = workingScriptPath,
-            articlePathPrefix = deriveArticlePathPrefix(site.baseUrl, resolved.articlepath),
+            articlePathPrefix = resolvedArticlePathPrefix,
             discoveredFaviconUrl = resolveFavicon(resolved.favicon, site),
             // This falls back to whatever is already cached, not null or
             // empty, if this particular probe came back empty. See
@@ -116,10 +134,10 @@ class WikiMetadataRefresher(private val api: MediaWikiApi) {
             uncuratedDefaultSkin = uncuratedDefault ?: site.uncuratedDefaultSkin,
             // resolveDefaultSkin leaves site.skin untouched in every
             // case except when nobody has ever chosen one. See its
-            // own comment for the two different ways it can still
-            // change in that case.
-            skin = resolveDefaultSkin(site, deriveWikiDefaultSkin(resolvedQuery.skins), uncuratedDefault, curatedSkins),
-            mainPageTitle = resolved.mainpage?.takeIf { it.isNotBlank() } ?: "Main Page",
+            // own comment for the different ways it can still change
+            // in that case.
+            skin = resolveDefaultSkin(site, deriveWikiDefaultSkin(resolvedQuery.skins), uncuratedDefault, curatedSkins, detectedMobileSkin),
+            mainPageTitle = resolvedMainPageTitle,
             mainPageIsDomainRoot = resolved.mainpageisdomainroot,
         )
     }

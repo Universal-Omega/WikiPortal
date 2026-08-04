@@ -144,6 +144,9 @@ data class SkinOption(val code: String, val name: String)
 fun WikiSite.effectiveDisableSafeMode(globalDisableSafeMode: Boolean): Boolean =
     globalDisableSafeMode || disableSafeMode
 
+val WikiSite.skinIsUnset: Boolean
+    get() = !skinIsUserSet && skin == WikiSite.DEFAULT_SKIN
+
 /**
  * Skins this app has actually been tested against and is willing to
  * offer in the "Change skin" picker, see WikiPickerScreen. This is a
