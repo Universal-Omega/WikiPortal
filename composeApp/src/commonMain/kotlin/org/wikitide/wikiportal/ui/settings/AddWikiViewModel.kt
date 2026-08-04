@@ -125,6 +125,7 @@ class AddWikiViewModel(
         var sitename: String? = null
         var lang: String? = null
         var articlePathPrefix: String? = null
+        var mainPageTitle: String? = null
         var faviconUrl: String? = null
         var availableSkins: List<SkinOption>? = null
         var uncuratedDefaultSkin: SkinOption? = null
@@ -153,6 +154,7 @@ class AddWikiViewModel(
                 sitename = info.sitename
                 lang = info.lang
                 articlePathPrefix = deriveArticlePathPrefix(candidate.baseUrl, info.articlepath)
+                mainPageTitle = info.mainpage?.takeIf { it.isNotBlank() } ?: "Main Page"
                 mainPageIsDomainRoot = info.mainpageisdomainroot
                 faviconUrl = resolveFaviconUrl(info.favicon, candidate.baseUrl)
                     ?: api.getFaviconUrlFromHtml(candidate).getOrNull()
@@ -176,6 +178,20 @@ class AddWikiViewModel(
             }
             _state.value = AddWikiUiState(errorMessage = message, showScriptPathField = true)
         } else {
+            // resolvedSite always still has the unset skin defaults
+            // here, since this only runs once, the first time this
+            // wiki is added. articlePathPrefix isn't on resolvedSite
+            // itself yet, only in the local var above, hence the copy
+            // here rather than passing resolvedSite as is. See
+            // MediaWikiApi.getMobileDefaultSkin.
+            val siteForMobileCheck = resolvedSite.copy(articlePathPrefix = articlePathPrefix)
+            val detectedMobileSkinCode = api.getMobileDefaultSkin(siteForMobileCheck, mainPageTitle).getOrNull()
+            // Only kept if it's actually one of this app's curated
+            // skins. There's nothing to fall back to render wise for a
+            // code this app doesn't support, so resolveDefaultSkin
+            // treats a null here the same as never having checked at
+            // all.
+            val detectedMobileSkin = availableSkins?.firstOrNull { it.code == detectedMobileSkinCode }
             repository.setActiveWiki(
                 resolvedSite.copy(
                     id = "${resolvedSite.id}-${lang.orEmpty()}",
@@ -184,7 +200,7 @@ class AddWikiViewModel(
                     discoveredFaviconUrl = faviconUrl,
                     availableSkins = availableSkins,
                     uncuratedDefaultSkin = uncuratedDefaultSkin,
-                    skin = resolveDefaultSkin(resolvedSite, wikiDefaultSkin, uncuratedDefaultSkin, availableSkins),
+                    skin = resolveDefaultSkin(resolvedSite, wikiDefaultSkin, uncuratedDefaultSkin, availableSkins, detectedMobileSkin),
                     mainPageIsDomainRoot = mainPageIsDomainRoot,
                 ),
             )
