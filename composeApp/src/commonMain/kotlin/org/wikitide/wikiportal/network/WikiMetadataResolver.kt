@@ -3,6 +3,7 @@ package org.wikitide.wikiportal.network
 import org.wikitide.wikiportal.data.model.SkinOption
 import org.wikitide.wikiportal.data.model.WikiSite
 import org.wikitide.wikiportal.data.model.WikiSkins
+import org.wikitide.wikiportal.data.model.skinIsUnset
 
 /**
  * Script paths tried, in order, when probing a wiki whose script path
@@ -111,6 +112,24 @@ fun deriveUncuratedDefaultSkin(skins: List<SkinInfoDto>): SkinOption? {
     return SkinOption(reportedDefault.code, reportedDefault.name.ifBlank { reportedDefault.code })
 }
 
+/**
+ * The wiki's real main page title, straight off general.mainpage,
+ * falling back to MediaWiki's own "Main Page" default whenever
+ * siteinfo reports it blank or missing entirely.
+ */
+fun deriveMainPageTitle(mainpage: String?): String = mainpage?.takeIf { it.isNotBlank() } ?: "Main Page"
+
+/**
+ * [rawSkinCode] looked up against [curatedSkins] by code, or null if
+ * it isn't one of them. Shared by WikiMetadataRefresher and
+ * AddWikiViewModel's use of MediaWikiApi.getMobileDefaultSkin, since
+ * both need the same "only keep it if this app actually supports it"
+ * check on the raw code that call reads back out of a page's body
+ * class, before it's fit to hand to [resolveDefaultSkin].
+ */
+fun matchCuratedSkin(rawSkinCode: String?, curatedSkins: List<SkinOption>?): SkinOption? =
+    rawSkinCode?.let { code -> curatedSkins?.firstOrNull { it.code == code } }
+
 private val BODY_TAG_REGEX = Regex("""<body\b[^>]*>""", RegexOption.IGNORE_CASE)
 private val CLASS_ATTR_REGEX = Regex("""class\s*=\s*["']([^"']+)["']""", RegexOption.IGNORE_CASE)
 private val SKIN_CLASS_TOKEN_REGEX = Regex("""^skin-(.+)$""")
@@ -166,8 +185,7 @@ fun resolveDefaultSkin(
     curatedSkins: List<SkinOption>?,
     detectedMobileSkin: SkinOption? = null,
 ): String {
-    val stillUnset = !site.skinIsUserSet && site.skin == WikiSite.DEFAULT_SKIN
-    if (!stillUnset) return site.skin
+    if (!site.skinIsUnset) return site.skin
     if (detectedMobileSkin != null) return detectedMobileSkin.code
     if (wikiDefaultSkin != null) return wikiDefaultSkin.code
     if (curatedSkins != null && curatedSkins.isEmpty() && uncuratedDefaultSkin != null) return uncuratedDefaultSkin.code
