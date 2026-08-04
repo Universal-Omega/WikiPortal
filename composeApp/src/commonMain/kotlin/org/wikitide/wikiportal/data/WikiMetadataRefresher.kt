@@ -1,14 +1,18 @@
 package org.wikitide.wikiportal.data
 
 import org.wikitide.wikiportal.data.model.WikiSite
+import org.wikitide.wikiportal.data.model.skinIsUnset
 import org.wikitide.wikiportal.network.COMMON_SCRIPT_PATHS
 import org.wikitide.wikiportal.network.MediaWikiApi
 import org.wikitide.wikiportal.network.deriveArticlePathPrefix
 import org.wikitide.wikiportal.network.deriveAvailableSkins
+import org.wikitide.wikiportal.network.deriveMainPageTitle
 import org.wikitide.wikiportal.network.deriveUncuratedDefaultSkin
 import org.wikitide.wikiportal.network.deriveWikiDefaultSkin
+import org.wikitide.wikiportal.network.matchCuratedSkin
 import org.wikitide.wikiportal.network.resolveDefaultSkin
 import org.wikitide.wikiportal.network.resolveFaviconUrl
+import org.wikitide.wikiportal.util.isMobilePlatform
 
 /**
  * A wiki's script path, article path prefix, favicon location, and set
@@ -100,24 +104,20 @@ class WikiMetadataRefresher(private val api: MediaWikiApi) {
         val curatedSkins = deriveAvailableSkins(resolvedQuery.skins)
         val uncuratedDefault = deriveUncuratedDefaultSkin(resolvedQuery.skins)
         val resolvedArticlePathPrefix = deriveArticlePathPrefix(site.baseUrl, resolved.articlepath)
-        val resolvedMainPageTitle = resolved.mainpage?.takeIf { it.isNotBlank() } ?: "Main Page"
+        val resolvedMainPageTitle = deriveMainPageTitle(resolved.mainpage)
         // Only actually fetched when nobody has chosen a skin yet, the
-        // one case resolveDefaultSkin can even use it for. Built on
-        // this round's own scriptPath and articlePathPrefix, not
-        // site's old ones, in case either just changed. See
+        // one case resolveDefaultSkin can even use it for, and only on
+        // a phone or tablet in the first place, see isMobilePlatform.
+        // Built on this round's own scriptPath and articlePathPrefix,
+        // not site's old ones, in case either just changed. See
         // MediaWikiApi.getMobileDefaultSkin.
-        val skinStillUnset = !site.skinIsUserSet && site.skin == WikiSite.DEFAULT_SKIN
-        val detectedMobileSkinCode = if (skinStillUnset) {
+        val detectedMobileSkinCode = if (site.skinIsUnset && isMobilePlatform()) {
             val siteForMobileCheck = site.copy(scriptPath = workingScriptPath, articlePathPrefix = resolvedArticlePathPrefix)
             api.getMobileDefaultSkin(siteForMobileCheck, resolvedMainPageTitle).getOrNull()
         } else {
             null
         }
-        // Only kept if it's actually one of this app's curated skins.
-        // There's nothing to fall back to render wise for a code this
-        // app doesn't support, so resolveDefaultSkin treats a null
-        // here the same as never having checked at all.
-        val detectedMobileSkin = curatedSkins?.firstOrNull { it.code == detectedMobileSkinCode }
+        val detectedMobileSkin = matchCuratedSkin(detectedMobileSkinCode, curatedSkins)
         return site.copy(
             name = sitename,
             scriptPath = workingScriptPath,
