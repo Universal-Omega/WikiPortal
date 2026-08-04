@@ -16,6 +16,7 @@ import org.wikitide.wikiportal.network.MediaWikiApi
 import org.wikitide.wikiportal.network.PageSummaryDto
 import org.wikitide.wikiportal.network.RecentChangeEntry
 import org.wikitide.wikiportal.network.TrendingArticle
+import org.wikitide.wikiportal.network.deriveMainPageTitle
 import org.wikitide.wikiportal.network.friendlyNetworkErrorMessage
 import org.wikitide.wikiportal.util.AppLog
 
@@ -133,14 +134,13 @@ class FeedViewModel(
         // This only hits the network if this wiki's main page title
         // isn't already cached, see WikiSite.mainPageTitle. It's saved
         // across sessions, and also kept fresh by WikiMetadataRefresher
-        // during its own revalidation. In practice this fires at most
-        // once ever per wiki, not once per Feed visit or
-        // pull-to-refresh like before.
+        // during its own revalidation, and set right away by
+        // AddWikiViewModel for a newly added wiki, so in practice this
+        // almost never fires at all.
         if (wiki.mainPageTitle == null) {
             viewModelScope.launch {
                 val info = api.getSiteInfo(wiki).getOrNull()?.general
-                val title = info?.mainpage?.takeIf { it.isNotBlank() } ?: "Main Page"
-                repository.updateMainPageTitle(wiki.id, title)
+                repository.updateMainPageTitle(wiki.id, deriveMainPageTitle(info?.mainpage))
             }
         }
         // Whichever trending source, if any, applies to this wiki. See
