@@ -6,6 +6,7 @@ import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 import io.ktor.client.statement.request
 import io.ktor.http.HttpHeaders
+import io.ktor.http.URLBuilder
 import org.wikitide.wikiportal.data.model.WikiSite
 import org.wikitide.wikiportal.util.AppLog
 
@@ -93,6 +94,15 @@ class MediaWikiApi(
         parseFaviconFromHtml(html, site.baseUrl)
     }.onFailure {
         AppLog.e("MediaWikiApi", "getFaviconUrlFromHtml(${site.indexUrl}) failed", it)
+    }
+
+    suspend fun getMobileDefaultSkin(site: WikiSite, mainPageTitle: String?): Result<String?> = runCatchingCancellable {
+        val articleUrl = site.articleUrl(mainPageTitle?.takeIf { it.isNotBlank() } ?: "Main Page", useAppSkin = false)
+        val mobileUrl = URLBuilder(articleUrl).apply { parameters.set("useformat", "mobile") }.buildString()
+        val html = httpClient.get(mobileUrl).bodyAsText()
+        parseSkinFromBodyClass(html)
+    }.onFailure {
+        AppLog.e("MediaWikiApi", "getMobileDefaultSkin(${site.id}) failed", it)
     }
 
     /**
