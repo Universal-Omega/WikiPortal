@@ -164,6 +164,7 @@ object WikiSkins {
         "chameleon",
         "citizen",
         "cosmos",
+        "fandommobile",
         "femiwiki",
         "foreground",
         "medik",
