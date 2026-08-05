@@ -65,53 +65,56 @@ private fun resolveMaybeRelativeUrl(path: String, baseUrl: String): String {
     return if (path.startsWith("/")) "$baseUrl$path" else "$baseUrl/$path"
 }
 
+private fun toSkinOption(dto: SkinInfoDto): SkinOption = SkinOption(dto.code, dto.name.ifBlank { dto.code })
+
 /**
- * Which of this app's curated skins, see [WikiSkins], are actually
- * usable on this wiki, according to its own siteinfo, siprop=skins.
- * This is deliberately an intersection, not just "whatever the wiki
- * reports". A skin the wiki itself marks [SkinInfoDto.unusable] is
- * excluded here, since this list backs the "Change skin" picker, and
- * offering something the wiki has deliberately hidden from its own
- * preferences page would be a strange, inconsistent choice to put in
- * front of a person. This app's own default resolution has two places
- * that do need to see past that flag instead, see [deriveAllCuratedSkins]
- * and [deriveWikiDefaultSkin]'s own comment.
+ * Which of this app's curated skins, see [WikiSkins], this wiki
+ * genuinely has installed, according to its own siteinfo,
+ * siprop=skins. [skipUnusable] controls whether a skin
+ * the wiki itself marks [SkinInfoDto.unusable] still counts: see
+ * [deriveAvailableSkins] and [deriveAllCuratedSkins], the two public
+ * entry points, for when each is the right call.
  *
- * This returns null, rather than an empty list, if [skins] itself is
- * empty. That only happens when the siprop=skins probe genuinely came
- * back empty or failed outright.
+ * Returns null, rather than an empty list, if [skins] itself is empty.
+ * That only happens when the siprop=skins probe genuinely came back
+ * empty or failed outright.
  */
-fun deriveAvailableSkins(skins: List<SkinInfoDto>): List<SkinOption>? {
+private fun deriveCuratedSkins(skins: List<SkinInfoDto>, skipUnusable: Boolean): List<SkinOption>? {
     if (skins.isEmpty()) return null
-    val usableByCode = skins.filterNot { it.unusable }.associateBy { it.code }
+    val byCode = (if (skipUnusable) skins.filterNot { it.unusable } else skins).associateBy { it.code }
     // This iterates WikiSkins.options, not `skins`, so the picker's
     // ordering stays stable and curated rather than following whatever
     // order this particular wiki's siteinfo happens to list skins in.
-    return WikiSkins.options.mapNotNull { code -> usableByCode[code]?.let { SkinOption(code, it.name.ifBlank { code }) } }
+    return WikiSkins.options.mapNotNull { code -> byCode[code]?.let(::toSkinOption) }
 }
 
 /**
- * The same curated intersection as [deriveAvailableSkins], of
- * [SkinInfoDto] entries this app also has in [WikiSkins.options], but
- * without discarding one just because the wiki marked it
- * [SkinInfoDto.unusable]. That flag means an admin listed a skin in
+ * [deriveCuratedSkins] with a skin the wiki marks [SkinInfoDto.unusable]
+ * excluded. This backs the "Change skin" picker, and offering
+ * something the wiki has deliberately hidden from its own preferences
+ * page would be a strange, inconsistent choice to put in front of a
+ * person. This app's own default resolution has its own reasons to see
+ * past that flag instead, see [deriveAllCuratedSkins] and
+ * [deriveWikiDefaultSkin]'s own comment.
+ */
+fun deriveAvailableSkins(skins: List<SkinInfoDto>): List<SkinOption>? = deriveCuratedSkins(skins, skipUnusable = true)
+
+/**
+ * [deriveCuratedSkins] with nothing excluded, [SkinInfoDto.unusable]
+ * skins included. That flag means an admin listed a skin in
  * $wgSkipSkins to keep it out of that wiki's own preferences page, not
  * that it's actually missing or broken, see [SkinInfoDto.unusable].
  *
- * Used for the two places actually resolving this app's own default
- * needs to see past that flag, since neither one is offering the
- * skin as a person's choice the way [deriveAvailableSkins] is, only
- * trusting that the wiki genuinely has it installed and rendering,
- * currently just MediaWikiApi.getMobileDefaultSkin's raw detected
- * code, see WikiMetadataRefresher and AddWikiViewModel. A wiki
- * legitimately hiding minerva from its preferences page is still a
- * wiki this app should be able to fall back to minerva on for that.
+ * Used where this app's own default resolution needs to see past that
+ * flag, since it isn't offering the skin as a person's choice the way
+ * [deriveAvailableSkins] is, only trusting that the wiki genuinely has
+ * it installed and rendering, currently just
+ * MediaWikiApi.getMobileDefaultSkin's raw detected code, see
+ * WikiMetadataRefresher and AddWikiViewModel. A wiki legitimately
+ * hiding minerva from its preferences page is still a wiki this app
+ * should be able to fall back to minerva on for that.
  */
-fun deriveAllCuratedSkins(skins: List<SkinInfoDto>): List<SkinOption>? {
-    if (skins.isEmpty()) return null
-    val byCode = skins.associateBy { it.code }
-    return WikiSkins.options.mapNotNull { code -> byCode[code]?.let { SkinOption(code, it.name.ifBlank { code }) } }
-}
+fun deriveAllCuratedSkins(skins: List<SkinInfoDto>): List<SkinOption>? = deriveCuratedSkins(skins, skipUnusable = false)
 
 /**
  * The wiki's own reported default skin, the siprop=skins entry with
@@ -120,11 +123,19 @@ fun deriveAllCuratedSkins(skins: List<SkinInfoDto>): List<SkinOption>? {
  * default isn't something this app supports, in which case
  * [resolveDefaultSkin] just leaves this app's own blanket fallback in
  * place.
+ *
+ * This deliberately never looks at [SkinInfoDto.unusable] either way.
+ * MediaWiki computes the two completely independently: default: true
+ * comes from matching $wgDefaultSkin against the skin's own name,
+ * unusable from a separate check against $wgSkipSkins, so a wiki
+ * genuinely can report both true on the same entry, an admin hiding
+ * their own site's actual default from its own preferences page. If
+ * that happens this still trusts default: true over that flag.
  */
 fun deriveWikiDefaultSkin(skins: List<SkinInfoDto>): SkinOption? {
     val reportedDefault = skins.firstOrNull { it.default } ?: return null
     if (reportedDefault.code !in WikiSkins.options) return null
-    return SkinOption(reportedDefault.code, reportedDefault.name.ifBlank { reportedDefault.code })
+    return toSkinOption(reportedDefault)
 }
 
 /**
@@ -136,10 +147,8 @@ fun deriveWikiDefaultSkin(skins: List<SkinInfoDto>): SkinOption? {
  * function's own comment for why a wiki with nothing curated installed
  * at all is different.
  */
-fun deriveUncuratedDefaultSkin(skins: List<SkinInfoDto>): SkinOption? {
-    val reportedDefault = skins.firstOrNull { it.default } ?: return null
-    return SkinOption(reportedDefault.code, reportedDefault.name.ifBlank { reportedDefault.code })
-}
+fun deriveUncuratedDefaultSkin(skins: List<SkinInfoDto>): SkinOption? =
+    skins.firstOrNull { it.default }?.let(::toSkinOption)
 
 /**
  * The wiki's real main page title, straight off general.mainpage,
@@ -191,7 +200,9 @@ fun parseSkinFromBodyClass(html: String): String? {
  *
  * In that case, [detectedMobileSkin], from
  * MediaWikiApi.getMobileDefaultSkin and [parseSkinFromBodyClass], wins
- * first, whenever it is one of [curatedSkins]. A wiki with
+ * first. It arrives here already matched against every curated skin
+ * the wiki actually has installed, unusable ones included, see
+ * [deriveAllCuratedSkins], not just [curatedSkins]. A wiki with
  * MobileFrontend installed and autodetection on can serve a
  * completely different skin to a phone than whatever it declares as
  * its desktop default, minerva being the common case, and there is no
@@ -204,8 +215,13 @@ fun parseSkinFromBodyClass(html: String): String? {
  * see [deriveAvailableSkins]. When that comes back genuinely empty,
  * meaning the wiki has nothing curated installed at all, not even
  * [WikiSite.DEFAULT_SKIN] itself, this instead falls back to
- * [uncuratedDefaultSkin], uncurated as it is. Leaving
- * [WikiSite.DEFAULT_SKIN] selected in that case would be inaccurate.
+ * [uncuratedDefaultSkin], uncurated as it is.
+ *
+ * With still nothing to go on, a [curatedSkins] list of exactly one
+ * entry is trusted as the default too, even without siteinfo ever
+ * marking it default: true, since a wiki that only has one skin this
+ * app curates installed clearly isn't rendering [WikiSite.DEFAULT_SKIN]
+ * at all.
  */
 fun resolveDefaultSkin(
     site: WikiSite,
