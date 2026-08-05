@@ -77,7 +77,9 @@ private fun resolveMaybeRelativeUrl(path: String, baseUrl: String): String {
  */
 fun deriveAvailableSkins(skins: List<SkinInfoDto>): List<SkinOption>? {
     if (skins.isEmpty()) return null
-    val usableByCode = skins.filterNot { it.unusable }.associateBy { it.code }
+    // Minerva is in $wgSkipSkins on some wikis even when it is the default mobile skin.
+    // Keep it regardless of that flag.
+    val usableByCode = skins.filterNot { it.unusable && it.code != "minerva" }.associateBy { it.code }
     // This iterates WikiSkins.options, not `skins`, so the picker's
     // ordering stays stable and curated rather than following whatever
     // order this particular wiki's siteinfo happens to list skins in.
