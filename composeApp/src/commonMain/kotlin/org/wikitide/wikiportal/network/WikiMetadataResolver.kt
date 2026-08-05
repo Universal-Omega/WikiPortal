@@ -73,19 +73,15 @@ private fun toSkinOption(dto: SkinInfoDto): SkinOption = SkinOption(dto.code, dt
  * This is deliberately an intersection, not just "whatever the wiki
  * reports".
  *
- * A skin the wiki marks [SkinInfoDto.unusable] is excluded here,
- * unless it's [wikiDefaultSkin] or [detectedMobileSkin]. That flag
- * means an admin listed it in $wgSkipSkins to keep it out of that
- * wiki's own preferences page, not that it's actually missing or
- * broken, see [SkinInfoDto.unusable]. For example, some wikis do
- * this to Minerva, even though it still works completely fine,
- * so a skin this app has actually resolved as the real default,
- * either the wiki's own reported default or what
- * MediaWikiApi.getMobileDefaultSkin detected, still needs a permanent,
- * correctly named spot in the list: otherwise [WikiSite.skinChoices]
- * only shows it while it happens to be selected, and it disappears for
- * good the moment someone picks something else. Any other unusable
- * skin the wiki never actually resolved to stays excluded.
+ * A skin the wiki marks [SkinInfoDto.unusable] is excluded here, unless
+ * it's [wikiDefaultSkin] or [detectedMobileSkin]. That flag means an
+ * admin listed it in $wgSkipSkins to keep it out of that wiki's own
+ * preferences page, not that it's actually missing or broken, see
+ * [SkinInfoDto.unusable]. A skin this app has actually resolved as the
+ * real default, either the wiki's own reported default or what
+ * MediaWikiApi.getMobileDefaultSkin detected, still needs a correctly
+ * named spot in the list rather than falling back to
+ * [WikiSite.skinChoices]'s own raw-code placeholder.
  *
  * Returns null, rather than an empty list, if [skins] itself is empty.
  * That only happens when the siprop=skins probe genuinely came back
@@ -186,12 +182,12 @@ fun parseSkinFromBodyClass(html: String): String? {
  * themselves, see [WikiSite.skinIsUserSet].
  *
  * In that case, [detectedMobileSkin], from
- * MediaWikiApi.getMobileDefaultSkin, [parseSkinFromBodyClass], and
- * [deriveSkinByCode], wins first. A wiki with
+ * MediaWikiApi.getMobileDefaultSkin and [parseSkinFromBodyClass], wins
+ * first, whenever it is one of [curatedSkins]. A wiki with
  * MobileFrontend installed and autodetection on can serve a
  * completely different skin to a phone than whatever it declares as
- * its desktop default, minerva being the common case, and there is no
- * siteinfo field for that, only this actual observed render.
+ * its desktop default, and there is no siteinfo field for that, only
+ * this actual observed render.
  *
  * Failing that, this falls back to prefer the wiki's own reported
  * default, [wikiDefaultSkin], whenever it's one of this app's
