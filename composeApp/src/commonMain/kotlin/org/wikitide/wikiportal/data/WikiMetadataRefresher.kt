@@ -117,12 +117,8 @@ class WikiMetadataRefresher(private val api: MediaWikiApi) {
         } else {
             null
         }
-        val detectedMobileSkin = deriveSkinByCode(resolvedQuery.skins, detectedMobileSkinCode)
-        // wikiDefaultSkin and detectedMobileSkin are passed through here
-        // so a skin the wiki has genuinely resolved to, even one it
-        // marks unusable, still gets a permanent, correctly named spot
-        // in the picker rather than disappearing the moment someone
-        // picks something else. See deriveAvailableSkins' comment.
+        val detectedMobile = deriveSkinByCode(resolvedQuery.skins, detectedMobileSkinCode)
+        val detectedMobileSkin = detectedMobile ?: site.detectedMobileSkin
         val curatedSkins = deriveAvailableSkins(resolvedQuery.skins, wikiDefaultSkin, detectedMobileSkin)
         return site.copy(
             name = sitename,
@@ -143,6 +139,7 @@ class WikiMetadataRefresher(private val api: MediaWikiApi) {
             // own comment for the different ways it can still change
             // in that case.
             skin = resolveDefaultSkin(site, wikiDefaultSkin, uncuratedDefault, curatedSkins, detectedMobileSkin),
+            detectedMobileSkin = detectedMobileSkin,
             mainPageTitle = resolvedMainPageTitle,
             mainPageIsDomainRoot = resolved.mainpageisdomainroot,
         )
