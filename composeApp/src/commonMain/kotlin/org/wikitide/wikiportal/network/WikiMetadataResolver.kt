@@ -91,14 +91,6 @@ fun deriveAvailableSkins(skins: List<SkinInfoDto>): List<SkinOption>? {
  * default isn't something this app supports, in which case
  * [resolveDefaultSkin] just leaves this app's own blanket fallback in
  * place.
- *
- * This deliberately never looks at [SkinInfoDto.unusable] either way.
- * MediaWiki computes the two completely independently: default: true
- * comes from matching $wgDefaultSkin against the skin's own name,
- * unusable from a separate check against $wgSkipSkins, so a wiki
- * genuinely can report both true on the same entry, an admin hiding
- * their own site's actual default from its own preferences page. If
- * that happens this still trusts default: true over that flag.
  */
 fun deriveWikiDefaultSkin(skins: List<SkinInfoDto>): SkinOption? {
     val reportedDefault = skins.firstOrNull { it.default } ?: return null
