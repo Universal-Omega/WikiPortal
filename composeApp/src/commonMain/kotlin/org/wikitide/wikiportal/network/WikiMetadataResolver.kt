@@ -69,7 +69,13 @@ private fun resolveMaybeRelativeUrl(path: String, baseUrl: String): String {
  * Which of this app's curated skins, see [WikiSkins], are actually
  * usable on this wiki, according to its own siteinfo, siprop=skins.
  * This is deliberately an intersection, not just "whatever the wiki
- * reports".
+ * reports". A skin the wiki itself marks [SkinInfoDto.unusable] is
+ * excluded here, since this list backs the "Change skin" picker, and
+ * offering something the wiki has deliberately hidden from its own
+ * preferences page would be a strange, inconsistent choice to put in
+ * front of a person. This app's own default resolution has two places
+ * that do need to see past that flag instead, see [deriveAllCuratedSkins]
+ * and [deriveWikiDefaultSkin]'s own comment.
  *
  * This returns null, rather than an empty list, if [skins] itself is
  * empty. That only happens when the siprop=skins probe genuinely came
@@ -82,6 +88,29 @@ fun deriveAvailableSkins(skins: List<SkinInfoDto>): List<SkinOption>? {
     // ordering stays stable and curated rather than following whatever
     // order this particular wiki's siteinfo happens to list skins in.
     return WikiSkins.options.mapNotNull { code -> usableByCode[code]?.let { SkinOption(code, it.name.ifBlank { code }) } }
+}
+
+/**
+ * The same curated intersection as [deriveAvailableSkins], of
+ * [SkinInfoDto] entries this app also has in [WikiSkins.options], but
+ * without discarding one just because the wiki marked it
+ * [SkinInfoDto.unusable]. That flag means an admin listed a skin in
+ * $wgSkipSkins to keep it out of that wiki's own preferences page, not
+ * that it's actually missing or broken, see [SkinInfoDto.unusable].
+ *
+ * Used for the two places actually resolving this app's own default
+ * needs to see past that flag, since neither one is offering the
+ * skin as a person's choice the way [deriveAvailableSkins] is, only
+ * trusting that the wiki genuinely has it installed and rendering,
+ * currently just MediaWikiApi.getMobileDefaultSkin's raw detected
+ * code, see WikiMetadataRefresher and AddWikiViewModel. A wiki
+ * legitimately hiding minerva from its preferences page is still a
+ * wiki this app should be able to fall back to minerva on for that.
+ */
+fun deriveAllCuratedSkins(skins: List<SkinInfoDto>): List<SkinOption>? {
+    if (skins.isEmpty()) return null
+    val byCode = skins.associateBy { it.code }
+    return WikiSkins.options.mapNotNull { code -> byCode[code]?.let { SkinOption(code, it.name.ifBlank { code }) } }
 }
 
 /**
