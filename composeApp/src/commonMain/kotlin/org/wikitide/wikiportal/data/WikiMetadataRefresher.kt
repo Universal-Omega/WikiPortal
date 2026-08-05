@@ -7,9 +7,9 @@ import org.wikitide.wikiportal.network.MediaWikiApi
 import org.wikitide.wikiportal.network.deriveArticlePathPrefix
 import org.wikitide.wikiportal.network.deriveAvailableSkins
 import org.wikitide.wikiportal.network.deriveMainPageTitle
+import org.wikitide.wikiportal.network.deriveSkinByCode
 import org.wikitide.wikiportal.network.deriveUncuratedDefaultSkin
 import org.wikitide.wikiportal.network.deriveWikiDefaultSkin
-import org.wikitide.wikiportal.network.matchCuratedSkin
 import org.wikitide.wikiportal.network.resolveDefaultSkin
 import org.wikitide.wikiportal.network.resolveFaviconUrl
 import org.wikitide.wikiportal.util.isMobilePlatform
@@ -101,7 +101,7 @@ class WikiMetadataRefresher(private val api: MediaWikiApi) {
         val resolved = resolvedQuery.general ?: return null
         val sitename = resolved.sitename ?: return null
 
-        val curatedSkins = deriveAvailableSkins(resolvedQuery.skins)
+        val wikiDefaultSkin = deriveWikiDefaultSkin(resolvedQuery.skins)
         val uncuratedDefault = deriveUncuratedDefaultSkin(resolvedQuery.skins)
         val resolvedArticlePathPrefix = deriveArticlePathPrefix(site.baseUrl, resolved.articlepath)
         val resolvedMainPageTitle = deriveMainPageTitle(resolved.mainpage)
@@ -117,7 +117,13 @@ class WikiMetadataRefresher(private val api: MediaWikiApi) {
         } else {
             null
         }
-        val detectedMobileSkin = matchCuratedSkin(detectedMobileSkinCode, curatedSkins)
+        val detectedMobileSkin = deriveSkinByCode(resolvedQuery.skins, detectedMobileSkinCode)
+        // wikiDefaultSkin and detectedMobileSkin are passed through here
+        // so a skin the wiki has genuinely resolved to, even one it
+        // marks unusable, still gets a permanent, correctly named spot
+        // in the picker rather than disappearing the moment someone
+        // picks something else. See deriveAvailableSkins' own comment.
+        val curatedSkins = deriveAvailableSkins(resolvedQuery.skins, wikiDefaultSkin, detectedMobileSkin)
         return site.copy(
             name = sitename,
             scriptPath = workingScriptPath,
@@ -136,7 +142,7 @@ class WikiMetadataRefresher(private val api: MediaWikiApi) {
             // case except when nobody has ever chosen one. See its
             // own comment for the different ways it can still change
             // in that case.
-            skin = resolveDefaultSkin(site, deriveWikiDefaultSkin(resolvedQuery.skins), uncuratedDefault, curatedSkins, detectedMobileSkin),
+            skin = resolveDefaultSkin(site, wikiDefaultSkin, uncuratedDefault, curatedSkins, detectedMobileSkin),
             mainPageTitle = resolvedMainPageTitle,
             mainPageIsDomainRoot = resolved.mainpageisdomainroot,
         )
