@@ -201,12 +201,6 @@ class AddWikiViewModel(
                 null
             }
             val detectedMobileSkin = deriveSkinByCode(skinsReported, detectedMobileSkinCode)
-            // wikiDefaultSkin and detectedMobileSkin are passed through
-            // here so a skin the wiki has genuinely resolved to, even
-            // one it marks unusable, still gets a permanent, correctly
-            // named spot in the picker rather than disappearing the
-            // moment someone picks something else. See
-            // deriveAvailableSkins' comment.
             val availableSkins = deriveAvailableSkins(skinsReported, wikiDefaultSkin, detectedMobileSkin)
             repository.setActiveWiki(
                 resolvedSite.copy(
@@ -218,6 +212,7 @@ class AddWikiViewModel(
                     availableSkins = availableSkins,
                     uncuratedDefaultSkin = uncuratedDefaultSkin,
                     skin = resolveDefaultSkin(resolvedSite, wikiDefaultSkin, uncuratedDefaultSkin, availableSkins, detectedMobileSkin),
+                    detectedMobileSkin = detectedMobileSkin,
                     mainPageIsDomainRoot = mainPageIsDomainRoot,
                 ),
             )
