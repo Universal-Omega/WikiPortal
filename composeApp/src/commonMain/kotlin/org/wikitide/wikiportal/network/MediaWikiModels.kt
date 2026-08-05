@@ -61,10 +61,11 @@ data class SkinInfoDto(
     val name: String = "",
     val default: Boolean = false,
     /**
-     * True for skins that are registered but not real, selectable
-     * page skins, for example SkinJSON, the auth popup skin, or
-     * Fallback. This is always absent, defaulting to false, for
-     * genuinely usable skins. MediaWiki only includes this key at all
+     * True for a skin the wiki has hidden from selection, typically
+     * because it's listed in $wgSkipSkins, an admin's own "don't offer
+     * this one" list, not because it's actually missing or broken.
+     * This is always absent, defaulting to false, for genuinely
+     * offered skins. MediaWiki only includes this key at all
      * when it is true.
      */
     val unusable: Boolean = false,
