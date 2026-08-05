@@ -20,6 +20,7 @@ import io.ktor.http.Url
  */
 object AuthDomains {
     private val hosts = setOf(
+        "auth.fandom.com",
         "auth.miraheze.org",
         "auth.wikimedia.org",
     )
