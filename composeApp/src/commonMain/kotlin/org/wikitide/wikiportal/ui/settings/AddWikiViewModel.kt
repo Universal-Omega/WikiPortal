@@ -12,12 +12,13 @@ import org.wikitide.wikiportal.data.model.WikiSite
 import org.wikitide.wikiportal.data.model.skinIsUnset
 import org.wikitide.wikiportal.network.COMMON_SCRIPT_PATHS
 import org.wikitide.wikiportal.network.MediaWikiApi
+import org.wikitide.wikiportal.network.SkinInfoDto
 import org.wikitide.wikiportal.network.deriveArticlePathPrefix
 import org.wikitide.wikiportal.network.deriveAvailableSkins
 import org.wikitide.wikiportal.network.deriveMainPageTitle
+import org.wikitide.wikiportal.network.deriveSkinByCode
 import org.wikitide.wikiportal.network.deriveUncuratedDefaultSkin
 import org.wikitide.wikiportal.network.deriveWikiDefaultSkin
-import org.wikitide.wikiportal.network.matchCuratedSkin
 import org.wikitide.wikiportal.network.resolveDefaultSkin
 import org.wikitide.wikiportal.network.resolveFaviconUrl
 import org.wikitide.wikiportal.util.AppLog
@@ -131,7 +132,7 @@ class AddWikiViewModel(
         var articlePathPrefix: String? = null
         var mainPageTitle: String? = null
         var faviconUrl: String? = null
-        var availableSkins: List<SkinOption>? = null
+        var skinsReported: List<SkinInfoDto> = emptyList()
         var uncuratedDefaultSkin: SkinOption? = null
         var wikiDefaultSkin: SkinOption? = null
         var mainPageIsDomainRoot = false
@@ -162,8 +163,12 @@ class AddWikiViewModel(
                 mainPageIsDomainRoot = info.mainpageisdomainroot
                 faviconUrl = resolveFaviconUrl(info.favicon, candidate.baseUrl)
                     ?: api.getFaviconUrlFromHtml(candidate).getOrNull()
-                val skinsReported = result.getOrNull()?.skins.orEmpty()
-                availableSkins = deriveAvailableSkins(skinsReported)
+                // Kept as the raw DTO list, not yet turned into
+                // availableSkins, since that also needs
+                // detectedMobileSkin, only known after this loop, once
+                // the mobile probe below has actually run. See
+                // deriveAvailableSkins.
+                skinsReported = result.getOrNull()?.skins.orEmpty()
                 uncuratedDefaultSkin = deriveUncuratedDefaultSkin(skinsReported)
                 wikiDefaultSkin = deriveWikiDefaultSkin(skinsReported)
                 break
@@ -195,7 +200,14 @@ class AddWikiViewModel(
             } else {
                 null
             }
-            val detectedMobileSkin = matchCuratedSkin(detectedMobileSkinCode, availableSkins)
+            val detectedMobileSkin = deriveSkinByCode(skinsReported, detectedMobileSkinCode)
+            // wikiDefaultSkin and detectedMobileSkin are passed through
+            // here so a skin the wiki has genuinely resolved to, even
+            // one it marks unusable, still gets a permanent, correctly
+            // named spot in the picker rather than disappearing the
+            // moment someone picks something else. See
+            // deriveAvailableSkins' comment.
+            val availableSkins = deriveAvailableSkins(skinsReported, wikiDefaultSkin, detectedMobileSkin)
             repository.setActiveWiki(
                 resolvedSite.copy(
                     id = "${resolvedSite.id}-${lang.orEmpty()}",
