@@ -12,7 +12,6 @@ import org.wikitide.wikiportal.data.model.WikiSite
 import org.wikitide.wikiportal.data.model.skinIsUnset
 import org.wikitide.wikiportal.network.COMMON_SCRIPT_PATHS
 import org.wikitide.wikiportal.network.MediaWikiApi
-import org.wikitide.wikiportal.network.deriveAllCuratedSkins
 import org.wikitide.wikiportal.network.deriveArticlePathPrefix
 import org.wikitide.wikiportal.network.deriveAvailableSkins
 import org.wikitide.wikiportal.network.deriveMainPageTitle
@@ -133,7 +132,6 @@ class AddWikiViewModel(
         var mainPageTitle: String? = null
         var faviconUrl: String? = null
         var availableSkins: List<SkinOption>? = null
-        var allCuratedSkins: List<SkinOption>? = null
         var uncuratedDefaultSkin: SkinOption? = null
         var wikiDefaultSkin: SkinOption? = null
         var mainPageIsDomainRoot = false
@@ -166,7 +164,6 @@ class AddWikiViewModel(
                     ?: api.getFaviconUrlFromHtml(candidate).getOrNull()
                 val skinsReported = result.getOrNull()?.skins.orEmpty()
                 availableSkins = deriveAvailableSkins(skinsReported)
-                allCuratedSkins = deriveAllCuratedSkins(skinsReported)
                 uncuratedDefaultSkin = deriveUncuratedDefaultSkin(skinsReported)
                 wikiDefaultSkin = deriveWikiDefaultSkin(skinsReported)
                 break
@@ -198,12 +195,7 @@ class AddWikiViewModel(
             } else {
                 null
             }
-            // Matched against every curated skin the wiki actually has
-            // installed, unusable ones included, not just
-            // availableSkins, since a wiki can genuinely detect and
-            // serve a skin it has also hidden from its own preferences
-            // page. See deriveAllCuratedSkins.
-            val detectedMobileSkin = matchCuratedSkin(detectedMobileSkinCode, allCuratedSkins)
+            val detectedMobileSkin = matchCuratedSkin(detectedMobileSkinCode, availableSkins)
             repository.setActiveWiki(
                 resolvedSite.copy(
                     id = "${resolvedSite.id}-${lang.orEmpty()}",
