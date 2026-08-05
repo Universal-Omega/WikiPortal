@@ -44,11 +44,7 @@ data class WikiSite(
     val skinIsUserSet: Boolean = false,
     /**
      * MediaWikiApi.getMobileDefaultSkin's own detected skin, with its
-     * real display name, the same way [uncuratedDefaultSkin] holds the
-     * siprop=skins entry siteinfo itself marks default: true. Refreshed
-     * whenever WikiMetadataRefresher.refresh actually runs, the same as
-     * every other field it resolves, and left as whatever was already
-     * here otherwise.
+     * real display name, the same way [uncuratedDefaultSkin] works.
      */
     val detectedMobileSkin: SkinOption? = null,
     /**
