@@ -4,7 +4,6 @@ import org.wikitide.wikiportal.data.model.WikiSite
 import org.wikitide.wikiportal.data.model.skinIsUnset
 import org.wikitide.wikiportal.network.COMMON_SCRIPT_PATHS
 import org.wikitide.wikiportal.network.MediaWikiApi
-import org.wikitide.wikiportal.network.deriveAllCuratedSkins
 import org.wikitide.wikiportal.network.deriveArticlePathPrefix
 import org.wikitide.wikiportal.network.deriveAvailableSkins
 import org.wikitide.wikiportal.network.deriveMainPageTitle
@@ -118,12 +117,7 @@ class WikiMetadataRefresher(private val api: MediaWikiApi) {
         } else {
             null
         }
-        // Matched against every curated skin the wiki actually has
-        // installed, unusable ones included, not just curatedSkins,
-        // since a wiki can genuinely detect and serve a skin it has
-        // also hidden from its own preferences page. See
-        // deriveAllCuratedSkins.
-        val detectedMobileSkin = matchCuratedSkin(detectedMobileSkinCode, deriveAllCuratedSkins(resolvedQuery.skins))
+        val detectedMobileSkin = matchCuratedSkin(detectedMobileSkinCode, curatedSkins)
         return site.copy(
             name = sitename,
             scriptPath = workingScriptPath,
