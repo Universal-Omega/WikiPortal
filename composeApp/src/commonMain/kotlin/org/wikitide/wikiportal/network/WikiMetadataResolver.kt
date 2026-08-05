@@ -70,14 +70,36 @@ private fun toSkinOption(dto: SkinInfoDto): SkinOption = SkinOption(dto.code, dt
 /**
  * Which of this app's curated skins, see [WikiSkins], this wiki
  * genuinely has installed, according to its own siteinfo, siprop=skins.
+ * This is deliberately an intersection, not just "whatever the wiki
+ * reports".
+ *
+ * A skin the wiki marks [SkinInfoDto.unusable] is excluded here,
+ * unless it's [wikiDefaultSkin] or [detectedMobileSkin]. That flag
+ * means an admin listed it in $wgSkipSkins to keep it out of that
+ * wiki's own preferences page, not that it's actually missing or
+ * broken, see [SkinInfoDto.unusable]. For example, some wikis do
+ * this to Minerva, even though it still works completely fine,
+ * so a skin this app has actually resolved as the real default,
+ * either the wiki's own reported default or what
+ * MediaWikiApi.getMobileDefaultSkin detected, still needs a permanent,
+ * correctly named spot in the list: otherwise [WikiSite.skinChoices]
+ * only shows it while it happens to be selected, and it disappears for
+ * good the moment someone picks something else. Any other unusable
+ * skin the wiki never actually resolved to stays excluded.
  *
  * Returns null, rather than an empty list, if [skins] itself is empty.
  * That only happens when the siprop=skins probe genuinely came back
  * empty or failed outright.
  */
-fun deriveAvailableSkins(skins: List<SkinInfoDto>): List<SkinOption>? {
+fun deriveAvailableSkins(
+    skins: List<SkinInfoDto>,
+    wikiDefaultSkin: SkinOption? = null,
+    detectedMobileSkin: SkinOption? = null,
+): List<SkinOption>? {
     if (skins.isEmpty()) return null
-    val byCode = skins.associateBy { it.code }
+    val byCode = skins
+        .filter { !it.unusable || it.code == wikiDefaultSkin?.code || it.code == detectedMobileSkin?.code }
+        .associateBy { it.code }
     // This iterates WikiSkins.options, not `skins`, so the picker's
     // ordering stays stable and curated rather than following whatever
     // order this particular wiki's siteinfo happens to list skins in.
@@ -118,15 +140,20 @@ fun deriveUncuratedDefaultSkin(skins: List<SkinInfoDto>): SkinOption? =
 fun deriveMainPageTitle(mainpage: String?): String = mainpage?.takeIf { it.isNotBlank() } ?: "Main Page"
 
 /**
- * [rawSkinCode] looked up against [curatedSkins] by code, or null if
- * it isn't one of them. Shared by WikiMetadataRefresher and
- * AddWikiViewModel's use of MediaWikiApi.getMobileDefaultSkin, since
- * both need the same "only keep it if this app actually supports it"
- * check on the raw code that call reads back out of a page's body
- * class, before it's fit to hand to [resolveDefaultSkin].
+ * The [SkinInfoDto] entry matching [rawSkinCode], turned into a
+ * [SkinOption] if it's one of this app's curated [WikiSkins.options],
+ * or null if [rawSkinCode] is null, isn't curated, or doesn't match any
+ * entry in [skins] at all. This deliberately never looks at
+ * [SkinInfoDto.unusable]: it's how [deriveAvailableSkins] gets a real,
+ * correctly named [SkinOption] to permanently include for whatever
+ * MediaWikiApi.getMobileDefaultSkin detects, even when the wiki itself
+ * has that skin hidden from its own preferences page, see
+ * [deriveAvailableSkins]'s own comment for why.
  */
-fun matchCuratedSkin(rawSkinCode: String?, curatedSkins: List<SkinOption>?): SkinOption? =
-    rawSkinCode?.let { code -> curatedSkins?.firstOrNull { it.code == code } }
+fun deriveSkinByCode(skins: List<SkinInfoDto>, rawSkinCode: String?): SkinOption? {
+    if (rawSkinCode == null || rawSkinCode !in WikiSkins.options) return null
+    return skins.firstOrNull { it.code == rawSkinCode }?.let(::toSkinOption)
+}
 
 private val BODY_TAG_REGEX = Regex("""<body\b[^>]*>""", RegexOption.IGNORE_CASE)
 private val CLASS_ATTR_REGEX = Regex("""class\s*=\s*["']([^"']+)["']""", RegexOption.IGNORE_CASE)
@@ -159,8 +186,8 @@ fun parseSkinFromBodyClass(html: String): String? {
  * themselves, see [WikiSite.skinIsUserSet].
  *
  * In that case, [detectedMobileSkin], from
- * MediaWikiApi.getMobileDefaultSkin and [parseSkinFromBodyClass], wins
- * first, whenever it is one of [curatedSkins]. A wiki with
+ * MediaWikiApi.getMobileDefaultSkin, [parseSkinFromBodyClass], and
+ * [deriveSkinByCode], wins first. A wiki with
  * MobileFrontend installed and autodetection on can serve a
  * completely different skin to a phone than whatever it declares as
  * its desktop default, minerva being the common case, and there is no
