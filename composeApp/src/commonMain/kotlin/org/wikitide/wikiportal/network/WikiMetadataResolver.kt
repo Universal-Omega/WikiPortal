@@ -113,10 +113,7 @@ fun deriveUncuratedDefaultSkin(skins: List<SkinInfoDto>): SkinOption? =
 /**
  * The wiki's real main page title, straight off general.mainpage,
  * falling back to MediaWiki's own "Main Page" default whenever
- * siteinfo reports it blank or missing entirely. Shared by every
- * place that reads general.mainpage off a siteinfo response,
- * WikiMetadataRefresher, AddWikiViewModel, and FeedViewModel, so this
- * one fallback rule only has to live once.
+ * siteinfo reports it blank or missing entirely.
  */
 fun deriveMainPageTitle(mainpage: String?): String = mainpage?.takeIf { it.isNotBlank() } ?: "Main Page"
 
