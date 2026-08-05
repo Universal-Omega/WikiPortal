@@ -7,8 +7,10 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.client.statement.request
 import io.ktor.http.HttpHeaders
 import io.ktor.http.URLBuilder
+import io.ktor.http.Url
 import org.wikitide.wikiportal.data.model.WikiSite
 import org.wikitide.wikiportal.util.AppLog
+import org.wikitide.wikiportal.util.isMobilePlatform
 
 /**
  * The result of a search, including CirrusSearch's spelling suggestion
@@ -64,6 +66,8 @@ class MediaWikiApi(
                 "action" to "query",
                 "meta" to "siteinfo",
                 "siprop" to "general|skins|extensions",
+                // Fandom only actually makes the mobile skin available if it is a mobile site.
+                "useformat" to if (isFandomWiki(site) && isMobilePlatform()) "mobile" else null,
             ),
         ).map { it.query }
 
@@ -297,5 +301,10 @@ class MediaWikiApi(
         contentType to response.body<ByteArray>()
     }.onFailure {
         AppLog.e("MediaWikiApi", "getRawBytes($url) failed", it)
+    }
+
+    private fun isFandomWiki(site: WikiSite): Boolean {
+        val host = runCatching { Url(site.baseUrl).host }.getOrNull() ?: return false
+        return host == "fandom.com" || host.endsWith(".fandom.com")
     }
 }

@@ -189,5 +189,6 @@ fun resolveDefaultSkin(
     if (detectedMobileSkin != null) return detectedMobileSkin.code
     if (wikiDefaultSkin != null) return wikiDefaultSkin.code
     if (curatedSkins != null && curatedSkins.isEmpty() && uncuratedDefaultSkin != null) return uncuratedDefaultSkin.code
+    if (curatedSkins != null && curatedSkins.size == 1) return curatedSkins[0].code
     return site.skin
 }
