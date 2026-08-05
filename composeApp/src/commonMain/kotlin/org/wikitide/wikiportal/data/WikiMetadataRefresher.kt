@@ -122,7 +122,7 @@ class WikiMetadataRefresher(private val api: MediaWikiApi) {
         // so a skin the wiki has genuinely resolved to, even one it
         // marks unusable, still gets a permanent, correctly named spot
         // in the picker rather than disappearing the moment someone
-        // picks something else. See deriveAvailableSkins' own comment.
+        // picks something else. See deriveAvailableSkins' comment.
         val curatedSkins = deriveAvailableSkins(resolvedQuery.skins, wikiDefaultSkin, detectedMobileSkin)
         return site.copy(
             name = sitename,
