@@ -60,13 +60,12 @@ SELECT * FROM Wiki ORDER BY rank ASC, name ASC;
 CREATE TABLE IF NOT EXISTS Folder (
     id TEXT NOT NULL PRIMARY KEY,
     name TEXT NOT NULL,
-    sortOrder INTEGER NOT NULL DEFAULT 0,
     rank TEXT AS Rank NOT NULL DEFAULT ''
 );
 
 upsertFolder:
-INSERT OR REPLACE INTO Folder(id, name, sortOrder, rank)
-VALUES (?, ?, ?, ?);
+INSERT OR REPLACE INTO Folder(id, name, rank)
+VALUES (?, ?, ?);
 
 deleteFolder:
 DELETE FROM Folder WHERE id = ?;
