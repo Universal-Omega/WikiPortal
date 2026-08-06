@@ -67,10 +67,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -138,16 +140,24 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
     }
     val customByFolder = remember(customWikis) { customWikis.groupBy { it.folderId } }
     val ungroupedCustomWikis = customByFolder[null] ?: emptyList()
+    val haptics = LocalHapticFeedback.current
 
     fun onFolderDragStart(folderId: String) {
         draggingFolderId = folderId
         dragOffsetY = 0f
+        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
     }
 
     fun onFolderDragEnd() {
+        val folderId = draggingFolderId
         draggingFolderId = null
         dragOffsetY = 0f
-        repository.reorderFolders(localCustomFolders.map { it.id })
+        val index = localCustomFolders.indexOfFirst { it.id == folderId }
+        if (folderId != null && index >= 0) {
+            val beforeId = localCustomFolders.getOrNull(index - 1)?.id
+            val afterId = localCustomFolders.getOrNull(index + 1)?.id
+            repository.reorderFolder(folderId, beforeId, afterId)
+        }
     }
 
     // Moves the dragged folder one slot at a time as the accumulated
@@ -179,6 +189,7 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
             reordered.add(neighborIndex, moved)
             localCustomFolders = reordered
             dragOffsetY -= (neighborCenter - (draggedInfo.offset + draggedInfo.size / 2f))
+            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
         }
     }
 
