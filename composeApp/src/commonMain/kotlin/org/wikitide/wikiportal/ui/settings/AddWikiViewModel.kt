@@ -196,7 +196,7 @@ class AddWikiViewModel(
                 null
             }
             val detectedMobileSkin = matchCuratedSkin(detectedMobileSkinCode, availableSkins)
-            repository.setActiveWiki(
+            repository.addFreshCustomWiki(
                 resolvedSite.copy(
                     id = "${resolvedSite.id}-${lang.orEmpty()}",
                     name = sitename,
