@@ -7,14 +7,20 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.yield
 import org.wikitide.wikiportal.data.model.PresetWikis
+import org.wikitide.wikiportal.data.model.Rank
 import org.wikitide.wikiportal.data.model.SavedPage
 import org.wikitide.wikiportal.data.model.ThemeMode
 import org.wikitide.wikiportal.data.model.WikiFolder
 import org.wikitide.wikiportal.data.model.WikiSite
 import org.wikitide.wikiportal.data.store.SettingKeys
 import org.wikitide.wikiportal.data.store.WikiPortalStore
+import org.wikitide.wikiportal.util.RankUtil
 import kotlin.random.Random
+
+/** Rows are written this many at a time during the one-off legacy rank backfill, so a large wiki list never blocks on one giant burst of writes. */
+private const val BACKFILL_CHUNK_SIZE = 500
 
 /**
  * A reactive layer over [WikiPortalStore]. The store itself is a plain
@@ -145,14 +151,17 @@ class AppRepository(
             // anything else auto refresh already owns, like
             // articlePathPrefix, favicon, or availableSkins. It only
             // touches skin, which WikiMetadataRefresher deliberately
-            // never touches.
+            // never touches. rank is always synced to the shipped
+            // position, since that one is never something the person
+            // controls themselves.
             val resyncedPresetRows = storedPresetRows.map { stored ->
                 val shippedDefault = presetDefaultsById.getValue(stored.id)
-                if (!stored.skinIsUserSet && stored.skin != shippedDefault.skin) {
+                val skinSynced = if (!stored.skinIsUserSet && stored.skin != shippedDefault.skin) {
                     stored.copy(skin = shippedDefault.skin)
                 } else {
                     stored
                 }
+                skinSynced.copy(rank = shippedDefault.rank)
             }
             resyncedPresetRows.forEachIndexed { i, resynced ->
                 if (resynced != storedPresetRows[i]) store.upsertWiki(resynced)
@@ -163,22 +172,57 @@ class AppRepository(
             // UI.
             staleRows.forEach { store.removeWiki(it.id) }
 
-            // This is ordered by PresetWikis.all itself, not by however
-            // storedPresetRows happened to come back. allStoredWikis() is
-            // backed by "SELECT * FROM Wiki ORDER BY name ASC", which is a
-            // reasonable default for a generic "list everything" query.
-            // That is invisible on a first run, since nothing is stored
-            // yet and _presetWikis.value below was built from
-            // missingPresets and presetDefaultsById.values, which does
-            // preserve PresetWikis.all's order. But it silently reshuffles
-            // into alphabetical order on every run after that, once these
-            // rows actually exist in the database and get read back
-            // through that query.
-            val resyncedById = resyncedPresetRows.associateBy { it.id }
-            val missingById = missingPresets.associateBy { it.id }
-            _presetWikis.value = PresetWikis.all.map { resyncedById[it.id] ?: missingById.getValue(it.id) }
-            _customWikis.value = storedCustomRows
-            _customFolders.value = store.allFolders()
+            // A custom wiki added before the rank column existed still
+            // has it at the column's default, an empty string. Give
+            // each of those a real rank here, all generated in one go
+            // with RankUtil.initialRanksAfter so even a few thousand
+            // legacy rows get short keys instead of what repeatedly
+            // calling RankUtil.between would produce, landing after
+            // every preset and every already-ranked custom wiki in
+            // whatever order they already came back in. This only
+            // ever runs once per wiki, a chunk at a time in the
+            // background so it never blocks a large wiki list on the
+            // very next launch after this shipped. A wiki added since
+            // then already carries a real rank from addCustomWiki and
+            // is left alone. This whole legacyCustomRanks block, and
+            // the emptiness check driving it, is safe to delete once
+            // enough time has passed that every install has been
+            // opened at least once since this shipped.
+            val rankedPresets = resyncedPresetRows + missingPresets
+            val alreadyRankedCustoms = storedCustomRows.filter { it.rank.value.isNotEmpty() }
+            val legacyCustomRows = storedCustomRows.filter { it.rank.value.isEmpty() }
+            val watermark = (rankedPresets + alreadyRankedCustoms).maxOfOrNull { it.rank }?.value ?: ""
+            val backfilledCustomRows = legacyCustomRows.zip(RankUtil.initialRanksAfter(watermark, legacyCustomRows.size)) { row, rank ->
+                row.copy(rank = Rank(rank))
+            }
+            backfilledCustomRows.chunked(BACKFILL_CHUNK_SIZE).forEach { chunk ->
+                chunk.forEach { store.upsertWiki(it) }
+                yield()
+            }
+
+            // Presets and custom wikis are both stored with a real
+            // rank now, so the saved order can be trusted directly
+            // instead of being rebuilt from PresetWikis.all afterward.
+            _presetWikis.value = rankedPresets.sortedBy { it.rank }
+            _customWikis.value = (alreadyRankedCustoms + backfilledCustomRows).sortedBy { it.rank }
+
+            // Same legacy backfill idea as the wikis above, just for
+            // custom folders, which have carried a rank-shaped column
+            // since further back and so may have a larger backlog of
+            // still-unranked rows. Also safe to delete on the same
+            // timeline as the wiki backfill above.
+            val storedFolders = store.allFolders()
+            val alreadyRankedFolders = storedFolders.filter { it.rank.value.isNotEmpty() }
+            val legacyFolders = storedFolders.filter { it.rank.value.isEmpty() }
+            val folderWatermark = alreadyRankedFolders.maxOfOrNull { it.rank }?.value ?: ""
+            val backfilledFolders = legacyFolders.zip(RankUtil.initialRanksAfter(folderWatermark, legacyFolders.size)) { folder, rank ->
+                folder.copy(rank = Rank(rank))
+            }
+            backfilledFolders.chunked(BACKFILL_CHUNK_SIZE).forEach { chunk ->
+                chunk.forEach { store.upsertFolder(it) }
+                yield()
+            }
+            _customFolders.value = (alreadyRankedFolders + backfilledFolders).sortedBy { it.rank }
 
             val activeId = store.getSetting(SettingKeys.ACTIVE_WIKI_ID)
             val restoredActiveWiki =
@@ -222,6 +266,40 @@ class AppRepository(
     private val revalidatedThisSession = mutableSetOf<String>()
     private val faviconOnlyRevalidatedThisSession = mutableSetOf<String>()
 
+    /**
+     * Puts [updated] into whichever list, presets or custom wikis, holds
+     * its id, and keeps [activeWiki] in sync too if that's the wiki
+     * currently showing. Doesn't persist anything itself, callers still
+     * do that with [WikiPortalStore.upsertWiki].
+     */
+    private fun applyWikiUpdate(updated: WikiSite) {
+        if (updated.isCustom) {
+            _customWikis.update { list -> list.map { if (it.id == updated.id) updated else it } }
+        } else {
+            _presetWikis.update { list -> list.map { if (it.id == updated.id) updated else it } }
+        }
+        if (_activeWiki.value.id == updated.id) _activeWiki.value = updated
+    }
+
+    /**
+     * Looks up [wikiId] across presets and custom wikis, applies
+     * [transform] to it, and puts the result back with [applyWikiUpdate].
+     * Returns the updated site so the caller can persist it, or null if
+     * [wikiId] isn't in either list.
+     */
+    private fun updateWiki(wikiId: String, transform: (WikiSite) -> WikiSite): WikiSite? {
+        val current = (_presetWikis.value + _customWikis.value).firstOrNull { it.id == wikiId } ?: return null
+        val updated = transform(current)
+        applyWikiUpdate(updated)
+        return updated
+    }
+
+    /** The next free rank for a custom wiki, placed after everything already in the picker. */
+    private fun nextCustomRank(): Rank {
+        val highest = (_presetWikis.value + _customWikis.value).maxByOrNull { it.rank }?.rank?.value ?: ""
+        return Rank(RankUtil.between(highest, null))
+    }
+
     fun setActiveWiki(site: WikiSite) {
         _activeWiki.value = site
         appScope.launch {
@@ -231,6 +309,24 @@ class AppRepository(
             }
         }
         appScope.launch { refreshWikiMetadata(site) }
+    }
+
+    /**
+     * Adds a wiki that was just resolved through the "Add wiki" flow and
+     * makes it active. The site passed in already carries live siteinfo
+     * data from that same resolution, so unlike [setActiveWiki] this
+     * skips [refreshWikiMetadata] entirely rather than immediately
+     * re-fetching the same siteinfo a second time.
+     */
+    fun addFreshCustomWiki(site: WikiSite) {
+        val ordered = site.copy(rank = nextCustomRank())
+        _customWikis.update { it + ordered }
+        _activeWiki.value = ordered
+        appScope.launch {
+            revalidationMutex.withLock { revalidatedThisSession.add(ordered.id) }
+            store.upsertWiki(ordered)
+            store.setSetting(SettingKeys.ACTIVE_WIKI_ID, ordered.id)
+        }
     }
 
     /**
@@ -255,16 +351,8 @@ class AppRepository(
         if (!shouldRefresh) return
         val updated = metadataRefresher.refresh(site) ?: return
         if (updated == site) return
-
-        if (updated.isCustom) {
-            _customWikis.update { list -> list.map { if (it.id == updated.id) updated else it } }
-        } else {
-            _presetWikis.update { list -> list.map { if (it.id == updated.id) updated else it } }
-        }
+        applyWikiUpdate(updated)
         store.upsertWiki(updated)
-        // Only replace the active wiki if the person hasn't already
-        // switched away while this was in flight.
-        if (_activeWiki.value.id == updated.id) _activeWiki.value = updated
     }
 
     /**
@@ -291,13 +379,8 @@ class AppRepository(
         if (faviconUrl == site.discoveredFaviconUrl) return
 
         val updated = site.copy(discoveredFaviconUrl = faviconUrl)
-        if (updated.isCustom) {
-            _customWikis.update { list -> list.map { if (it.id == updated.id) updated else it } }
-        } else {
-            _presetWikis.update { list -> list.map { if (it.id == updated.id) updated else it } }
-        }
+        applyWikiUpdate(updated)
         store.upsertWiki(updated)
-        if (_activeWiki.value.id == updated.id) _activeWiki.value = updated
     }
 
     /**
@@ -310,15 +393,7 @@ class AppRepository(
      * alike, the same as [setWikiSkin].
      */
     fun updateMainPageTitle(wikiId: String, title: String) {
-        val updated = (_presetWikis.value + _customWikis.value).firstOrNull { it.id == wikiId }
-            ?.copy(mainPageTitle = title)
-            ?: return
-        if (updated.isCustom) {
-            _customWikis.update { list -> list.map { if (it.id == wikiId) updated else it } }
-        } else {
-            _presetWikis.update { list -> list.map { if (it.id == wikiId) updated else it } }
-        }
-        if (_activeWiki.value.id == wikiId) _activeWiki.value = updated
+        val updated = updateWiki(wikiId) { it.copy(mainPageTitle = title) } ?: return
         appScope.launch { store.upsertWiki(updated) }
     }
 
@@ -332,15 +407,7 @@ class AppRepository(
      * does nothing if [wikiId] isn't in either list.
      */
     fun setWikiSkin(wikiId: String, skin: String) {
-        val updated = (_presetWikis.value + _customWikis.value).firstOrNull { it.id == wikiId }
-            ?.copy(skin = skin, skinIsUserSet = true)
-            ?: return
-        if (updated.isCustom) {
-            _customWikis.update { list -> list.map { if (it.id == wikiId) updated else it } }
-        } else {
-            _presetWikis.update { list -> list.map { if (it.id == wikiId) updated else it } }
-        }
-        if (_activeWiki.value.id == wikiId) _activeWiki.value = updated
+        val updated = updateWiki(wikiId) { it.copy(skin = skin, skinIsUserSet = true) } ?: return
         appScope.launch { store.upsertWiki(updated) }
     }
 
@@ -351,21 +418,31 @@ class AppRepository(
      * are combined.
      */
     fun setWikiDisableSafeMode(wikiId: String, disableSafeMode: Boolean) {
-        val updated = (_presetWikis.value + _customWikis.value).firstOrNull { it.id == wikiId }
-            ?.copy(disableSafeMode = disableSafeMode)
-            ?: return
-        if (updated.isCustom) {
-            _customWikis.update { list -> list.map { if (it.id == wikiId) updated else it } }
-        } else {
-            _presetWikis.update { list -> list.map { if (it.id == wikiId) updated else it } }
-        }
-        if (_activeWiki.value.id == wikiId) _activeWiki.value = updated
+        val updated = updateWiki(wikiId) { it.copy(disableSafeMode = disableSafeMode) } ?: return
         appScope.launch { store.upsertWiki(updated) }
     }
 
+    /** Assigns a position after everything already in the picker if [site] doesn't have a real one yet. */
     fun addCustomWiki(site: WikiSite) {
-        _customWikis.update { list -> list.filterNot { it.id == site.id } + site }
-        appScope.launch { store.upsertWiki(site) }
+        val ordered = if (site.rank.value.isNotEmpty()) site else site.copy(rank = nextCustomRank())
+        _customWikis.update { list -> list.filterNot { it.id == ordered.id } + ordered }
+        appScope.launch { store.upsertWiki(ordered) }
+    }
+
+    /**
+     * Moves a custom wiki to sit between [beforeId] and [afterId],
+     * either null at whichever end of the list it's being dropped at.
+     * Only this one wiki's row changes, the same whether there are ten
+     * custom wikis or ten thousand. Presets aren't reorderable this
+     * way, their position is always the one they resync to in [init].
+     */
+    fun reorderCustomWiki(wikiId: String, beforeId: String?, afterId: String?) {
+        val current = _customWikis.value
+        val lo = beforeId?.let { id -> current.firstOrNull { it.id == id }?.rank?.value } ?: ""
+        val hi = afterId?.let { id -> current.firstOrNull { it.id == id }?.rank?.value }
+        val updated = updateWiki(wikiId) { it.copy(rank = Rank(RankUtil.between(lo, hi))) } ?: return
+        _customWikis.update { list -> list.sortedBy { it.rank } }
+        appScope.launch { store.upsertWiki(updated) }
     }
 
     fun removeCustomWiki(site: WikiSite) {
@@ -394,17 +471,17 @@ class AppRepository(
      */
     fun createFolder(name: String): WikiFolder {
         val slug = name.lowercase().map { if (it.isLetterOrDigit()) it else '-' }.joinToString("")
-        val folder = WikiFolder(id = "folder-custom-$slug-${Random.nextInt(100000, 999999)}", name = name, isCustom = true)
+        val rank = Rank(RankUtil.between(_customFolders.value.lastOrNull()?.rank?.value ?: "", null))
+        val folder = WikiFolder(id = "folder-custom-$slug-${Random.nextInt(100000, 999999)}", name = name, isCustom = true, rank = rank)
         _customFolders.update { it + folder }
-        appScope.launch { store.upsertFolder(folder, _customFolders.value.size - 1) }
+        appScope.launch { store.upsertFolder(folder) }
         return folder
     }
 
     fun renameFolder(folderId: String, newName: String) {
         val updated = _customFolders.value.firstOrNull { it.id == folderId }?.copy(name = newName) ?: return
-        val sortOrder = _customFolders.value.indexOfFirst { it.id == folderId }
         _customFolders.update { list -> list.map { if (it.id == folderId) updated else it } }
-        appScope.launch { store.upsertFolder(updated, sortOrder) }
+        appScope.launch { store.upsertFolder(updated) }
     }
 
     /**
@@ -423,17 +500,18 @@ class AppRepository(
     }
 
     /**
-     * Persists a new order for the person's custom folders after a drag
-     * reorder in WikiPickerScreen. [orderedIds] is expected to already
-     * be the full set of custom folder ids in their new order. Any id
-     * that no longer matches a real folder, for example one deleted in
-     * another session, is just skipped rather than treated as an error.
+     * Moves a custom folder to sit between [beforeId] and [afterId]
+     * after a drag reorder in WikiPickerScreen, either null at
+     * whichever end it's being dropped at. Only this one folder's row
+     * changes, no matter how many other folders exist.
      */
-    fun reorderFolders(orderedIds: List<String>) {
-        val byId = _customFolders.value.associateBy { it.id }
-        val reordered = orderedIds.mapNotNull { byId[it] }
-        _customFolders.value = reordered
-        appScope.launch { reordered.forEachIndexed { index, folder -> store.upsertFolder(folder, index) } }
+    fun reorderFolder(folderId: String, beforeId: String?, afterId: String?) {
+        val current = _customFolders.value
+        val lo = beforeId?.let { id -> current.firstOrNull { it.id == id }?.rank?.value } ?: ""
+        val hi = afterId?.let { id -> current.firstOrNull { it.id == id }?.rank?.value }
+        val updated = current.firstOrNull { it.id == folderId }?.copy(rank = Rank(RankUtil.between(lo, hi))) ?: return
+        _customFolders.update { list -> list.map { if (it.id == folderId) updated else it }.sortedBy { it.rank } }
+        appScope.launch { store.upsertFolder(updated) }
     }
 
     /**
@@ -444,56 +522,26 @@ class AppRepository(
      * reorganize.
      */
     fun moveWikiToFolder(wikiId: String, folderId: String?) {
-        val updated = _customWikis.value.firstOrNull { it.id == wikiId }?.copy(folderId = folderId) ?: return
-        _customWikis.update { list -> list.map { if (it.id == wikiId) updated else it } }
-        if (_activeWiki.value.id == wikiId) _activeWiki.value = updated
+        val updated = updateWiki(wikiId) { it.copy(folderId = folderId) } ?: return
         appScope.launch { store.upsertWiki(updated) }
     }
 
-    fun setThemeMode(mode: ThemeMode) {
-        _themeMode.value = mode
-        appScope.launch { store.setSetting(SettingKeys.THEME_MODE, mode.name) }
+    /** Updates [flow] right away and writes [key] to [value]'s string form in the background. */
+    private fun <T> persistSetting(flow: MutableStateFlow<T>, key: String, value: T, encode: (T) -> String = { it.toString() }) {
+        flow.value = value
+        appScope.launch { store.setSetting(key, encode(value)) }
     }
 
-    fun setDynamicColor(enabled: Boolean) {
-        _dynamicColor.value = enabled
-        appScope.launch { store.setSetting(SettingKeys.DYNAMIC_COLOR, enabled.toString()) }
-    }
-
-    fun setTextScale(scale: Float) {
-        _textScale.value = scale
-        appScope.launch { store.setSetting(SettingKeys.TEXT_SCALE, scale.toString()) }
-    }
-
-    fun setShowImages(enabled: Boolean) {
-        _showImages.value = enabled
-        appScope.launch { store.setSetting(SettingKeys.SHOW_IMAGES, enabled.toString()) }
-    }
-
-    fun setOpenLinksExternally(enabled: Boolean) {
-        _openLinksExternally.value = enabled
-        appScope.launch { store.setSetting(SettingKeys.OPEN_LINKS_EXTERNALLY, enabled.toString()) }
-    }
-
-    fun setConfirmExternalNavigation(enabled: Boolean) {
-        _confirmExternalNavigation.value = enabled
-        appScope.launch { store.setSetting(SettingKeys.CONFIRM_EXTERNAL_NAVIGATION, enabled.toString()) }
-    }
-
-    fun setDisableSafeMode(enabled: Boolean) {
-        _disableSafeMode.value = enabled
-        appScope.launch { store.setSetting(SettingKeys.DISABLE_SAFE_MODE, enabled.toString()) }
-    }
-
-    fun setOpenBlankInNewTab(enabled: Boolean) {
-        _openBlankInNewTab.value = enabled
-        appScope.launch { store.setSetting(SettingKeys.OPEN_BLANK_IN_NEW_TAB, enabled.toString()) }
-    }
-
-    fun setIndieWikiSuggestionsEnabled(enabled: Boolean) {
-        _indieWikiSuggestionsEnabled.value = enabled
-        appScope.launch { store.setSetting(SettingKeys.INDIE_WIKI_SUGGESTIONS_ENABLED, enabled.toString()) }
-    }
+    fun setThemeMode(mode: ThemeMode) = persistSetting(_themeMode, SettingKeys.THEME_MODE, mode) { it.name }
+    fun setDynamicColor(enabled: Boolean) = persistSetting(_dynamicColor, SettingKeys.DYNAMIC_COLOR, enabled)
+    fun setTextScale(scale: Float) = persistSetting(_textScale, SettingKeys.TEXT_SCALE, scale)
+    fun setShowImages(enabled: Boolean) = persistSetting(_showImages, SettingKeys.SHOW_IMAGES, enabled)
+    fun setOpenLinksExternally(enabled: Boolean) = persistSetting(_openLinksExternally, SettingKeys.OPEN_LINKS_EXTERNALLY, enabled)
+    fun setConfirmExternalNavigation(enabled: Boolean) = persistSetting(_confirmExternalNavigation, SettingKeys.CONFIRM_EXTERNAL_NAVIGATION, enabled)
+    fun setDisableSafeMode(enabled: Boolean) = persistSetting(_disableSafeMode, SettingKeys.DISABLE_SAFE_MODE, enabled)
+    fun setOpenBlankInNewTab(enabled: Boolean) = persistSetting(_openBlankInNewTab, SettingKeys.OPEN_BLANK_IN_NEW_TAB, enabled)
+    fun setIndieWikiSuggestionsEnabled(enabled: Boolean) =
+        persistSetting(_indieWikiSuggestionsEnabled, SettingKeys.INDIE_WIKI_SUGGESTIONS_ENABLED, enabled)
 
     fun allWikisNow(): List<WikiSite> = _presetWikis.value + _customWikis.value
 
