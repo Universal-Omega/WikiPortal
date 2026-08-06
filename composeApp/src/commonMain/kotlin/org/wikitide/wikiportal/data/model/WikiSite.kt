@@ -2,6 +2,7 @@ package org.wikitide.wikiportal.data.model
 
 import io.ktor.http.URLBuilder
 import kotlinx.serialization.Serializable
+import org.wikitide.wikiportal.util.RankUtil
 
 /** Describes a single MediaWiki site the app can connect to. */
 @Serializable
@@ -78,6 +79,17 @@ data class WikiSite(
      * AppRepository.setWikiDisableSafeMode.
      */
     val disableSafeMode: Boolean = false,
+    /**
+     * Where this wiki sits in the picker relative to every other wiki,
+     * lower first, see RankUtil. Presets carry a fixed rank matching
+     * their position in [PresetWikis], recomputed automatically from
+     * that position, never typed in by hand. A custom wiki gets a rank
+     * assigned once, when it's added, placing it after whatever
+     * already exists, and a drag reorder replaces it with a fresh one
+     * that only ever touches this one wiki's row. See
+     * AppRepository.nextCustomRank and AppRepository.reorderCustomWiki.
+     */
+    val rank: Rank = Rank(""),
 ) {
     val apiUrl: String get() = "$baseUrl$scriptPath/api.php"
     val indexUrl: String get() = "$baseUrl$scriptPath/index.php"
@@ -190,6 +202,8 @@ data class WikiFolder(
     val id: String,
     val name: String,
     val isCustom: Boolean = false,
+    /** Same idea as [WikiSite.rank], just for the folder list instead of the wiki list. */
+    val rank: Rank = Rank(""),
 )
 
 /** We don't use these right now, but may eventually */
@@ -219,40 +233,52 @@ object PresetFolders {
  * named folders instead of a single long list. Adding another Miraheze
  * or Wikimedia wiki later is then just a new entry here with the
  * matching folder id.
+ *
+ * Each entry's [WikiSite.rank] comes from where it sits in
+ * [orderedSeeds] below, not a number typed on the entry itself.
+ * Inserting a new preset in the middle of that list, not just at the
+ * end, is enough on its own; nothing else needs renumbering by hand.
  */
 object PresetWikis {
-    val MIRAHEZE_META = WikiSite(
-        id = "miraheze-meta",
-        name = "Miraheze Meta",
-        description = "Central coordination wiki for the Miraheze wiki farm",
-        baseUrl = "https://meta.miraheze.org",
-        skin = "citizen",
-        // folderId = PresetFolders.MIRAHEZE.id,
-    )
-    val WIKIPEDIA_EN = WikiSite(
-        id = "wikipedia-en",
-        name = "Wikipedia",
-        description = "The Free Encyclopedia",
-        baseUrl = "https://en.wikipedia.org",
-        // folderId = PresetFolders.WIKIMEDIA.id,
-    )
-    val WIKTIONARY_EN = WikiSite(
-        id = "wiktionary-en",
-        name = "Wiktionary",
-        description = "The Free Dictionary",
-        baseUrl = "https://en.wiktionary.org",
-        // folderId = PresetFolders.WIKIMEDIA.id,
-    )
-    val WIKIBOOKS_EN = WikiSite(
-        id = "wikibooks-en",
-        name = "Wikibooks",
-        description = "Open-content textbooks",
-        baseUrl = "https://en.wikibooks.org",
-        // folderId = PresetFolders.WIKIMEDIA.id,
+    private val orderedSeeds: List<WikiSite> = listOf(
+        WikiSite(
+            id = "miraheze-meta",
+            name = "Miraheze Meta",
+            description = "Central coordination wiki for the Miraheze wiki farm",
+            baseUrl = "https://meta.miraheze.org",
+            skin = "citizen",
+            // folderId = PresetFolders.MIRAHEZE.id,
+        ),
+        WikiSite(
+            id = "wikipedia-en",
+            name = "Wikipedia",
+            description = "The Free Encyclopedia",
+            baseUrl = "https://en.wikipedia.org",
+            // folderId = PresetFolders.WIKIMEDIA.id,
+        ),
+        WikiSite(
+            id = "wiktionary-en",
+            name = "Wiktionary",
+            description = "The Free Dictionary",
+            baseUrl = "https://en.wiktionary.org",
+            // folderId = PresetFolders.WIKIMEDIA.id,
+        ),
+        WikiSite(
+            id = "wikibooks-en",
+            name = "Wikibooks",
+            description = "Open-content textbooks",
+            baseUrl = "https://en.wikibooks.org",
+            // folderId = PresetFolders.WIKIMEDIA.id,
+        ),
     )
 
-    val all: List<WikiSite> = listOf(
-        MIRAHEZE_META, WIKIPEDIA_EN, WIKTIONARY_EN, WIKIBOOKS_EN,
-    )
+    val all: List<WikiSite> = orderedSeeds.zip(RankUtil.initialRanks(orderedSeeds.size)) { seed, rank ->
+        seed.copy(rank = Rank(rank))
+    }
+
+    val MIRAHEZE_META: WikiSite = all[0]
+    val WIKIPEDIA_EN: WikiSite = all[1]
+    val WIKTIONARY_EN: WikiSite = all[2]
+    val WIKIBOOKS_EN: WikiSite = all[3]
     val default: WikiSite = MIRAHEZE_META
 }
