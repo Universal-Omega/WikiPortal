@@ -119,7 +119,7 @@ class SqlDelightWikiPortalStore(
 
     override suspend fun upsertFolder(folder: WikiFolder) {
         ensureSchema()
-        queries.upsertFolder(folder.id, folder.name, 0L, folder.rank)
+        queries.upsertFolder(folder.id, folder.name, folder.rank)
     }
 
     override suspend fun removeFolder(id: String) {
