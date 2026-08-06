@@ -97,15 +97,13 @@ import org.wikitide.wikiportal.network.PageSummaryDto
 import org.wikitide.wikiportal.ui.tabs.TabsScreen
 import org.wikitide.wikiportal.util.ShareOutcome
 import org.wikitide.wikiportal.util.rememberPageSharer
+import org.wikitide.wikiportal.util.nowEpochMillis
 import org.wikitide.wikiportal.util.offline.captureArticleForOffline
 import org.wikitide.wikiportal.util.offline.offlineLoadIdentityUrl
 import org.wikitide.wikiportal.util.offline.offlineTitlesForWiki
 import org.wikitide.wikiportal.util.offline.rewriteOfflineLinks
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlin.time.Clock
-
-private fun nowEpochMillis(): Long = Clock.System.now().toEpochMilliseconds()
 
 @Composable
 fun ArticleHostScreen(
