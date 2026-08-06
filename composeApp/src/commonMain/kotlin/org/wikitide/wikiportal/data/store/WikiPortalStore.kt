@@ -46,7 +46,7 @@ interface WikiPortalStore {
      * row itself, see [WikiSite.folderId].
      */
     suspend fun allFolders(): List<WikiFolder>
-    suspend fun upsertFolder(folder: WikiFolder, sortOrder: Int)
+    suspend fun upsertFolder(folder: WikiFolder)
     suspend fun removeFolder(id: String)
 
     suspend fun savedPages(): List<SavedPage>
