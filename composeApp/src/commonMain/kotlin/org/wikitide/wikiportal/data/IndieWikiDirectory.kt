@@ -14,9 +14,7 @@ import org.wikitide.wikiportal.data.store.SettingKeys
 import org.wikitide.wikiportal.data.store.WikiPortalStore
 import org.wikitide.wikiportal.network.IndieWikiBuddyApi
 import org.wikitide.wikiportal.util.AppLog
-import kotlin.time.Clock
-
-private fun nowEpochMillis(): Long = Clock.System.now().toEpochMilliseconds()
+import org.wikitide.wikiportal.util.nowEpochMillis
 
 /** Refetched at most this often. Indie Wiki Buddy's own data doesn't change fast enough to justify anything shorter. */
 private const val CACHE_MAX_AGE_MILLIS = 24L * 60 * 60 * 1000
