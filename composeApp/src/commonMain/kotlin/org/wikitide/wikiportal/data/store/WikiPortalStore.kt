@@ -1,4 +1,3 @@
-
 package org.wikitide.wikiportal.data.store
 
 import org.wikitide.wikiportal.data.model.ArticleTab
