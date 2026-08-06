@@ -7,7 +7,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.yield
 import org.wikitide.wikiportal.data.model.PresetWikis
 import org.wikitide.wikiportal.data.model.Rank
 import org.wikitide.wikiportal.data.model.SavedPage
@@ -18,9 +17,6 @@ import org.wikitide.wikiportal.data.store.SettingKeys
 import org.wikitide.wikiportal.data.store.WikiPortalStore
 import org.wikitide.wikiportal.util.RankUtil
 import kotlin.random.Random
-
-/** Rows are written this many at a time during the one-off legacy rank backfill, so a large wiki list never blocks on one giant burst of writes. */
-private const val BACKFILL_CHUNK_SIZE = 500
 
 /**
  * A reactive layer over [WikiPortalStore]. The store itself is a plain
@@ -172,57 +168,9 @@ class AppRepository(
             // UI.
             staleRows.forEach { store.removeWiki(it.id) }
 
-            // A custom wiki added before the rank column existed still
-            // has it at the column's default, an empty string. Give
-            // each of those a real rank here, all generated in one go
-            // with RankUtil.initialRanksAfter so even a few thousand
-            // legacy rows get short keys instead of what repeatedly
-            // calling RankUtil.between would produce, landing after
-            // every preset and every already-ranked custom wiki in
-            // whatever order they already came back in. This only
-            // ever runs once per wiki, a chunk at a time in the
-            // background so it never blocks a large wiki list on the
-            // very next launch after this shipped. A wiki added since
-            // then already carries a real rank from addCustomWiki and
-            // is left alone. This whole legacyCustomRanks block, and
-            // the emptiness check driving it, is safe to delete once
-            // enough time has passed that every install has been
-            // opened at least once since this shipped.
-            val rankedPresets = resyncedPresetRows + missingPresets
-            val alreadyRankedCustoms = storedCustomRows.filter { it.rank.value.isNotEmpty() }
-            val legacyCustomRows = storedCustomRows.filter { it.rank.value.isEmpty() }
-            val watermark = (rankedPresets + alreadyRankedCustoms).maxOfOrNull { it.rank }?.value ?: ""
-            val backfilledCustomRows = legacyCustomRows.zip(RankUtil.initialRanksAfter(watermark, legacyCustomRows.size)) { row, rank ->
-                row.copy(rank = Rank(rank))
-            }
-            backfilledCustomRows.chunked(BACKFILL_CHUNK_SIZE).forEach { chunk ->
-                chunk.forEach { store.upsertWiki(it) }
-                yield()
-            }
-
-            // Presets and custom wikis are both stored with a real
-            // rank now, so the saved order can be trusted directly
-            // instead of being rebuilt from PresetWikis.all afterward.
-            _presetWikis.value = rankedPresets.sortedBy { it.rank }
-            _customWikis.value = (alreadyRankedCustoms + backfilledCustomRows).sortedBy { it.rank }
-
-            // Same legacy backfill idea as the wikis above, just for
-            // custom folders, which have carried a rank-shaped column
-            // since further back and so may have a larger backlog of
-            // still-unranked rows. Also safe to delete on the same
-            // timeline as the wiki backfill above.
-            val storedFolders = store.allFolders()
-            val alreadyRankedFolders = storedFolders.filter { it.rank.value.isNotEmpty() }
-            val legacyFolders = storedFolders.filter { it.rank.value.isEmpty() }
-            val folderWatermark = alreadyRankedFolders.maxOfOrNull { it.rank }?.value ?: ""
-            val backfilledFolders = legacyFolders.zip(RankUtil.initialRanksAfter(folderWatermark, legacyFolders.size)) { folder, rank ->
-                folder.copy(rank = Rank(rank))
-            }
-            backfilledFolders.chunked(BACKFILL_CHUNK_SIZE).forEach { chunk ->
-                chunk.forEach { store.upsertFolder(it) }
-                yield()
-            }
-            _customFolders.value = (alreadyRankedFolders + backfilledFolders).sortedBy { it.rank }
+            _presetWikis.value = (resyncedPresetRows + missingPresets).sortedBy { it.rank }
+            _customWikis.value = storedCustomRows.sortedBy { it.rank }
+            _customFolders.value = store.allFolders().sortedBy { it.rank }
 
             val activeId = store.getSetting(SettingKeys.ACTIVE_WIKI_ID)
             val restoredActiveWiki =
