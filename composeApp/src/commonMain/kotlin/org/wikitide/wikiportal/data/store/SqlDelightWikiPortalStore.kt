@@ -101,7 +101,7 @@ class SqlDelightWikiPortalStore(
         queries.upsertWiki(
             site.id, site.name, site.description, site.baseUrl, site.scriptPath, site.skin,
             site.articlePathPrefix, site.discoveredFaviconUrl, site.isCustom, site.availableSkins, site.skinIsUserSet,
-            site.mainPageTitle, site.folderId, site.mainPageIsDomainRoot, site.disableSafeMode, 0L, site.rank,
+            site.mainPageTitle, site.folderId, site.mainPageIsDomainRoot, site.disableSafeMode, site.rank,
         )
     }
 
