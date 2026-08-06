@@ -10,10 +10,8 @@ import org.wikitide.wikiportal.data.model.ArticleTab
 import org.wikitide.wikiportal.data.model.WikiSite
 import org.wikitide.wikiportal.data.store.SettingKeys
 import org.wikitide.wikiportal.data.store.WikiPortalStore
+import org.wikitide.wikiportal.util.nowEpochMillis
 import kotlin.random.Random
-import kotlin.time.Clock
-
-private fun nowEpochMillis(): Long = Clock.System.now().toEpochMilliseconds()
 
 /**
  * Tracks open reading tabs, similar to a browser's tab strip. Each tab's
