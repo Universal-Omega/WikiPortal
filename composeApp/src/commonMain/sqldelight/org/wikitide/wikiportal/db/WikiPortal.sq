@@ -1,5 +1,6 @@
 import kotlin.Boolean;
 import kotlin.collections.List;
+import org.wikitide.wikiportal.data.model.Rank;
 import org.wikitide.wikiportal.data.model.SkinOption;
 
 -- This file describes the latest schema, what a new install gets
@@ -37,34 +38,41 @@ CREATE TABLE IF NOT EXISTS Wiki (
     mainPageTitle TEXT,
     folderId TEXT,
     mainPageIsDomainRoot INTEGER AS Boolean NOT NULL DEFAULT 0,
-    disableSafeMode INTEGER AS Boolean NOT NULL DEFAULT 0
+    disableSafeMode INTEGER AS Boolean NOT NULL DEFAULT 0,
+    rank TEXT AS Rank NOT NULL DEFAULT ''
 );
 
 upsertWiki:
-INSERT OR REPLACE INTO Wiki(id, name, description, baseUrl, scriptPath, skin, articlePathPrefix, faviconUrl, isCustom, availableSkins, skinIsUserSet, mainPageTitle, folderId, mainPageIsDomainRoot, disableSafeMode)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO Wiki(id, name, description, baseUrl, scriptPath, skin, articlePathPrefix, faviconUrl, isCustom, availableSkins, skinIsUserSet, mainPageTitle, folderId, mainPageIsDomainRoot, disableSafeMode, rank)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 deleteWiki:
 DELETE FROM Wiki WHERE id = ?;
 
+-- Presets carry a fixed rank matching their shipped position, and
+-- custom wikis get one assigned when added, so the picker's order
+-- comes straight from this column instead of being rebuilt in memory
+-- after the fact. name is just the tiebreaker for the moment right
+-- after an upgrade, before every row has a real rank yet.
 selectAllWikis:
-SELECT * FROM Wiki ORDER BY name ASC;
+SELECT * FROM Wiki ORDER BY rank ASC, name ASC;
 
 CREATE TABLE IF NOT EXISTS Folder (
     id TEXT NOT NULL PRIMARY KEY,
     name TEXT NOT NULL,
-    sortOrder INTEGER NOT NULL DEFAULT 0
+    sortOrder INTEGER NOT NULL DEFAULT 0,
+    rank TEXT AS Rank NOT NULL DEFAULT ''
 );
 
 upsertFolder:
-INSERT OR REPLACE INTO Folder(id, name, sortOrder)
-VALUES (?, ?, ?);
+INSERT OR REPLACE INTO Folder(id, name, sortOrder, rank)
+VALUES (?, ?, ?, ?);
 
 deleteFolder:
 DELETE FROM Folder WHERE id = ?;
 
 selectAllFolders:
-SELECT * FROM Folder ORDER BY sortOrder ASC;
+SELECT * FROM Folder ORDER BY rank ASC, name ASC;
 
 CREATE TABLE IF NOT EXISTS SavedPage (
     wikiId TEXT NOT NULL,
