@@ -1,6 +1,9 @@
 package org.wikitide.wikiportal.network
 
+import kotlinx.serialization.Serializable
+
 /** Which day-over-day direction a trending page's views are moving. */
+@Serializable
 enum class TrendDirection { UP, DOWN, FLAT }
 
 /**
@@ -15,6 +18,7 @@ enum class TrendDirection { UP, DOWN, FLAT }
  * leave them null or false, since neither currently exposes anything
  * equivalent.
  */
+@Serializable
 data class TrendingArticle(
     val title: String,
     val views: Long?,
