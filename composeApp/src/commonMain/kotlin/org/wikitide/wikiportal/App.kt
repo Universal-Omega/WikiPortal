@@ -65,8 +65,8 @@ import org.wikitide.wikiportal.navigation.Navigator
 import org.wikitide.wikiportal.navigation.Route
 import org.wikitide.wikiportal.navigation.SavedRoute
 import org.wikitide.wikiportal.navigation.SettingsRoute
+import org.wikitide.wikiportal.navigation.SystemBackInterceptor
 import org.wikitide.wikiportal.navigation.TabsRoute
-import org.wikitide.wikiportal.ui.navigation.SystemBackInterceptor
 import org.wikitide.wikiportal.ui.theme.WikiPortalTheme
 
 private data class BottomDestination(val route: Route, val label: String, val selected: ImageVector, val unselected: ImageVector)
