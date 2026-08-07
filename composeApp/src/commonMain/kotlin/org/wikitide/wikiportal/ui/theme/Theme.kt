@@ -35,15 +35,6 @@ private val DarkColors = darkColorScheme(
 
 expect fun dynamicColorSchemeAvailable(): Boolean
 
-/**
- * Reads whatever platform API supplies a dynamic color scheme, Android's
- * dynamicDarkColorScheme/dynamicLightColorScheme off LocalContext, or
- * null on platforms with no such concept. Nothing here does anything
- * beyond reading a CompositionLocal and returning a value: no
- * remember, no emitted UI, so this is safe to mark read-only, letting
- * Compose skip the usual slot-table bookkeeping a full composable call
- * would need.
- */
 @Composable
 @ReadOnlyComposable
 expect fun platformDynamicColorScheme(useDark: Boolean): ColorScheme?
