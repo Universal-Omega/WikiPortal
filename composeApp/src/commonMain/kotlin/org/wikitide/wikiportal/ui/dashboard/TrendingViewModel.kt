@@ -1,5 +1,6 @@
 package org.wikitide.wikiportal.ui.dashboard
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,6 +14,7 @@ import org.wikitide.wikiportal.util.refreshOnWikiChange
 /** How many articles the expanded screen asks for, past the Dashboard card's top 5. */
 private const val EXPANDED_LIMIT = 50
 
+@Immutable
 data class TrendingUiState(
     val isLoading: Boolean = true,
     val date: String? = null,
