@@ -1,5 +1,6 @@
 package org.wikitide.wikiportal.ui.feedback
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,6 +17,7 @@ enum class FeedbackCategory(val label: String) {
     OTHER("Other"),
 }
 
+@Immutable
 data class FeedbackUiState(
     val category: FeedbackCategory = FeedbackCategory.BUG,
     val message: String = "",
