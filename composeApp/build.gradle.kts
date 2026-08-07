@@ -70,6 +70,7 @@ kotlin {
                 implementation(libs.ktor.client.okhttp)
                 implementation(libs.sqldelight.android.driver)
             }
+
             dependsOn(concurrentMain)
         }
 
@@ -118,6 +119,7 @@ kotlin {
                 implementation(libs.ktor.client.okhttp)
                 implementation(libs.sqldelight.sqlite.driver)
             }
+
             dependsOn(concurrentMain)
         }
 
@@ -126,6 +128,7 @@ kotlin {
                 implementation(libs.ktor.client.darwin)
                 implementation(libs.sqldelight.native.driver)
             }
+
             dependsOn(concurrentMain)
         }
 
