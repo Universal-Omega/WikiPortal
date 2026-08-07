@@ -1,5 +1,6 @@
 package org.wikitide.wikiportal.ui.dashboard
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -10,6 +11,7 @@ import org.wikitide.wikiportal.data.model.RelevantLinksConfig
 import org.wikitide.wikiportal.network.MediaWikiApi
 import org.wikitide.wikiportal.util.refreshOnWikiChange
 
+@Immutable
 data class RelevantLinksUiState(
     val titles: List<String> = emptyList(),
     val isLoading: Boolean = true,
