@@ -38,7 +38,10 @@ private const val CACHE_MAX_AGE_MILLIS = 15L * 60 * 1000
 private const val CACHE_FETCH_LIMIT = 50
 
 @Serializable
-private data class CacheEntry(val result: TrendingResult, val fetchedAtEpochMillis: Long)
+private data class CacheEntry(
+    val result: TrendingResult,
+    val fetchedAtEpochMillis: Long,
+)
 
 private val json = Json { ignoreUnknownKeys = true }
 
