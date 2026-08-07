@@ -495,7 +495,7 @@ private fun FolderHeaderRow(
 ) {
     var showMenu by remember { mutableStateOf(false) }
     val isDragging = dragState?.draggingId == folder.id
-    val dragOffsetY = if (isDragging) dragState?.dragOffsetY ?: 0f else 0f
+    val dragOffsetY = if (isDragging) dragState.dragOffsetY else 0f
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -621,7 +621,7 @@ private fun WikiRow(
     LaunchedEffect(wiki.id) { repository.refreshFaviconOnly(wiki) }
     var showMenu by remember { mutableStateOf(false) }
     val isDragging = dragState?.draggingId == wiki.id
-    val dragOffsetY = if (isDragging) dragState?.dragOffsetY ?: 0f else 0f
+    val dragOffsetY = if (isDragging) dragState.dragOffsetY else 0f
 
     Row(
         modifier = Modifier
