@@ -1,5 +1,6 @@
 package org.wikitide.wikiportal.ui.settings
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,12 +25,14 @@ import org.wikitide.wikiportal.util.AppLog
 import org.wikitide.wikiportal.util.isMobilePlatform
 
 /** An independent wiki Indie Wiki Buddy knows replaces whatever was actually typed in, offered before resolution proceeds. */
+@Immutable
 data class IndieWikiSuggestion(
     val originalUrl: String,
     val destinationName: String,
     val destinationBaseUrl: String,
 )
 
+@Immutable
 data class AddWikiUiState(
     val isChecking: Boolean = false,
     val errorMessage: String? = null,
