@@ -66,6 +66,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.input.pointer.pointerInput
@@ -86,6 +87,7 @@ import org.wikitide.wikiportal.data.model.WikiSite
 import org.wikitide.wikiportal.ui.components.DragReorderState
 import org.wikitide.wikiportal.ui.components.rememberDragReorderState
 import org.wikitide.wikiportal.ui.components.trackDragPosition
+import org.wikitide.wikiportal.util.RankUtil
 
 /**
  * A folder or an ungrouped custom wiki, whichever sits at the root of
@@ -156,11 +158,41 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
     val rootItems = remember(customFolders, ungroupedCustomWikis) {
         (customFolders.map { RootItem.FolderRoot(it) } + ungroupedCustomWikis.map { RootItem.WikiRoot(it) }).sortedBy { it.rank }
     }
+
+    // A rank for a wiki that's about to land inside [folderId], placed
+    // after every wiki already in there. Used both when a drag drops a
+    // wiki directly onto a folder row and, further down, isn't needed
+    // for dragging one back out, since exiting always targets the root
+    // list instead, see onWikiExitFolder.
+    fun nextRankInFolder(folderId: String): Rank {
+        val highest = customByFolder[folderId].orEmpty().maxByOrNull { it.rank }?.rank?.value ?: ""
+        return Rank(RankUtil.between(highest, null))
+    }
+
+    // Called when a wiki is dragged past the very top or bottom edge of
+    // the folder it's currently in, past where reordering inside that
+    // folder has anywhere left to put it, see DragReorderState's
+    // onExitBounds. [direction] -1 means it was dragged out upward, so
+    // it lands right before [folder] at the root level; +1 means
+    // dragged out downward, landing right after it instead.
+    fun onWikiExitFolder(folder: WikiFolder, wikiId: String, direction: Int) {
+        val folderIndex = rootItems.indexOfFirst { it.id == folder.id }
+        val newRank = if (direction < 0) {
+            val beforeRank = rootItems.getOrNull(folderIndex - 1)?.rank?.value ?: ""
+            Rank(RankUtil.between(beforeRank, folder.rank.value))
+        } else {
+            val afterRank = rootItems.getOrNull(folderIndex + 1)?.rank?.value
+            Rank(RankUtil.between(folder.rank.value, afterRank))
+        }
+        repository.moveWikiToFolder(wikiId, null, newRank)
+    }
+
     val rootDragState = rememberDragReorderState(
         items = rootItems,
         id = { it.id },
         rank = { it.rank },
         key = "root-items",
+        isContainer = { it is RootItem.FolderRoot },
         onMove = { itemId, newRank ->
             when (val item = rootItems.firstOrNull { it.id == itemId }) {
                 is RootItem.FolderRoot -> repository.setFolderRank(itemId, newRank)
@@ -168,6 +200,7 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
                 null -> Unit
             }
         },
+        onDropIntoContainer = { wikiId, folderId -> repository.moveWikiToFolder(wikiId, folderId, nextRankInFolder(folderId)) },
     )
 
     var reorderMode by remember { mutableStateOf(false) }
@@ -266,6 +299,7 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
                                 reorderMode = reorderMode,
                                 onEnterReorderMode = enterReorderMode,
                                 wikisReorderable = true,
+                                onExitFolder = { wikiId, direction -> onWikiExitFolder(folder, wikiId, direction) },
                             )
                         }
                     }
@@ -404,6 +438,7 @@ private fun FolderSectionContent(
     reorderMode: Boolean = false,
     onEnterReorderMode: (() -> Unit)? = null,
     wikisReorderable: Boolean = false,
+    onExitFolder: ((wikiId: String, direction: Int) -> Unit)? = null,
 ) {
     Column {
         FolderHeaderRow(
@@ -425,6 +460,7 @@ private fun FolderSectionContent(
                     rank = { it.rank },
                     key = folder.id,
                     onMove = { wikiId, newRank -> repository.setCustomWikiRank(wikiId, newRank) },
+                    onExitBounds = onExitFolder,
                 )
                 wikiDragState.items.forEach { wiki ->
                     WikiRow(
@@ -496,12 +532,17 @@ private fun FolderHeaderRow(
     var showMenu by remember { mutableStateOf(false) }
     val isDragging = dragState?.draggingId == folder.id
     val dragOffsetY = if (isDragging) dragState.dragOffsetY else 0f
+    val isDropTarget = dragState?.hoverContainerId == folder.id
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .let { if (dragState != null) it.trackDragPosition(dragState, folder.id) else it }
             .graphicsLayer { translationY = dragOffsetY }
             .zIndex(if (isDragging) 1f else 0f)
+            // A wiki hovering here to be dropped in gets a visible
+            // highlight across the whole row, not just the icon, so
+            // it's obvious which folder is about to receive it.
+            .background(if (isDropTarget) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
             .clickable(onClick = onToggle)
             .let {
                 if (dragState == null) {
@@ -532,10 +573,15 @@ private fun FolderHeaderRow(
         // folder row carries the same visual weight as a wiki row
         // instead of reading as two small bare icons crowded together.
         Box(
-            modifier = Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.secondaryContainer),
+            modifier = Modifier.size(40.dp).clip(CircleShape)
+                .background(if (isDropTarget) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondaryContainer),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(Icons.Filled.Folder, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+            Icon(
+                Icons.Filled.Folder,
+                contentDescription = null,
+                tint = if (isDropTarget) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSecondaryContainer,
+            )
         }
         Column(Modifier.weight(1f)) {
             Text(folder.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
