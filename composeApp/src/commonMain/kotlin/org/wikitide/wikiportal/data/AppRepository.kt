@@ -444,13 +444,16 @@ class AppRepository(
 
     /**
      * Moves a custom wiki into [folderId], or back out to ungrouped
-     * when [folderId] is null. Presets are not movable this way. Their
-     * folder is fixed at [PresetFolders] and set once, in
-     * [PresetWikis], since they are not the person's own wikis to
-     * reorganize.
+     * when [folderId] is null. Presets are not movable this way, their
+     * folder is fixed at PresetFolders and set once, in PresetWikis
+     * itself. [rank] places it at a specific position in its new list;
+     * the "Move to folder" menu action leaves this null and just keeps
+     * whatever rank the wiki already had, wherever that value happens
+     * to land there, while a drag onto or out of a folder passes the
+     * position the drop itself implied instead, see WikiPickerScreen.
      */
-    fun moveWikiToFolder(wikiId: String, folderId: String?) {
-        val updated = updateWiki(wikiId) { it.copy(folderId = folderId) } ?: return
+    fun moveWikiToFolder(wikiId: String, folderId: String?, rank: Rank? = null) {
+        val updated = updateWiki(wikiId) { it.copy(folderId = folderId, rank = rank ?: it.rank) } ?: return
         appScope.launch { store.upsertWiki(updated) }
     }
 
