@@ -44,6 +44,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -142,6 +143,8 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
         onMove = { wikiId, beforeId, afterId -> repository.reorderCustomWiki(wikiId, beforeId, afterId) },
     )
 
+    var reorderMode by remember { mutableStateOf(false) }
+
     Scaffold(
         contentWindowInsets = WindowInsets(0.dp),
         topBar = {
@@ -160,7 +163,7 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
         LazyColumn(
             state = listState,
             modifier = Modifier.padding(innerPadding).fillMaxSize(),
-            contentPadding = PaddingValues(vertical = 8.dp),
+            contentPadding = PaddingValues(top = 16.dp, bottom = 8.dp),
         ) {
             item { GroupLabel("Featured wikis") }
             items(ungroupedPresetWikis, key = { it.id }) { wiki ->
@@ -187,16 +190,27 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
             }
 
             if (customWikis.isNotEmpty() || customFolders.isNotEmpty()) {
-                item { GroupLabel("Your wikis") }
+                item {
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(end = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        GroupLabel("Your wikis", modifier = Modifier.weight(1f))
+                        TextButton(onClick = { reorderMode = !reorderMode }) {
+                            Text(if (reorderMode) "Done" else "Reorder")
+                        }
+                    }
+                }
                 items(wikiDragState.items, key = { "wiki-${it.id}" }) { wiki ->
                     WikiRow(
                         wiki, wiki.id == activeWiki.id,
-                        onClick = { repository.setActiveWiki(wiki); onBack() },
+                        onClick = { if (!reorderMode) { repository.setActiveWiki(wiki); onBack() } },
                         onRemove = { repository.removeCustomWiki(wiki) },
                         onEditSkin = { editingSkinForId = wiki.id },
                         onMoveToFolder = { movingWikiId = wiki.id },
                         repository = repository,
-                        dragState = wikiDragState,
+                        dragState = if (reorderMode) wikiDragState else null,
                     )
                 }
                 folderDragState.items.forEach { folder ->
@@ -208,14 +222,14 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
                         activeWikiId = activeWiki.id,
                         repository = repository,
                         onToggle = { toggleExpanded(folder.id) },
-                        onClickWiki = { wiki -> repository.setActiveWiki(wiki); onBack() },
+                        onClickWiki = { wiki -> if (!reorderMode) { repository.setActiveWiki(wiki); onBack() } },
                         onEditSkin = { wiki -> editingSkinForId = wiki.id },
                         onRemoveWiki = { wiki -> repository.removeCustomWiki(wiki) },
                         onMoveWikiToFolder = { wiki -> movingWikiId = wiki.id },
                         onRenameFolder = { renamingFolder = folder },
                         onDeleteFolder = { deletingFolder = folder },
-                        folderDragState = folderDragState,
-                        wikisReorderable = true,
+                        folderDragState = if (reorderMode) folderDragState else null,
+                        wikisReorderable = reorderMode,
                     )
                 }
             }
@@ -429,9 +443,9 @@ private fun FolderHeaderRow(
             .graphicsLayer { translationY = dragOffsetY }
             .zIndex(if (isDragging) 1f else 0f)
             .clickable(onClick = onToggle)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 20.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         if (dragState != null) {
             Icon(
@@ -448,12 +462,15 @@ private fun FolderHeaderRow(
                 },
             )
         }
-        Icon(
-            if (expanded) Icons.Filled.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Icon(Icons.Filled.Folder, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        // Same 40dp circular badge treatment as WikiRow's favicon, so a
+        // folder row carries the same visual weight as a wiki row
+        // instead of reading as two small bare icons crowded together.
+        Box(
+            modifier = Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.secondaryContainer),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.Filled.Folder, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+        }
         Column(Modifier.weight(1f)) {
             Text(folder.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
@@ -462,6 +479,11 @@ private fun FolderHeaderRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        Icon(
+            if (expanded) Icons.Filled.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = if (expanded) "Collapse" else "Expand",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         if (onRename != null || onDelete != null) {
             Box {
                 IconButton(onClick = { showMenu = true }) {
@@ -481,12 +503,12 @@ private fun FolderHeaderRow(
 }
 
 @Composable
-private fun GroupLabel(text: String) {
+private fun GroupLabel(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
         style = MaterialTheme.typography.labelLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+        modifier = modifier.padding(horizontal = 20.dp, vertical = 12.dp),
     )
 }
 
