@@ -87,7 +87,7 @@ data class WikiSite(
      * assigned once, when it's added, placing it after whatever
      * already exists, and a drag reorder replaces it with a fresh one
      * that only ever touches this one wiki's row. See
-     * AppRepository.nextCustomRank and AppRepository.reorderCustomWiki.
+     * AppRepository.nextCustomRank and AppRepository.setCustomWikiRank.
      */
     val rank: Rank = Rank(""),
 ) {
@@ -277,8 +277,5 @@ object PresetWikis {
     }
 
     val MIRAHEZE_META: WikiSite = all[0]
-    val WIKIPEDIA_EN: WikiSite = all[1]
-    val WIKTIONARY_EN: WikiSite = all[2]
-    val WIKIBOOKS_EN: WikiSite = all[3]
     val default: WikiSite = MIRAHEZE_META
 }
