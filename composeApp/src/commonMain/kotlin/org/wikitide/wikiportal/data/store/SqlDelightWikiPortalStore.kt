@@ -39,8 +39,11 @@ class SqlDelightWikiPortalStore(
     // WikiPortal.sq, which SQLDelight handles natively without one.
     private val database = WikiPortalDatabase(
         driver,
-        WikiAdapter = Wiki.Adapter(availableSkinsAdapter = SkinOptionListColumnAdapter, rankAdapter = RankColumnAdapter),
         FolderAdapter = Folder.Adapter(rankAdapter = RankColumnAdapter),
+        WikiAdapter = Wiki.Adapter(
+            availableSkinsAdapter = SkinOptionListColumnAdapter,
+            rankAdapter = RankColumnAdapter,
+        ),
     )
 
     private val queries = database.wikiPortalQueries
