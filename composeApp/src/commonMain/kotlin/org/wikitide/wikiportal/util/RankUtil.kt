@@ -80,7 +80,7 @@ object RankUtil {
             digits[pos] = ALPHABET[(remaining % BASE).toInt()]
             remaining /= BASE
         }
-        return String(digits)
+        return digits.concatToString()
     }
 
     /**
