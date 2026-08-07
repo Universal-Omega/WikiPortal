@@ -19,6 +19,7 @@ import org.wikitide.wikiportal.network.TrendingArticle
 import org.wikitide.wikiportal.network.deriveMainPageTitle
 import org.wikitide.wikiportal.network.friendlyNetworkErrorMessage
 import org.wikitide.wikiportal.util.AppLog
+import org.wikitide.wikiportal.util.refreshOnWikiChange
 
 /** How many recently visited or saved pages to surface on the Dashboard. */
 private const val ROW_LIMIT = 12
@@ -100,11 +101,7 @@ class FeedViewModel(
     private var loadedForWikiId: String? = null
 
     init {
-        viewModelScope.launch {
-            repository.activeWiki.collect { wiki ->
-                if (wiki.id != loadedForWikiId) refresh()
-            }
-        }
+        viewModelScope.refreshOnWikiChange(repository.activeWiki, { loadedForWikiId }, ::refresh)
     }
 
     fun refresh() {
