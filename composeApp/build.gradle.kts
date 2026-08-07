@@ -58,7 +58,7 @@ kotlin {
 
     sourceSets {
         val concurrentMain = create("concurrentMain") {
-            dependsOn(named("commonMain"))
+            dependsOn(commonMain.get())
         }
 
         androidMain {
