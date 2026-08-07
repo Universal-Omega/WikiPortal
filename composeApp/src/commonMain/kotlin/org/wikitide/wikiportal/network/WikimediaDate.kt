@@ -1,7 +1,6 @@
 package org.wikitide.wikiportal.network
 
 import org.wikitide.wikiportal.util.nowEpochMillis
-import kotlin.time.Clock
 
 /**
  * Howard Hinnant's "civil_from_days" algorithm. This
