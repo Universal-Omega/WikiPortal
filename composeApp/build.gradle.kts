@@ -57,6 +57,10 @@ kotlin {
     applyDefaultHierarchyTemplate()
 
     sourceSets {
+        val concurrentMain = create("concurrentMain") {
+            dependsOn(commonMain)
+        }
+
         androidMain {
             dependencies {
                 implementation(libs.androidx.activity.compose)
@@ -107,10 +111,6 @@ kotlin {
             implementation(libs.coil.network.ktor3)
 
             api(libs.webview.multiplatform)
-        }
-
-        create("concurrentMain") {
-            dependsOn(commonMain)
         }
 
         named("desktopMain") {
