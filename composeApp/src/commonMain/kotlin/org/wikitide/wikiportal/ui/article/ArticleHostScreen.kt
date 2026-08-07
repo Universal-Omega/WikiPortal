@@ -1,63 +1,16 @@
 package org.wikitide.wikiportal.ui.article
 
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.BookmarkBorder
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.DownloadDone
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Tab
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -71,11 +24,9 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.multiplatform.webview.request.RequestInterceptor
@@ -215,6 +166,22 @@ private fun SingleArticleTab(
     // there". See WikiArticleReader's matching param.
     var offlineLookupSettled by remember(tab.id) { mutableStateOf(false) }
 
+    // True once a tab that opened straight into an offline copy has
+    // genuinely fallen back to live browsing, meaning the lookup above
+    // came back settled with nothing to show, either because the copy
+    // was deleted mid-session or there never really was one. This is
+    // a MutableState object, not a plain val, specifically so the back
+    // handler below, registered once at tab creation and never
+    // re-registered, can still read its up to date value on every
+    // invocation rather than whatever it was at registration time.
+    val offlineFellBackToLiveState = remember(tab.id) { mutableStateOf(false) }
+    LaunchedEffect(offlineHtml, offlineLookupSettled) {
+        if (openOfflineFromStart && offlineLookupSettled && offlineHtml == null) {
+            offlineFellBackToLiveState.value = true
+        }
+    }
+    val isShowingOfflineSnapshot = openOfflineFromStart && !offlineFellBackToLiveState.value
+
     var pageState by remember(tab.id) {
         mutableStateOf(
             WikiPageState(title = initialTitle, canonicalTitle = initialTitle, displaySiteName = site.name, url = tab.currentUrl.orEmpty()),
@@ -269,7 +236,7 @@ private fun SingleArticleTab(
     val isOnExternalSiteState = rememberUpdatedState(isOnExternalSite)
     val offlineHtmlState = rememberUpdatedState(offlineHtml)
     val offlineKeysState = rememberUpdatedState(offlineKeys)
-    val openOfflineFromStartState = rememberUpdatedState(openOfflineFromStart)
+    val openOfflineFromStartState = rememberUpdatedState(isShowingOfflineSnapshot)
 
     val navigator = rememberWebViewNavigator(
         requestInterceptor = remember(site) {
@@ -363,7 +330,7 @@ private fun SingleArticleTab(
     // without touching that.
     DisposableEffect(tab.id) {
         tabsRepository.registerBackHandler(tab.id) {
-            if (openOfflineFromStart) {
+            if (openOfflineFromStart && !offlineFellBackToLiveState.value) {
                 goBackOffline()
             } else if (navigator.canGoBack) {
                 navigator.navigateBack()
@@ -379,9 +346,9 @@ private fun SingleArticleTab(
     // Keeps TabsRepository.activeTabCanGoBack in sync with this tab's own
     // history, WebView's for a live tab, offlineBackStack for an offline
     // one, but only while this tab is actually the active one.
-    LaunchedEffect(isActive, navigator.canGoBack, offlineBackStack) {
+    LaunchedEffect(isActive, navigator.canGoBack, offlineBackStack, isShowingOfflineSnapshot) {
         if (isActive) {
-            tabsRepository.setActiveTabCanGoBack(if (openOfflineFromStart) offlineBackStack.isNotEmpty() else navigator.canGoBack)
+            tabsRepository.setActiveTabCanGoBack(if (isShowingOfflineSnapshot) offlineBackStack.isNotEmpty() else navigator.canGoBack)
         }
     }
 
@@ -456,8 +423,8 @@ private fun SingleArticleTab(
     // Reapplies a changed skin or safe mode setting to whatever this
     // tab is already showing, so neither one requires closing and
     // reopening every open tab to take effect.
-    LaunchedEffect(site.skin, effectiveDisableSafeMode) {
-        if (openOfflineFromStart || isOnExternalSite) return@LaunchedEffect
+    LaunchedEffect(site.skin, effectiveDisableSafeMode, isShowingOfflineSnapshot) {
+        if (isShowingOfflineSnapshot || isOnExternalSite) return@LaunchedEffect
         val currentUrl = pageState.url.ifBlank { return@LaunchedEffect }
         val rewritten = site.withSkinParams(currentUrl, safeMode = !effectiveDisableSafeMode) ?: return@LaunchedEffect
         if (rewritten != currentUrl) navigator.loadUrl(rewritten)
@@ -520,7 +487,7 @@ private fun SingleArticleTab(
         // the actual address to return to, rather than reconstructing
         // one from title and wikiId that would 404 on a page that was
         // never really an article here.
-        val freshSummary = if (isOffSiteContent || openOfflineFromStart) null else api.getPageSummary(site, currentTitle).getOrNull()
+        val freshSummary = if (isOffSiteContent || isShowingOfflineSnapshot) null else api.getPageSummary(site, currentTitle).getOrNull()
         summarizedTitle = currentTitle
         pageSummary = freshSummary
         tabsRepository.updateTab(
@@ -536,7 +503,7 @@ private fun SingleArticleTab(
         // all, an outside site or an auth flow, isn't recorded as a
         // visit to any of them.
         val visitSite = when {
-            openOfflineFromStart -> site
+            isShowingOfflineSnapshot -> site
             isOffSiteContent -> null
             else -> allWikis.firstOrNull { pageState.url.startsWith(it.baseUrl) } ?: site
         }
@@ -589,182 +556,61 @@ private fun SingleArticleTab(
         topBar = {
             Box {
                 if (isSearchBarOpen) {
-                    TopAppBar(
-                        navigationIcon = {
-                            IconButton(
-                                onClick = {
-                                    isSearchBarOpen = false
-                                    searchQuery = ""
-                                    searchResult = PageSearchResult()
-                                    scope.launch { clearPageSearch(navigator) }
-                                },
-                            ) {
-                                Icon(Icons.Filled.Close, contentDescription = "Close search")
-                            }
+                    PageSearchTopBar(
+                        query = searchQuery,
+                        onQueryChange = { searchQuery = it },
+                        matchCount = searchResult.matchCount,
+                        activeIndex = searchResult.activeIndex,
+                        focusRequester = searchFocusRequester,
+                        onClose = {
+                            isSearchBarOpen = false
+                            searchQuery = ""
+                            searchResult = PageSearchResult()
+                            scope.launch { clearPageSearch(navigator) }
                         },
-                        title = {
-                            TextField(
-                                value = searchQuery,
-                                onValueChange = { searchQuery = it },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .focusRequester(searchFocusRequester),
-                                placeholder = { Text("Find on page") },
-                                singleLine = true,
-                                colors = TextFieldDefaults.colors(
-                                    focusedContainerColor = Color.Transparent,
-                                    unfocusedContainerColor = Color.Transparent,
-                                    focusedIndicatorColor = Color.Transparent,
-                                    unfocusedIndicatorColor = Color.Transparent,
-                                ),
-                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                                keyboardActions = KeyboardActions(
-                                    onSearch = { scope.launch { searchResult = stepPageSearch(navigator, forward = true) } },
+                        onSearchSubmit = { scope.launch { searchResult = stepPageSearch(navigator, forward = true) } },
+                        onPreviousMatch = { scope.launch { searchResult = stepPageSearch(navigator, forward = false) } },
+                        onNextMatch = { scope.launch { searchResult = stepPageSearch(navigator, forward = true) } },
+                    )
+                } else {
+                    ArticleTopBar(
+                        displayedTitle = displayedTitle,
+                        openTabCount = tabs.size,
+                        isSaved = isSaved,
+                        onClose = { scope.launch { capturePreviewAndRun(onBack) } },
+                        onToggleSaved = {
+                            repository.toggleSaved(
+                                SavedPage(
+                                    wikiId = site.id,
+                                    wikiName = site.name,
+                                    title = currentTitle,
+                                    extract = pageSummary?.extract.orEmpty(),
+                                    thumbnailUrl = pageSummary?.thumbnail?.source,
+                                    timestampEpochMillis = nowEpochMillis(),
+                                    url = pageState.url,
                                 ),
                             )
                         },
-                        actions = {
-                            if (searchQuery.isNotBlank()) {
-                                Text(
-                                    text = if (searchResult.matchCount > 0) {
-                                        "${searchResult.activeIndex}/${searchResult.matchCount}"
-                                    } else {
-                                        "0/0"
-                                    },
-                                    style = MaterialTheme.typography.bodySmall,
-                                    modifier = Modifier.padding(horizontal = 4.dp),
-                                )
-                            }
-
-                            IconButton(
-                                enabled = searchResult.matchCount > 0,
-                                onClick = { scope.launch { searchResult = stepPageSearch(navigator, forward = false) } },
-                            ) {
-                                Icon(Icons.Filled.KeyboardArrowUp, contentDescription = "Previous match")
-                            }
-
-                            IconButton(
-                                enabled = searchResult.matchCount > 0,
-                                onClick = { scope.launch { searchResult = stepPageSearch(navigator, forward = true) } },
-                            ) {
-                                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Next match")
-                            }
+                        onOpenTabSwitcher = {
+                            scope.launch { capturePreviewAndRun { tabsRepository.setSwitcherOpen(true) } }
                         },
-                        windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
-                    )
-
-                    LaunchedEffect(Unit) { searchFocusRequester.requestFocus() }
-                } else {
-                    TopAppBar(
-                    navigationIcon = {
-                        IconButton(
-                            onClick = {
-                                scope.launch {
-                                    capturePreviewAndRun(onBack)
-                                }
-                            },
-                        ) {
-                            Icon(Icons.Filled.Close, contentDescription = "Close")
-                        }
-                    },
-                    title = {
-                        Text(
-                            text = displayedTitle,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                    },
-                    actions = {
-                        BadgedBox(
-                            badge = { if (tabs.isNotEmpty()) Badge { Text("${tabs.size}") } },
-                        ) {
-                            IconButton(
-                                onClick = {
-                                    scope.launch {
-                                        capturePreviewAndRun {
-                                            tabsRepository.setSwitcherOpen(true)
-                                        }
+                        onOpenOverflowMenu = { isOverflowMenuOpen = true },
+                        overflowMenu = {
+                            ArticleOverflowMenu(
+                                expanded = isOverflowMenuOpen,
+                                onDismiss = { isOverflowMenuOpen = false },
+                                showForward = if (isShowingOfflineSnapshot) offlineForwardStack.isNotEmpty() else navigator.canGoForward,
+                                onForward = {
+                                    if (isShowingOfflineSnapshot) {
+                                        goForwardOffline()
+                                    } else {
+                                        navigator.navigateForward()
+                                        historyNavTrigger++
                                     }
                                 },
-                            ) {
-                                Icon(Icons.Filled.Tab, contentDescription = "Tabs")
-                            }
-                        }
-
-                        IconButton(
-                            onClick = {
-                                repository.toggleSaved(
-                                    SavedPage(
-                                        wikiId = site.id,
-                                        wikiName = site.name,
-                                        title = currentTitle,
-                                        extract = pageSummary?.extract.orEmpty(),
-                                        thumbnailUrl = pageSummary?.thumbnail?.source,
-                                        timestampEpochMillis = nowEpochMillis(),
-                                        url = pageState.url,
-                                    ),
-                                )
-                            },
-                        ) {
-                            Icon(
-                                imageVector = if (isSaved) Icons.Filled.Bookmark else Icons.Filled.BookmarkBorder,
-                                contentDescription = if (isSaved) "Unsave" else "Save for later",
-                                tint = if (isSaved) MaterialTheme.colorScheme.primary else LocalContentColor.current,
-                            )
-                        }
-
-                        IconButton(onClick = { isOverflowMenuOpen = true }) {
-                            Icon(Icons.Filled.MoreVert, contentDescription = "More options")
-                        }
-
-                        DropdownMenu(
-                            expanded = isOverflowMenuOpen,
-                            onDismissRequest = { isOverflowMenuOpen = false },
-                            shape = RoundedCornerShape(14.dp),
-                            shadowElevation = 6.dp,
-                        ) {
-                            if (if (openOfflineFromStart) offlineForwardStack.isNotEmpty() else navigator.canGoForward) {
-                                DropdownMenuItem(
-                                    text = { Text("Forward") },
-                                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null) },
-                                    onClick = {
-                                        isOverflowMenuOpen = false
-                                        if (openOfflineFromStart) {
-                                            goForwardOffline()
-                                        } else {
-                                            navigator.navigateForward()
-                                            historyNavTrigger++
-                                        }
-                                    },
-                                )
-                            }
-
-                            DropdownMenuItem(
-                                text = { Text("Refresh") },
-                                leadingIcon = { Icon(Icons.Filled.Refresh, contentDescription = null) },
-                                onClick = {
-                                    isOverflowMenuOpen = false
-                                    refreshCurrentPage()
-                                },
-                            )
-
-                            DropdownMenuItem(
-                                text = { Text("Find on page") },
-                                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                                onClick = {
-                                    isOverflowMenuOpen = false
-                                    isSearchBarOpen = true
-                                },
-                            )
-
-                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-                            DropdownMenuItem(
-                                text = { Text("Share") },
-                                leadingIcon = { Icon(Icons.Filled.Share, contentDescription = null) },
-                                onClick = {
-                                    isOverflowMenuOpen = false
+                                onRefresh = { refreshCurrentPage() },
+                                onFindOnPage = { isSearchBarOpen = true },
+                                onShare = {
                                     scope.launch {
                                         val outcome = sharePage(displayedTitle, pageState.url)
                                         if (outcome == ShareOutcome.COPIED_TO_CLIPBOARD) {
@@ -774,26 +620,9 @@ private fun SingleArticleTab(
                                         }
                                     }
                                 },
-                            )
-
-                            DropdownMenuItem(
-                                text = { Text(if (isOfflineSaved) "Remove offline copy" else "Save for offline reading") },
-                                leadingIcon = {
-                                    if (isSavingOffline) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(20.dp),
-                                            strokeWidth = 2.dp,
-                                        )
-                                    } else {
-                                        Icon(
-                                            imageVector = if (isOfflineSaved) Icons.Filled.DownloadDone else Icons.Filled.Download,
-                                            contentDescription = null,
-                                            tint = if (isOfflineSaved) MaterialTheme.colorScheme.primary else LocalContentColor.current,
-                                        )
-                                    }
-                                },
-                                onClick = {
-                                    isOverflowMenuOpen = false
+                                isOfflineSaved = isOfflineSaved,
+                                isSavingOffline = isSavingOffline,
+                                onToggleOfflineSave = {
                                     if (isOfflineSaved) {
                                         repository.removeOfflineArticle(site.id, currentTitle)
                                     } else {
@@ -801,9 +630,7 @@ private fun SingleArticleTab(
                                     }
                                 },
                             )
-                        }
-                    },
-                    windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
+                        },
                     )
                 }
 
@@ -851,52 +678,13 @@ private fun SingleArticleTab(
                 modifier = Modifier.fillMaxSize(),
             )
 
-            // A manual swipe-to-refresh: a thin invisible strip at the
-            // very top edge that tracks a downward drag starting there,
-            // driving a real PullToRefreshState by hand rather than the
-            // usual Modifier.pullToRefresh. That modifier depends on the
-            // nested scroll protocol, which a native WebView does not
-            // take part in, so it would never receive the drag at all.
-            var dragAmount by remember(tab.id) { mutableStateOf(0f) }
-            val pullThresholdPx = with(LocalDensity.current) { PullToRefreshDefaults.PositionalThreshold.toPx() }
-
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(24.dp)
-                    .align(Alignment.TopCenter)
-                    .pointerInput(tab.id) {
-                        detectVerticalDragGestures(
-                            onDragEnd = {
-                                val triggered = dragAmount >= pullThresholdPx && !isRefreshing
-                                dragAmount = 0f
-                                scope.launch {
-                                    if (triggered) {
-                                        pullToRefreshState.animateToThreshold()
-                                        isRefreshing = true
-                                        refreshCurrentPage()
-                                    } else {
-                                        pullToRefreshState.animateToHidden()
-                                    }
-                                }
-                            },
-                            onVerticalDrag = { change, delta ->
-                                if (!isRefreshing) {
-                                    dragAmount = (dragAmount + delta).coerceIn(0f, pullThresholdPx * 1.5f)
-                                    change.consume()
-                                    scope.launch {
-                                        pullToRefreshState.snapTo((dragAmount / pullThresholdPx).coerceIn(0f, 1f))
-                                    }
-                                }
-                            },
-                        )
-                    },
-            )
-
-            PullToRefreshDefaults.Indicator(
+            ArticlePullToRefreshOverlay(
+                tabKey = tab.id,
                 state = pullToRefreshState,
                 isRefreshing = isRefreshing,
-                modifier = Modifier.align(Alignment.TopCenter),
+                onRefreshingChange = { isRefreshing = it },
+                onRefresh = { refreshCurrentPage() },
+                modifier = Modifier.fillMaxSize(),
             )
         }
     }
@@ -923,27 +711,18 @@ private fun SingleArticleTab(
     }
 
     pendingExternalUrl?.let { url ->
-        val host = runCatching { Url(url).host }.getOrNull()?.ifBlank { null }
-        val currentWikiName = siteName ?: site.name
-        AlertDialog(
-            onDismissRequest = { pendingExternalUrl = null },
-            title = { Text("Leave $currentWikiName?") },
-            text = { Text("This link goes to ${host ?: "an outside site"}, not $currentWikiName.") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        pendingExternalUrl = null
-                        isOnExternalSite = true
-                        if (openLinksExternally) {
-                            uriHandler.openUri(url)
-                        } else {
-                            scope.launch { navigator.loadUrl(url) }
-                        }
-                    },
-                ) { Text("Continue") }
-            },
-            dismissButton = {
-                TextButton(onClick = { pendingExternalUrl = null }) { Text("Stay here") }
+        ExternalSiteDialog(
+            url = url,
+            currentWikiName = siteName ?: site.name,
+            onDismiss = { pendingExternalUrl = null },
+            onContinue = {
+                pendingExternalUrl = null
+                isOnExternalSite = true
+                if (openLinksExternally) {
+                    uriHandler.openUri(url)
+                } else {
+                    scope.launch { navigator.loadUrl(url) }
+                }
             },
         )
     }
