@@ -1,6 +1,7 @@
 package org.wikitide.wikiportal.data.model
 
 import kotlinx.serialization.Serializable
+import kotlin.jvm.JvmInline
 
 /**
  * A position key for ordering wikis and folders, see RankUtil. This
