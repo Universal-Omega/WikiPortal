@@ -142,6 +142,63 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
     val ungroupedCustomWikis = customByFolder[null] ?: emptyList()
     val haptics = LocalHapticFeedback.current
 
+    // Same local-copy-during-drag approach as localCustomFolders above,
+    // just for the ungrouped custom wikis list. Reordering a wiki that's
+    // already inside a folder isn't offered yet, only this top level
+    // list, so there's nothing to wire up inside folderSection itself.
+    var localUngroupedCustomWikis by remember { mutableStateOf(ungroupedCustomWikis) }
+    var draggingWikiId by remember { mutableStateOf<String?>(null) }
+    var wikiDragOffsetY by remember { mutableStateOf(0f) }
+    LaunchedEffect(ungroupedCustomWikis) {
+        if (draggingWikiId == null) localUngroupedCustomWikis = ungroupedCustomWikis
+    }
+
+    fun onWikiDragStart(wikiId: String) {
+        draggingWikiId = wikiId
+        wikiDragOffsetY = 0f
+        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+    }
+
+    fun onWikiDragEnd() {
+        val wikiId = draggingWikiId
+        draggingWikiId = null
+        wikiDragOffsetY = 0f
+        val index = localUngroupedCustomWikis.indexOfFirst { it.id == wikiId }
+        if (wikiId != null && index >= 0) {
+            val beforeId = localUngroupedCustomWikis.getOrNull(index - 1)?.id
+            val afterId = localUngroupedCustomWikis.getOrNull(index + 1)?.id
+            repository.reorderCustomWiki(wikiId, beforeId, afterId)
+        }
+    }
+
+    // Same midpoint-crossing rule as onFolderDrag above, just reading
+    // "wiki-<id>" keyed layout info instead of "folder-<id>".
+    fun onWikiDrag(wikiId: String, deltaY: Float) {
+        wikiDragOffsetY += deltaY
+        val order = localUngroupedCustomWikis
+        val currentIndex = order.indexOfFirst { it.id == wikiId }
+        if (currentIndex < 0) return
+        val draggedInfo = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == "wiki-$wikiId" } ?: return
+        val draggedCenter = draggedInfo.offset + draggedInfo.size / 2f + wikiDragOffsetY
+
+        val neighborIndex = when {
+            wikiDragOffsetY < 0 && currentIndex > 0 -> currentIndex - 1
+            wikiDragOffsetY > 0 && currentIndex < order.lastIndex -> currentIndex + 1
+            else -> return
+        }
+        val neighborInfo = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == "wiki-${order[neighborIndex].id}" } ?: return
+        val neighborCenter = neighborInfo.offset + neighborInfo.size / 2f
+        val crossedNeighbor = if (neighborIndex > currentIndex) draggedCenter > neighborCenter else draggedCenter < neighborCenter
+        if (crossedNeighbor) {
+            val reordered = order.toMutableList()
+            val moved = reordered.removeAt(currentIndex)
+            reordered.add(neighborIndex, moved)
+            localUngroupedCustomWikis = reordered
+            wikiDragOffsetY -= (neighborCenter - (draggedInfo.offset + draggedInfo.size / 2f))
+            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+        }
+    }
+
     fun onFolderDragStart(folderId: String) {
         draggingFolderId = folderId
         dragOffsetY = 0f
@@ -239,7 +296,7 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
 
             if (customWikis.isNotEmpty() || localCustomFolders.isNotEmpty()) {
                 item { GroupLabel("Your wikis") }
-                items(ungroupedCustomWikis, key = { it.id }) { wiki ->
+                items(localUngroupedCustomWikis, key = { "wiki-${it.id}" }) { wiki ->
                     WikiRow(
                         wiki, wiki.id == activeWiki.id,
                         onClick = { repository.setActiveWiki(wiki); onBack() },
@@ -247,6 +304,11 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
                         onEditSkin = { editingSkinForId = wiki.id },
                         onMoveToFolder = { movingWikiId = wiki.id },
                         repository = repository,
+                        isDragging = draggingWikiId == wiki.id,
+                        dragOffsetY = wikiDragOffsetY,
+                        onDragStart = { onWikiDragStart(wiki.id) },
+                        onDrag = { delta -> onWikiDrag(wiki.id, delta) },
+                        onDragEnd = { onWikiDragEnd() },
                     )
                 }
                 localCustomFolders.forEach { folder ->
@@ -555,18 +617,41 @@ private fun WikiRow(
     onRemove: (() -> Unit)? = null,
     onMoveToFolder: (() -> Unit)? = null,
     indented: Boolean = false,
+    isDragging: Boolean = false,
+    dragOffsetY: Float = 0f,
+    onDragStart: (() -> Unit)? = null,
+    onDrag: ((Float) -> Unit)? = null,
+    onDragEnd: (() -> Unit)? = null,
 ) {
     LaunchedEffect(wiki.id) { repository.refreshFaviconOnly(wiki) }
     var showMenu by remember { mutableStateOf(false) }
+    val draggable = onDragStart != null && onDrag != null && onDragEnd != null
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .graphicsLayer { translationY = if (isDragging) dragOffsetY else 0f }
+            .zIndex(if (isDragging) 1f else 0f)
             .clickable(onClick = onClick)
             .padding(horizontal = if (indented) 32.dp else 20.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
+        if (draggable) {
+            Icon(
+                Icons.Filled.DragHandle,
+                contentDescription = "Drag to reorder ${wiki.name}",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.pointerInput(wiki.id) {
+                    detectDragGesturesAfterLongPress(
+                        onDragStart = { onDragStart() },
+                        onDrag = { change, delta -> change.consume(); onDrag(delta.y) },
+                        onDragEnd = { onDragEnd() },
+                        onDragCancel = { onDragEnd() },
+                    )
+                },
+            )
+        }
         Box(
             modifier = Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.secondaryContainer),
             contentAlignment = Alignment.Center,
