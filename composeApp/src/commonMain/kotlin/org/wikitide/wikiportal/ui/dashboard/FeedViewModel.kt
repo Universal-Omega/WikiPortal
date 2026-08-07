@@ -1,5 +1,6 @@
 package org.wikitide.wikiportal.ui.dashboard
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,6 +28,7 @@ private const val ROW_LIMIT = 12
 /** How many trending articles the Dashboard card itself shows, before "More trending". */
 private const val TRENDING_CARD_LIMIT = 5
 
+@Immutable
 data class FeedUiState(
     val wiki: WikiSite? = null,
     val recentChanges: List<RecentChangeEntry> = emptyList(),
