@@ -377,19 +377,8 @@ class AppRepository(
         appScope.launch { store.upsertWiki(ordered) }
     }
 
-    /**
-     * Moves a custom wiki to sit between [beforeId] and [afterId],
-     * either null at whichever end of the list it's being dropped at.
-     * Only this one wiki's row changes, the same whether there are ten
-     * custom wikis or ten thousand. Presets aren't reorderable this
-     * way, their position is always the one they resync to in [init].
-     */
-    fun reorderCustomWiki(wikiId: String, beforeId: String?, afterId: String?) {
-        val current = _customWikis.value
-        val lo = beforeId?.let { id -> current.firstOrNull { it.id == id }?.rank?.value } ?: ""
-        val hi = afterId?.let { id -> current.firstOrNull { it.id == id }?.rank?.value }
-        val updated = updateWiki(wikiId) { it.copy(rank = Rank(RankUtil.between(lo, hi))) } ?: return
-        _customWikis.update { list -> list.sortedBy { it.rank } }
+    fun setCustomWikiRank(wikiId: String, rank: Rank) {
+        val updated = updateWiki(wikiId) { it.copy(rank = rank) } ?: return
         appScope.launch { store.upsertWiki(updated) }
     }
 
@@ -447,18 +436,9 @@ class AppRepository(
         }
     }
 
-    /**
-     * Moves a custom folder to sit between [beforeId] and [afterId]
-     * after a drag reorder in WikiPickerScreen, either null at
-     * whichever end it's being dropped at. Only this one folder's row
-     * changes, no matter how many other folders exist.
-     */
-    fun reorderFolder(folderId: String, beforeId: String?, afterId: String?) {
-        val current = _customFolders.value
-        val lo = beforeId?.let { id -> current.firstOrNull { it.id == id }?.rank?.value } ?: ""
-        val hi = afterId?.let { id -> current.firstOrNull { it.id == id }?.rank?.value }
-        val updated = current.firstOrNull { it.id == folderId }?.copy(rank = Rank(RankUtil.between(lo, hi))) ?: return
-        _customFolders.update { list -> list.map { if (it.id == folderId) updated else it }.sortedBy { it.rank } }
+    fun setFolderRank(folderId: String, rank: Rank) {
+        val updated = _customFolders.value.firstOrNull { it.id == folderId }?.copy(rank = rank) ?: return
+        _customFolders.update { list -> list.map { if (it.id == folderId) updated else it } }
         appScope.launch { store.upsertFolder(updated) }
     }
 
