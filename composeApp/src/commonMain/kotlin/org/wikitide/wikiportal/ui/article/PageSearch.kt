@@ -1,10 +1,12 @@
 package org.wikitide.wikiportal.ui.article
 
+import androidx.compose.runtime.Immutable
 import com.multiplatform.webview.web.WebViewNavigator
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
 /** Result of a find-on-page action, as reported back from the injected script. */
+@Immutable
 data class PageSearchResult(
     val matchCount: Int = 0,
     /** 1-based position of the active match, or 0 when there are no matches. */
