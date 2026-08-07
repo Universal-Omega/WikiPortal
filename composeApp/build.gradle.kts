@@ -54,14 +54,23 @@ kotlin {
         }
     }
 
+    applyDefaultHierarchyTemplate()
+
     sourceSets {
-        androidMain.dependencies {
-            implementation(libs.androidx.activity.compose)
-            implementation(libs.androidx.core)
-            implementation(libs.androidx.sqlite.framework)
-            implementation(libs.koin.android)
-            implementation(libs.ktor.client.okhttp)
-            implementation(libs.sqldelight.android.driver)
+        val concurrentMain by creating {
+            dependsOn(commonMain.get())
+        }
+
+        androidMain {
+            dependencies {
+                implementation(libs.androidx.activity.compose)
+                implementation(libs.androidx.core)
+                implementation(libs.androidx.sqlite.framework)
+                implementation(libs.koin.android)
+                implementation(libs.ktor.client.okhttp)
+                implementation(libs.sqldelight.android.driver)
+            }
+            dependsOn(concurrentMain)
         }
 
         commonMain.dependencies {
@@ -109,11 +118,15 @@ kotlin {
                 implementation(libs.ktor.client.okhttp)
                 implementation(libs.sqldelight.sqlite.driver)
             }
+            dependsOn(concurrentMain)
         }
 
-        iosMain.dependencies {
-            implementation(libs.ktor.client.darwin)
-            implementation(libs.sqldelight.native.driver)
+        iosMain {
+            dependencies {
+                implementation(libs.ktor.client.darwin)
+                implementation(libs.sqldelight.native.driver)
+            }
+            dependsOn(concurrentMain)
         }
 
         wasmJsMain.dependencies {
