@@ -7,6 +7,7 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.Parameters
 import org.wikitide.wikiportal.util.AppLog
+import org.wikitide.wikiportal.util.runCatchingCancellable
 
 object FeedbackConfig {
     const val FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLScrmwsQSFFSz9J6Ewd9sfTw6yoMtlmlqeMo5vYFjgDJZTdlAg/formResponse"

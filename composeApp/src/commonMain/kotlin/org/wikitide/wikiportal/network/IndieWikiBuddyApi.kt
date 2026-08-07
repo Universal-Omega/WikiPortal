@@ -9,6 +9,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.json.Json
 import org.wikitide.wikiportal.util.AppLog
+import org.wikitide.wikiportal.util.runCatchingCancellable
 
 /**
  * Every language Indie Wiki Buddy publishes a sites*.json file for. See

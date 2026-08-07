@@ -7,6 +7,7 @@ import io.ktor.client.request.parameter
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.isSuccess
 import org.wikitide.wikiportal.util.AppLog
+import org.wikitide.wikiportal.util.runCatchingCancellable
 
 /**
  * A shared transport for REST-style calls, both MediaWiki's own

@@ -5,6 +5,7 @@ import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import org.wikitide.wikiportal.util.AppLog
+import org.wikitide.wikiportal.util.runCatchingCancellable
 
 /**
  * A shared transport for MediaWiki's classic query-string Action API,

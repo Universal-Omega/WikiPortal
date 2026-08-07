@@ -11,6 +11,7 @@ import io.ktor.http.Url
 import org.wikitide.wikiportal.data.model.WikiSite
 import org.wikitide.wikiportal.util.AppLog
 import org.wikitide.wikiportal.util.isMobilePlatform
+import org.wikitide.wikiportal.util.runCatchingCancellable
 
 /**
  * The result of a search, including CirrusSearch's spelling suggestion
