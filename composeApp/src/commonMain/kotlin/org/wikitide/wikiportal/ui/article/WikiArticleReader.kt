@@ -3,6 +3,7 @@ package org.wikitide.wikiportal.ui.article
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -20,6 +21,7 @@ import org.wikitide.wikiportal.data.model.WikiSite
 import org.wikitide.wikiportal.util.offline.offlineLoadIdentityUrl
 
 /** Snapshot of what the reader is currently showing, reported up to [ArticleHostScreen]. */
+@Immutable
 data class WikiPageState(
     /** Raw browser-reported title, always present, used as a fallback. */
     val title: String = "",
