@@ -91,6 +91,7 @@ object SettingKeys {
     const val INDIE_WIKI_SUGGESTIONS_ENABLED = "indie_wiki_suggestions_enabled"
     const val INDIE_WIKI_CACHE = "indie_wiki_cache"
     const val INDIE_WIKI_CACHE_UPDATED_AT = "indie_wiki_cache_updated_at"
+    const val TRENDING_CACHE = "trending_cache"
 
     /** Which open tab, see [WikiPortalStore.openTabs], was active. */
     const val ACTIVE_TAB_ID = "active_tab_id"
