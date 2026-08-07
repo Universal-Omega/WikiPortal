@@ -30,6 +30,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -55,6 +56,7 @@ import org.wikitide.wikiportal.util.RankUtil
  * WikiPickerScreen's rootItems and rootDragState, so a drag can freely
  * move a folder past a wiki or the other way around.
  */
+@Immutable
 private sealed interface RootItem {
     val id: String
     val rank: Rank
