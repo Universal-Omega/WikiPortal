@@ -1,5 +1,6 @@
 package org.wikitide.wikiportal.network
 
+import org.wikitide.wikiportal.util.nowEpochMillis
 import kotlin.time.Clock
 
 /**
@@ -31,12 +32,11 @@ private fun civilDateFromEpochDay(epochDay: Long): Triple<Int, Int, Int> {
  * further when even yesterday's report isn't published yet.
  */
 fun wikimediaDatePath(daysAgo: Int): String {
-    val nowMillis = Clock.System.now().toEpochMilliseconds()
     // This is plain division, not floor division. nowMillis is always
     // non-negative for any real-world date, so this doesn't need the
     // negative-operand special casing floor division exists for, and
     // java.lang.Math.floorDiv isn't available in commonMain anyway.
-    val epochDay = nowMillis / 86_400_000L - daysAgo
+    val epochDay = nowEpochMillis() / 86_400_000L - daysAgo
     val (year, month, day) = civilDateFromEpochDay(epochDay)
     return "$year/${month.toString().padStart(2, '0')}/${day.toString().padStart(2, '0')}"
 }
