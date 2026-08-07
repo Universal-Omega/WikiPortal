@@ -8,6 +8,7 @@ import kotlinx.coroutines.launch
 import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.model.RelevantLinksConfig
 import org.wikitide.wikiportal.network.MediaWikiApi
+import org.wikitide.wikiportal.util.refreshOnWikiChange
 
 data class RelevantLinksUiState(
     val titles: List<String> = emptyList(),
@@ -26,12 +27,24 @@ class RelevantLinksViewModel(
 
     private var loadedForWikiId: String? = null
 
+    /** Set by [ensureLoaded], so the wiki-change collector below stays a no-op until this tab has actually been visited once. */
+    private var hasBeenRequested = false
+
     init {
-        viewModelScope.launch {
-            repository.activeWiki.collect { wiki ->
-                if (wiki.id != loadedForWikiId) refresh()
-            }
+        viewModelScope.refreshOnWikiChange(repository.activeWiki, { loadedForWikiId }) {
+            if (hasBeenRequested) refresh()
         }
+    }
+
+    /**
+     * Loads this tab's content the first time it's actually opened,
+     * see DashboardScreen's tabIndex effect. Cheap to call again on
+     * every subsequent visit, it only does anything the first time, or
+     * after the active wiki has changed since the last load.
+     */
+    fun ensureLoaded() {
+        hasBeenRequested = true
+        if (repository.activeWiki.value.id != loadedForWikiId) refresh()
     }
 
     fun refresh() {
