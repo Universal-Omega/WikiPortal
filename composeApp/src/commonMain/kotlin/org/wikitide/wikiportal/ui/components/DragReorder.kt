@@ -5,6 +5,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedback
@@ -12,12 +13,15 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalHapticFeedback
+import org.wikitide.wikiportal.data.model.Rank
+import org.wikitide.wikiportal.util.RankUtil
 
 class DragReorderState<T> internal constructor(
     initialItems: List<T>,
     private val id: (T) -> String,
+    private val rank: (T) -> Rank,
     private val haptics: HapticFeedback,
-    private val onMove: (id: String, beforeId: String?, afterId: String?) -> Unit,
+    private val onMove: (id: String, newRank: Rank) -> Unit,
 ) {
     var items: List<T> by mutableStateOf(initialItems)
         private set
@@ -48,9 +52,9 @@ class DragReorderState<T> internal constructor(
         dragOffsetY = 0f
         val index = items.indexOfFirst { id(it) == draggedId }
         if (index < 0) return
-        val beforeId = items.getOrNull(index - 1)?.let(id)
-        val afterId = items.getOrNull(index + 1)?.let(id)
-        onMove(draggedId, beforeId, afterId)
+        val loRank = items.getOrNull(index - 1)?.let(rank)?.value ?: ""
+        val hiRank = items.getOrNull(index + 1)?.let(rank)?.value
+        onMove(draggedId, Rank(RankUtil.between(loRank, hiRank)))
     }
 
     fun onDrag(itemId: String, deltaY: Float) {
@@ -83,11 +87,13 @@ class DragReorderState<T> internal constructor(
 fun <T> rememberDragReorderState(
     items: List<T>,
     id: (T) -> String,
+    rank: (T) -> Rank,
     key: Any?,
-    onMove: (id: String, beforeId: String?, afterId: String?) -> Unit,
+    onMove: (id: String, newRank: Rank) -> Unit,
 ): DragReorderState<T> {
     val haptics = LocalHapticFeedback.current
-    val state = remember(key) { DragReorderState(items, id, haptics, onMove) }
+    val currentOnMove by rememberUpdatedState(onMove)
+    val state = remember(key) { DragReorderState(items, id, rank, haptics) { itemId, newRank -> currentOnMove(itemId, newRank) } }
     LaunchedEffect(items) { state.onItemsChanged(items) }
     return state
 }
