@@ -1,5 +1,6 @@
 package org.wikitide.wikiportal.ui.dashboard
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -17,6 +18,7 @@ import org.wikitide.wikiportal.network.MediaWikiApi
 import org.wikitide.wikiportal.network.PageSummaryDto
 import org.wikitide.wikiportal.network.SearchResults
 
+@Immutable
 data class SearchUiState(
     val query: String = "",
     val results: List<PageSummaryDto> = emptyList(),
