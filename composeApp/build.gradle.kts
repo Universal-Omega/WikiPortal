@@ -93,7 +93,6 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
 
-            implementation(libs.ktor.client.cache)
             implementation(libs.ktor.client.contentnegotiation)
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.logging)
