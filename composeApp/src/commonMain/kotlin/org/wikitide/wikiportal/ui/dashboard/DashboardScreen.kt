@@ -53,6 +53,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -107,6 +108,10 @@ fun DashboardScreen(
     // duplicate.
     val openTitles = remember(tabs, feedState.wiki?.id) {
         tabs.filter { it.wikiId == feedState.wiki?.id }.map { it.title }.toSet()
+    }
+
+    LaunchedEffect(tabIndex) {
+        if (tabIndex == 1) relevantLinksViewModel.ensureLoaded()
     }
 
     Box(Modifier.fillMaxSize()) {
