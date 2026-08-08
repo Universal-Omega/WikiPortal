@@ -226,7 +226,8 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
                     }
                 }
                 items(rootDragState.items, key = { item -> if (item is RootItem.FolderRoot) "folder-${item.id}" else "wiki-${item.id}" }) { item ->
-                    Box(Modifier.animateItem()) {
+                    val isBeingDragged = rootDragState.draggingId == item.id
+                    Box(if (isBeingDragged) Modifier else Modifier.animateItem()) {
                         when (item) {
                             is RootItem.WikiRoot -> {
                                 val wiki = item.wiki
