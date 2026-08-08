@@ -11,6 +11,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.stringResource
+import org.wikitide.wikiportal.resources.Res
+import org.wikitide.wikiportal.resources.wiki_switcher_chip_switch_wiki
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -24,7 +27,7 @@ fun WikiSwitcherChip(wikiName: String, onClick: () -> Unit, modifier: Modifier =
                 modifier = Modifier.basicMarquee(),
             )
         },
-        trailingIcon = { Icon(Icons.Filled.UnfoldMore, contentDescription = "Switch wiki") },
+        trailingIcon = { Icon(Icons.Filled.UnfoldMore, contentDescription = stringResource(Res.string.wiki_switcher_chip_switch_wiki)) },
         modifier = modifier.padding(end = 12.dp),
     )
 }
