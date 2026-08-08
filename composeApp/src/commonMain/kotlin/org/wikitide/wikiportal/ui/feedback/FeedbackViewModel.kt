@@ -10,6 +10,8 @@ import org.wikitide.wikiportal.network.FeedbackApi
 import org.wikitide.wikiportal.util.AppLog
 import org.wikitide.wikiportal.util.AppVersionProvider
 
+private const val TAG = "Feedback"
+
 enum class FeedbackCategory(val label: String) {
     BUG("Something's broken"),
     IDEA("Idea or request"),
@@ -78,7 +80,7 @@ class FeedbackViewModel(
             result.onSuccess {
                 _state.value = _state.value.copy(isSubmitting = false, sent = true)
             }.onFailure {
-                AppLog.e("Feedback", "Couldn't submit feedback", it)
+                AppLog.e(TAG, "Couldn't submit feedback", it)
                 _state.value = _state.value.copy(
                     isSubmitting = false,
                     errorMessage = "Couldn't send that. Check your connection, or use \"Copy feedback\" and paste it in somewhere else.",
