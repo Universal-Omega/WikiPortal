@@ -169,6 +169,9 @@
     <string name="settings_suggest_indie_subtitle">When adding a wiki that moved off Fandom or a similar host, suggest its independent replacement</string>
     <string name="settings_section_appearance">Appearance</string>
     <string name="settings_theme">Theme</string>
+    <string name="settings_app_language">App language</string>
+    <string name="app_language_english">English</string>
+    <string name="app_language_spanish">Spanish</string>
     <string name="settings_dynamic_color_title">Dynamic color</string>
     <string name="settings_dynamic_color_subtitle">Match app colors to your device wallpaper (Android 12+)</string>
     <string name="settings_text_size">Article text size</string>
