@@ -34,7 +34,6 @@ class AppRepository(
     private val store: WikiPortalStore,
     private val appScope: CoroutineScope,
     private val metadataRefresher: WikiMetadataRefresher,
-    private val platformLanguageSync: PlatformLanguageSync,
 ) {
     private val _activeWiki = MutableStateFlow(PresetWikis.default)
     val activeWiki: StateFlow<WikiSite> = _activeWiki
@@ -71,15 +70,6 @@ class AppRepository(
 
     private val _themeMode = MutableStateFlow(ThemeMode.SYSTEM)
     val themeMode: StateFlow<ThemeMode> = _themeMode
-
-    /**
-     * A BCP 47 tag such as "en", or null to follow the
-     * platform's own system language. Fed straight into
-     * AppLocaleEnvironment in App.kt. See AppLanguage for the fixed
-     * set of tags Settings actually offers.
-     */
-    private val _appLanguageTag = MutableStateFlow<String?>(null)
-    val appLanguageTag: StateFlow<String?> = _appLanguageTag
 
     private val _dynamicColor = MutableStateFlow(true)
     val dynamicColor: StateFlow<Boolean> = _dynamicColor
@@ -128,8 +118,6 @@ class AppRepository(
     val offlineArticles: StateFlow<List<SavedPage>> = _offlineArticles
 
     init {
-        appScope.launch { loadAndReconcileAppLanguage() }
-
         appScope.launch {
             val stored = store.allStoredWikis()
             val presetDefaultsById = PresetWikis.all.associateBy { it.id }
@@ -520,25 +508,6 @@ class AppRepository(
     }
 
     fun setThemeMode(mode: ThemeMode) = persistSetting(_themeMode, SettingKeys.THEME_MODE, mode) { it.name }
-
-    private suspend fun loadAndReconcileAppLanguage() {
-        store.getSetting(SettingKeys.APP_LANGUAGE)?.let { _appLanguageTag.value = it.ifBlank { null } }
-        val platformState = platformLanguageSync.currentPlatformOverride()
-        if (platformState is PlatformLanguageState.Known && platformState.tag != _appLanguageTag.value) {
-            _appLanguageTag.value = platformState.tag
-            store.setSetting(SettingKeys.APP_LANGUAGE, platformState.tag.orEmpty())
-        }
-    }
-
-    fun reconcilePlatformLanguage() {
-        appScope.launch { loadAndReconcileAppLanguage() }
-    }
-
-    fun setAppLanguage(tag: String?) {
-        persistSetting(_appLanguageTag, SettingKeys.APP_LANGUAGE, tag) { it.orEmpty() }
-        platformLanguageSync.applyToPlatform(tag)
-    }
-
     fun setDynamicColor(enabled: Boolean) = persistSetting(_dynamicColor, SettingKeys.DYNAMIC_COLOR, enabled)
     fun setTextScale(scale: Float) = persistSetting(_textScale, SettingKeys.TEXT_SCALE, scale)
     fun setShowImages(enabled: Boolean) = persistSetting(_showImages, SettingKeys.SHOW_IMAGES, enabled)
