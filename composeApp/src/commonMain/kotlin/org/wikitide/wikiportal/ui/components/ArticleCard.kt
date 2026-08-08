@@ -29,6 +29,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import org.jetbrains.compose.resources.stringResource
+import org.wikitide.wikiportal.resources.Res
+import org.wikitide.wikiportal.resources.article_card_not_selected
+import org.wikitide.wikiportal.resources.common_selected
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -70,7 +74,7 @@ fun ArticleCard(
             if (selectionModeActive) {
                 Icon(
                     imageVector = if (selected) Icons.Filled.CheckCircle else Icons.Outlined.RadioButtonUnchecked,
-                    contentDescription = if (selected) "Selected" else "Not selected",
+                    contentDescription = if (selected) stringResource(Res.string.common_selected) else stringResource(Res.string.article_card_not_selected),
                     tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(22.dp).padding(top = 2.dp),
                 )
