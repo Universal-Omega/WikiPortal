@@ -25,6 +25,11 @@ import org.wikitide.wikiportal.util.AppLog
 import org.wikitide.wikiportal.util.isMobilePlatform
 import org.jetbrains.compose.resources.getString
 import org.wikitide.wikiportal.resources.Res
+import org.wikitide.wikiportal.resources.add_wiki_error_duplicate
+import org.wikitide.wikiportal.resources.add_wiki_error_invalid_url
+import org.wikitide.wikiportal.resources.add_wiki_error_no_api
+import org.wikitide.wikiportal.resources.add_wiki_error_tried_paths
+import org.wikitide.wikiportal.resources.add_wiki_error_try_different_path
 
 private const val TAG = "AddWikiViewModel"
 
