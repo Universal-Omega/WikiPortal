@@ -18,6 +18,7 @@
     <string name="add_wiki_url_label">URL de la wiki</string>
     <string name="add_wiki_url_placeholder">https://miwiki.ejemplo.com</string>
     <string name="add_wiki_use_indie">Agregar %1$s en su lugar</string>
+    <string name="app_language_search_placeholder">Buscar idiomas</string>
     <string name="app_name">WikiPortal</string>
     <string name="article_card_not_selected">No seleccionado</string>
     <string name="article_host_link_copied">Enlace copiado</string>
