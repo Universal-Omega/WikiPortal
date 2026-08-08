@@ -1,10 +1,12 @@
 package org.wikitide.wikiportal.data.model
 
+import androidx.compose.runtime.Immutable
 import io.ktor.http.URLBuilder
 import kotlinx.serialization.Serializable
 import org.wikitide.wikiportal.util.RankUtil
 
 /** Describes a single MediaWiki site the app can connect to. */
+@Immutable
 @Serializable
 data class WikiSite(
     val id: String,
@@ -143,6 +145,7 @@ data class WikiSite(
     }
 }
 
+@Immutable
 @Serializable
 data class SkinOption(val code: String, val name: String)
 
@@ -197,6 +200,7 @@ object WikiSkins {
  * [WikiSite.folderId], the same way a preset's skin lives on the wiki
  * row rather than on PresetWikis.
  */
+@Immutable
 @Serializable
 data class WikiFolder(
     val id: String,
