@@ -22,6 +22,8 @@ import org.wikitide.wikiportal.network.friendlyNetworkErrorMessage
 import org.wikitide.wikiportal.util.AppLog
 import org.wikitide.wikiportal.util.refreshOnWikiChange
 
+private const val TAG = "FeedViewModel"
+
 /** How many recently visited or saved pages to surface on the Dashboard. */
 private const val ROW_LIMIT = 12
 
@@ -124,7 +126,7 @@ class FeedViewModel(
                     _recentChanges.value = changes
                 }.onFailure { e ->
                     _recentChanges.value = emptyList()
-                    AppLog.e("FeedViewModel", "getRecentChanges failed for ${wiki.id}", e)
+                    AppLog.e(TAG, "getRecentChanges failed for ${wiki.id}", e)
                     _errorMessage.value = friendlyNetworkErrorMessage(e)
                 }
                 _isLoading.value = false
@@ -179,7 +181,7 @@ class FeedViewModel(
 
     private suspend fun fetchRandomBatch(wiki: WikiSite) {
         val articles = api.getRandomArticles(wiki, count = 10).getOrElse { e ->
-            AppLog.e("FeedViewModel", "getRandomArticles failed for ${wiki.id}", e)
+            AppLog.e(TAG, "getRandomArticles failed for ${wiki.id}", e)
             emptyList()
         }
         if (repository.activeWiki.value.id != wiki.id) return
