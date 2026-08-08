@@ -68,7 +68,6 @@ import org.wikitide.wikiportal.navigation.SavedRoute
 import org.wikitide.wikiportal.navigation.SettingsRoute
 import org.wikitide.wikiportal.navigation.SystemBackInterceptor
 import org.wikitide.wikiportal.navigation.TabsRoute
-import org.wikitide.wikiportal.ui.theme.AppLocaleEnvironment
 import org.wikitide.wikiportal.ui.theme.WikiPortalTheme
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -149,12 +148,10 @@ fun WikiPortalApp(onDarkThemeResolved: (Boolean) -> Unit = {}) {
     val navigator = koinInject<Navigator>()
     val themeMode by repository.themeMode.collectAsState()
     val dynamicColor by repository.dynamicColor.collectAsState()
-    val appLanguageTag by repository.appLanguageTag.collectAsState()
 
     val backStack = rememberNavBackStack(navConfig, DashboardRoute)
     navigator.backStack = backStack
 
-    AppLocaleEnvironment(appLanguageTag) {
     WikiPortalTheme(themeMode = themeMode, useDynamicColor = dynamicColor, onDarkThemeResolved = onDarkThemeResolved) {
         val current = backStack.lastOrNull()
         // ArticleRoute is not one of the bottomDestinations on purpose, so
@@ -299,6 +296,5 @@ fun WikiPortalApp(onDarkThemeResolved: (Boolean) -> Unit = {}) {
             enabled = backStack.lastOrNull() == ArticleRoute && (isSwitcherOpen || activeTabCanGoBack),
             onBack = { navigator.handleBack() },
         )
-    }
     }
 }

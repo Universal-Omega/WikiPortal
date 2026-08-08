@@ -44,9 +44,6 @@ data object LogsRoute : Route
 @Serializable
 data object FeedbackRoute : Route
 
-@Serializable
-data object AppLanguageRoute : Route
-
 // The four destinations that live behind the bottom bar or nav rail.
 // switchTab in Navigator uses this list to decide which entries in the
 // back stack count as tabs versus one-off screens like WikiPickerRoute

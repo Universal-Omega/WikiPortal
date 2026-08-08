@@ -16,7 +16,6 @@ import org.wikitide.wikiportal.ui.dashboard.TrendingScreen
 import org.wikitide.wikiportal.ui.feedback.FeedbackScreen
 import org.wikitide.wikiportal.ui.saved.SavedScreen
 import org.wikitide.wikiportal.ui.settings.AddWikiScreen
-import org.wikitide.wikiportal.ui.settings.AppLanguageScreen
 import org.wikitide.wikiportal.ui.settings.BrowseWikisScreen
 import org.wikitide.wikiportal.ui.settings.LogsScreen
 import org.wikitide.wikiportal.ui.settings.SettingsScreen
@@ -92,15 +91,7 @@ val navigationModule = module {
                 onOpenWikiPicker = { navigator.navigateTo(WikiPickerRoute) },
                 onOpenLogs = { navigator.navigateTo(LogsRoute) },
                 onOpenFeedback = { navigator.navigateTo(FeedbackRoute) },
-                onOpenAppLanguage = { navigator.navigateTo(AppLanguageRoute) },
             )
-        }
-    }
-
-    navigation<AppLanguageRoute> {
-        val navigator = get<Navigator>()
-        EntryBackground {
-            AppLanguageScreen(onBack = { navigator.backStack.removeLastOrNull() })
         }
     }
 

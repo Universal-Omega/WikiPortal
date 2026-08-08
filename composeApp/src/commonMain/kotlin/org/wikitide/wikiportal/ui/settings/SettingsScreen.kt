@@ -24,7 +24,6 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.TextFields
-import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.filled.TravelExplore
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -46,7 +45,6 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import org.koin.compose.koinInject
 import org.wikitide.wikiportal.data.AppRepository
-import org.wikitide.wikiportal.data.model.AppLanguage
 import org.wikitide.wikiportal.data.model.ThemeMode
 import org.wikitide.wikiportal.util.AppVersionProvider
 import org.jetbrains.compose.resources.stringResource
@@ -54,7 +52,6 @@ import org.wikitide.wikiportal.resources.Res
 import org.wikitide.wikiportal.resources.app_name
 import org.wikitide.wikiportal.resources.logs_title
 import org.wikitide.wikiportal.resources.settings_about_body
-import org.wikitide.wikiportal.resources.settings_app_language
 import org.wikitide.wikiportal.resources.settings_app_logs_subtitle
 import org.wikitide.wikiportal.resources.settings_confirm_leaving_subtitle
 import org.wikitide.wikiportal.resources.settings_confirm_leaving_title
@@ -92,14 +89,11 @@ fun SettingsScreen(
     onOpenWikiPicker: () -> Unit,
     onOpenLogs: () -> Unit,
     onOpenFeedback: () -> Unit,
-    onOpenAppLanguage: () -> Unit,
     repository: AppRepository = koinInject(),
     versionProvider: AppVersionProvider = koinInject(),
 ) {
     val activeWiki by repository.activeWiki.collectAsState()
     val themeMode by repository.themeMode.collectAsState()
-    val appLanguageTag by repository.appLanguageTag.collectAsState()
-    val appLanguage = AppLanguage.fromTag(appLanguageTag)
     val dynamicColor by repository.dynamicColor.collectAsState()
     val textScale by repository.textScale.collectAsState()
     val showImages by repository.showImages.collectAsState()
@@ -145,14 +139,6 @@ fun SettingsScreen(
                         }
                     }
                 }
-            }
-            item {
-                SettingsRow(
-                    icon = Icons.Filled.Translate,
-                    title = stringResource(Res.string.settings_app_language),
-                    subtitle = appLanguage.nativeName ?: stringResource(Res.string.theme_mode_system),
-                    onClick = onOpenAppLanguage,
-                )
             }
             item {
                 SwitchRow(
