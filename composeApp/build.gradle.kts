@@ -22,10 +22,6 @@ kotlin {
         compileSdk = libs.versions.compileSdk.get().toInt()
         minSdk = libs.versions.minSdk.get().toInt()
 
-        androidResources {
-            enable = true
-        }
-
         compilerOptions {
             jvmTarget.set(javaTarget)
         }
@@ -184,9 +180,8 @@ sqldelight {
 }
 
 compose.resources {
-    publicResClass = false
+    publicResClass = true
     packageOfResClass = "org.wikitide.wikiportal.resources"
-    generateResClass = auto
 }
 
 compose.desktop {
