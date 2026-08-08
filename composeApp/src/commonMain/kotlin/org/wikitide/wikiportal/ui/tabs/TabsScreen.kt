@@ -60,6 +60,16 @@ import org.wikitide.wikiportal.data.model.ArticleTab
 import org.wikitide.wikiportal.ui.components.DestructiveConfirmDialog
 import org.jetbrains.compose.resources.stringResource
 import org.wikitide.wikiportal.resources.Res
+import org.wikitide.wikiportal.resources.common_back
+import org.wikitide.wikiportal.resources.tabs_close_all
+import org.wikitide.wikiportal.resources.tabs_close_all_body
+import org.wikitide.wikiportal.resources.tabs_close_all_confirm
+import org.wikitide.wikiportal.resources.tabs_close_all_title
+import org.wikitide.wikiportal.resources.tabs_close_tab
+import org.wikitide.wikiportal.resources.tabs_grid_title_n
+import org.wikitide.wikiportal.resources.tabs_grid_title_one
+import org.wikitide.wikiportal.resources.tabs_no_open_tabs
+import org.wikitide.wikiportal.resources.tabs_viewing
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
