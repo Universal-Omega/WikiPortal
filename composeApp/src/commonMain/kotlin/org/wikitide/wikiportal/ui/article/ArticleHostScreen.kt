@@ -55,6 +55,10 @@ import org.wikitide.wikiportal.util.offline.offlineTitlesForWiki
 import org.wikitide.wikiportal.util.offline.rewriteOfflineLinks
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
+import org.wikitide.wikiportal.resources.Res
+import org.wikitide.wikiportal.resources.article_host_link_copied
+import org.wikitide.wikiportal.resources.article_host_share_failed
 
 @Composable
 fun ArticleHostScreen(
@@ -138,6 +142,8 @@ private fun SingleArticleTab(
     val openLinksExternally by repository.openLinksExternally.collectAsState()
     val uriHandler = LocalUriHandler.current
     val scope = rememberCoroutineScope()
+    val linkCopiedMessage = stringResource(Res.string.article_host_link_copied)
+    val shareFailedMessage = stringResource(Res.string.article_host_share_failed)
 
     // A link the WebView tried to load that points somewhere outside
     // every wiki this app knows about, waiting on the person to decide
@@ -614,9 +620,9 @@ private fun SingleArticleTab(
                                     scope.launch {
                                         val outcome = sharePage(displayedTitle, pageState.url)
                                         if (outcome == ShareOutcome.COPIED_TO_CLIPBOARD) {
-                                            snackbarHostState.showSnackbar("Link copied")
+                                            snackbarHostState.showSnackbar(linkCopiedMessage)
                                         } else if (outcome == ShareOutcome.FAILED) {
-                                            snackbarHostState.showSnackbar("Couldn't share this page")
+                                            snackbarHostState.showSnackbar(shareFailedMessage)
                                         }
                                     }
                                 },
