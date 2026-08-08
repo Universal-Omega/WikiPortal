@@ -39,9 +39,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -95,6 +92,7 @@ fun SettingsScreen(
     onOpenWikiPicker: () -> Unit,
     onOpenLogs: () -> Unit,
     onOpenFeedback: () -> Unit,
+    onOpenAppLanguage: () -> Unit,
     repository: AppRepository = koinInject(),
     versionProvider: AppVersionProvider = koinInject(),
 ) {
@@ -102,7 +100,6 @@ fun SettingsScreen(
     val themeMode by repository.themeMode.collectAsState()
     val appLanguageTag by repository.appLanguageTag.collectAsState()
     val appLanguage = AppLanguage.fromTag(appLanguageTag)
-    var showLanguageDialog by remember { mutableStateOf(false) }
     val dynamicColor by repository.dynamicColor.collectAsState()
     val textScale by repository.textScale.collectAsState()
     val showImages by repository.showImages.collectAsState()
@@ -140,7 +137,7 @@ fun SettingsScreen(
                     icon = Icons.Filled.Translate,
                     title = stringResource(Res.string.settings_app_language),
                     subtitle = appLanguage.nativeName ?: stringResource(Res.string.theme_mode_system),
-                    onClick = { showLanguageDialog = true },
+                    onClick = onOpenAppLanguage,
                 )
             }
             item {
@@ -282,17 +279,6 @@ fun SettingsScreen(
                 )
             }
         }
-    }
-
-    if (showLanguageDialog) {
-        AppLanguageDialog(
-            selected = appLanguage,
-            onLanguageSelected = { language ->
-                repository.setAppLanguage(language.tag)
-                showLanguageDialog = false
-            },
-            onDismiss = { showLanguageDialog = false },
-        )
     }
 }
 
