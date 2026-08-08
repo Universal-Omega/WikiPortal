@@ -1,5 +1,6 @@
 package org.wikitide.wikiportal.data
 
+import androidx.compose.runtime.Immutable
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
@@ -16,6 +17,7 @@ import org.wikitide.wikiportal.network.wikimediaProjectDomain
 import org.wikitide.wikiportal.util.AppLog
 import org.wikitide.wikiportal.util.nowEpochMillis
 
+@Immutable
 @Serializable
 data class TrendingResult(
     val articles: List<TrendingArticle>,
