@@ -9,6 +9,8 @@ import io.ktor.http.isSuccess
 import org.wikitide.wikiportal.util.AppLog
 import org.wikitide.wikiportal.util.runCatchingCancellable
 
+private const val TAG = "RestApiClient"
+
 /**
  * A shared transport for REST-style calls, both MediaWiki's own
  * rest.php modules, see [WikiSite.restUrl] and [MatomoAnalyticsApi],
@@ -49,6 +51,6 @@ class RestApiClient(
         }
         httpResponse.body<T>()
     }.onFailure {
-        AppLog.e("RestApiClient", "get($url, $params) failed", it)
+        AppLog.e(TAG, "get($url, $params) failed", it)
     }
 }
