@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
@@ -226,46 +225,43 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
                     }
                 }
                 items(rootDragState.items, key = { item -> if (item is RootItem.FolderRoot) "folder-${item.id}" else "wiki-${item.id}" }) { item ->
-                    val isBeingDragged = rootDragState.draggingId == item.id
-                    Box(if (isBeingDragged) Modifier else Modifier.animateItem()) {
-                        when (item) {
-                            is RootItem.WikiRoot -> {
-                                val wiki = item.wiki
-                                WikiRow(
-                                    wiki, wiki.id == activeWiki.id,
-                                    onClick = { if (!reorderMode) { repository.setActiveWiki(wiki); onBack() } },
-                                    onRemove = { repository.removeCustomWiki(wiki) },
-                                    onEditSkin = { editingSkinForId = wiki.id },
-                                    onMoveToFolder = { movingWikiId = wiki.id },
-                                    repository = repository,
-                                    dragState = rootDragState,
-                                    reorderMode = reorderMode,
-                                    onEnterReorderMode = enterReorderMode,
-                                )
-                            }
-                            is RootItem.FolderRoot -> {
-                                val folder = item.folder
-                                val wikisInFolder = customByFolder[folder.id].orEmpty()
-                                FolderSectionContent(
-                                    folder = folder,
-                                    wikis = wikisInFolder,
-                                    expanded = isExpanded(folder.id),
-                                    activeWikiId = activeWiki.id,
-                                    repository = repository,
-                                    onToggle = { toggleExpanded(folder.id) },
-                                    onClickWiki = { wiki -> if (!reorderMode) { repository.setActiveWiki(wiki); onBack() } },
-                                    onEditSkin = { wiki -> editingSkinForId = wiki.id },
-                                    onRemoveWiki = { wiki -> repository.removeCustomWiki(wiki) },
-                                    onMoveWikiToFolder = { wiki -> movingWikiId = wiki.id },
-                                    onRenameFolder = { renamingFolder = folder },
-                                    onDeleteFolder = { deletingFolder = folder },
-                                    dragState = rootDragState,
-                                    reorderMode = reorderMode,
-                                    onEnterReorderMode = enterReorderMode,
-                                    wikisReorderable = true,
-                                    onExitFolder = { wikiId, direction -> onWikiExitFolder(folder, wikiId, direction) },
-                                )
-                            }
+                    when (item) {
+                        is RootItem.WikiRoot -> {
+                            val wiki = item.wiki
+                            WikiRow(
+                                wiki, wiki.id == activeWiki.id,
+                                onClick = { if (!reorderMode) { repository.setActiveWiki(wiki); onBack() } },
+                                onRemove = { repository.removeCustomWiki(wiki) },
+                                onEditSkin = { editingSkinForId = wiki.id },
+                                onMoveToFolder = { movingWikiId = wiki.id },
+                                repository = repository,
+                                dragState = rootDragState,
+                                reorderMode = reorderMode,
+                                onEnterReorderMode = enterReorderMode,
+                            )
+                        }
+                        is RootItem.FolderRoot -> {
+                            val folder = item.folder
+                            val wikisInFolder = customByFolder[folder.id].orEmpty()
+                            FolderSectionContent(
+                                folder = folder,
+                                wikis = wikisInFolder,
+                                expanded = isExpanded(folder.id),
+                                activeWikiId = activeWiki.id,
+                                repository = repository,
+                                onToggle = { toggleExpanded(folder.id) },
+                                onClickWiki = { wiki -> if (!reorderMode) { repository.setActiveWiki(wiki); onBack() } },
+                                onEditSkin = { wiki -> editingSkinForId = wiki.id },
+                                onRemoveWiki = { wiki -> repository.removeCustomWiki(wiki) },
+                                onMoveWikiToFolder = { wiki -> movingWikiId = wiki.id },
+                                onRenameFolder = { renamingFolder = folder },
+                                onDeleteFolder = { deletingFolder = folder },
+                                dragState = rootDragState,
+                                reorderMode = reorderMode,
+                                onEnterReorderMode = enterReorderMode,
+                                wikisReorderable = true,
+                                onExitFolder = { wikiId, direction -> onWikiExitFolder(folder, wikiId, direction) },
+                            )
                         }
                     }
                 }
