@@ -36,6 +36,16 @@ import org.wikitide.wikiportal.data.model.WikiFolder
 import org.wikitide.wikiportal.data.model.WikiSite
 import org.jetbrains.compose.resources.stringResource
 import org.wikitide.wikiportal.resources.Res
+import org.wikitide.wikiportal.resources.common_back
+import org.wikitide.wikiportal.resources.common_cancel
+import org.wikitide.wikiportal.resources.common_close
+import org.wikitide.wikiportal.resources.common_create
+import org.wikitide.wikiportal.resources.wiki_picker_folder_name_label
+import org.wikitide.wikiportal.resources.wiki_picker_move_title
+import org.wikitide.wikiportal.resources.wiki_picker_new_folder
+import org.wikitide.wikiportal.resources.wiki_picker_no_folder
+import org.wikitide.wikiportal.resources.wiki_picker_no_skins
+import org.wikitide.wikiportal.resources.wiki_picker_skin_title
 
 /**
  * Lets the person file a custom wiki into one of their own folders,
