@@ -16,6 +16,7 @@ import org.wikitide.wikiportal.resources.theme_mode_system
 enum class AppLanguage(val tag: String?, val labelRes: StringResource) {
     SYSTEM(null, Res.string.theme_mode_system),
     ENGLISH("en", Res.string.app_language_english),
+    SPANISH("es", Res.string.app_language_spanish),
     ;
 
     companion object {
