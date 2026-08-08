@@ -82,6 +82,37 @@ import org.wikitide.wikiportal.ui.components.ArticleCard
 import org.wikitide.wikiportal.ui.components.CompactArticleChip
 import org.wikitide.wikiportal.ui.components.OpenTabIndicator
 import org.wikitide.wikiportal.ui.components.WikiSwitcherChip
+import org.jetbrains.compose.resources.stringResource
+import org.wikitide.wikiportal.resources.Res
+import org.wikitide.wikiportal.resources.article_top_bar_close_search
+import org.wikitide.wikiportal.resources.category_browse_title
+import org.wikitide.wikiportal.resources.common_clear
+import org.wikitide.wikiportal.resources.common_loading
+import org.wikitide.wikiportal.resources.common_refresh
+import org.wikitide.wikiportal.resources.common_retry
+import org.wikitide.wikiportal.resources.common_search
+import org.wikitide.wikiportal.resources.dashboard_continue_reading
+import org.wikitide.wikiportal.resources.dashboard_could_not_load_wiki
+import org.wikitide.wikiportal.resources.dashboard_did_you_mean
+import org.wikitide.wikiportal.resources.dashboard_edited_by
+import org.wikitide.wikiportal.resources.dashboard_go_to_main_page
+import org.wikitide.wikiportal.resources.dashboard_more_trending
+import org.wikitide.wikiportal.resources.dashboard_no_recent_activity
+import org.wikitide.wikiportal.resources.dashboard_no_search_results
+import org.wikitide.wikiportal.resources.dashboard_random_pick
+import org.wikitide.wikiportal.resources.dashboard_recent_activity_on
+import org.wikitide.wikiportal.resources.dashboard_relevant_default_label
+import org.wikitide.wikiportal.resources.dashboard_relevant_empty
+import org.wikitide.wikiportal.resources.dashboard_saved
+import org.wikitide.wikiportal.resources.dashboard_search_wiki
+import org.wikitide.wikiportal.resources.dashboard_showing_results_for
+import org.wikitide.wikiportal.resources.dashboard_shuffle
+import org.wikitide.wikiportal.resources.dashboard_switch_wiki
+import org.wikitide.wikiportal.resources.dashboard_tab_feed
+import org.wikitide.wikiportal.resources.dashboard_tab_relevant
+import org.wikitide.wikiportal.resources.dashboard_title
+import org.wikitide.wikiportal.resources.dashboard_trending_on
+import org.wikitide.wikiportal.resources.dashboard_views_count
 
 /** Index of the "Feed" tab in [DashboardScreen]'s [SecondaryTabRow]. */
 private const val TAB_FEED = 0
@@ -137,7 +168,7 @@ fun DashboardScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            "Dashboard",
+                            stringResource(Res.string.dashboard_title),
                             style = MaterialTheme.typography.headlineMedium,
                             maxLines = 1,
                             softWrap = false,
@@ -149,7 +180,7 @@ fun DashboardScreen(
                         ) {
                             if (isCompactHeight && !showSearchBar) {
                                 IconButton(onClick = { isFullScreenSearchOpen = true }) {
-                                    Icon(imageVector = Icons.Filled.Search, contentDescription = "Search")
+                                    Icon(imageVector = Icons.Filled.Search, contentDescription = stringResource(Res.string.common_search))
                                 }
                             }
                             // Jumps straight to the wiki's own main page. The
@@ -165,7 +196,7 @@ fun DashboardScreen(
                                 },
                                 enabled = feedState.wiki != null && feedState.mainPageTitle != null,
                             ) {
-                                Icon(imageVector = Icons.Filled.Home, contentDescription = "Go to main page")
+                                Icon(imageVector = Icons.Filled.Home, contentDescription = stringResource(Res.string.dashboard_go_to_main_page))
                             }
                             WikiSwitcherChip(
                                 wikiName = feedState.wiki?.name.orEmpty(),
@@ -181,13 +212,13 @@ fun DashboardScreen(
                                 value = searchState.query,
                                 onValueChange = searchViewModel::onQueryChange,
                                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                                placeholder = { Text("Search ${searchState.wikiName}") },
+                                placeholder = { Text(stringResource(Res.string.dashboard_search_wiki, searchState.wikiName)) },
                                 singleLine = true,
                                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                                 trailingIcon = {
                                     if (searchState.query.isNotEmpty()) {
                                         IconButton(onClick = { searchViewModel.onQueryChange("") }) {
-                                            Icon(Icons.Filled.Close, contentDescription = "Clear")
+                                            Icon(Icons.Filled.Close, contentDescription = stringResource(Res.string.common_clear))
                                         }
                                     }
                                 },
@@ -210,8 +241,8 @@ fun DashboardScreen(
                 SearchResultsContent(searchState, onArticleClick, onSearchFor = searchViewModel::searchFor)
             } else {
                 SecondaryTabRow(selectedTabIndex = tabIndex) {
-                    Tab(selected = tabIndex == TAB_FEED, onClick = { tabIndex = TAB_FEED }, text = { Text("Feed") })
-                    Tab(selected = tabIndex == TAB_RELEVANT, onClick = { tabIndex = TAB_RELEVANT }, text = { Text("Relevant") })
+                    Tab(selected = tabIndex == TAB_FEED, onClick = { tabIndex = TAB_FEED }, text = { Text(stringResource(Res.string.dashboard_tab_feed)) })
+                    Tab(selected = tabIndex == TAB_RELEVANT, onClick = { tabIndex = TAB_RELEVANT }, text = { Text(stringResource(Res.string.dashboard_tab_relevant)) })
                 }
                 when (tabIndex) {
                     TAB_FEED -> FeedTabContent(
@@ -258,7 +289,7 @@ private fun SearchResultsContent(
             state.results.isEmpty() && state.hasSearched -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        "No results for \"${state.query}\"",
+                        stringResource(Res.string.dashboard_no_search_results, state.query),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -274,7 +305,7 @@ private fun SearchResultsContent(
                 state.rewrittenQuery?.let { rewritten ->
                     item {
                         Text(
-                            "Showing results for \"$rewritten\"",
+                            stringResource(Res.string.dashboard_showing_results_for, rewritten),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -304,7 +335,7 @@ private fun SearchResultsContent(
 @Composable
 private fun DidYouMeanRow(suggestion: String, onClick: () -> Unit) {
     Text(
-        text = "Did you mean: $suggestion?",
+        text = stringResource(Res.string.dashboard_did_you_mean, suggestion),
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier.padding(vertical = 4.dp).clickable(onClick = onClick),
@@ -329,18 +360,18 @@ private fun FullScreenSearchOverlay(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = onClose) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Close search")
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.article_top_bar_close_search))
             }
             OutlinedTextField(
                 value = searchState.query,
                 onValueChange = searchViewModel::onQueryChange,
                 modifier = Modifier.weight(1f).padding(end = 8.dp),
-                placeholder = { Text("Search ${searchState.wikiName}") },
+                placeholder = { Text(stringResource(Res.string.dashboard_search_wiki, searchState.wikiName)) },
                 singleLine = true,
                 trailingIcon = {
                     if (searchState.query.isNotEmpty()) {
                         IconButton(onClick = { searchViewModel.onQueryChange("") }) {
-                            Icon(Icons.Filled.Close, contentDescription = "Clear")
+                            Icon(Icons.Filled.Close, contentDescription = stringResource(Res.string.common_clear))
                         }
                     }
                 },
@@ -380,7 +411,7 @@ private fun FeedTabContent(
             }
             fullyFailed -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Couldn't load this wiki", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(Res.string.dashboard_could_not_load_wiki), style = MaterialTheme.typography.titleMedium)
                     state.errorMessage.let {
                         Text(
                             it,
@@ -390,8 +421,8 @@ private fun FeedTabContent(
                         )
                     }
                     Row {
-                        TextButton(onClick = onRefresh) { Text("Retry") }
-                        TextButton(onClick = onOpenWikiPicker) { Text("Switch wiki") }
+                        TextButton(onClick = onRefresh) { Text(stringResource(Res.string.common_retry)) }
+                        TextButton(onClick = onOpenWikiPicker) { Text(stringResource(Res.string.dashboard_switch_wiki)) }
                     }
                 }
             }
@@ -413,7 +444,7 @@ private fun FeedTabContent(
                 if (state.continueReading.isNotEmpty()) {
                     item {
                         HorizontalArticleRow(
-                            title = "Continue reading",
+                            title = stringResource(Res.string.dashboard_continue_reading),
                             pages = state.continueReading,
                             showImages = state.showImages,
                             onClick = { title -> onArticleClick(wikiId, title) },
@@ -423,7 +454,7 @@ private fun FeedTabContent(
                 if (state.savedPages.isNotEmpty()) {
                     item {
                         HorizontalArticleRow(
-                            title = "Saved",
+                            title = stringResource(Res.string.dashboard_saved),
                             pages = state.savedPages,
                             showImages = state.showImages,
                             onClick = { title -> onArticleClick(wikiId, title) },
@@ -443,7 +474,7 @@ private fun FeedTabContent(
                 }
                 item {
                     Text(
-                        text = "Recent activity on ${state.wiki?.name.orEmpty()}",
+                        text = stringResource(Res.string.dashboard_recent_activity_on, state.wiki?.name.orEmpty()),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
@@ -452,7 +483,7 @@ private fun FeedTabContent(
                 if (state.recentChanges.isEmpty() && !state.isLoading) {
                     item {
                         Text(
-                            "No recent activity to show here",
+                            stringResource(Res.string.dashboard_no_recent_activity),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(vertical = 8.dp),
@@ -472,7 +503,7 @@ private fun FeedTabContent(
                 }
                 item {
                     TextButton(onClick = onRefresh, modifier = Modifier.padding(vertical = 12.dp)) {
-                        Text("Refresh")
+                        Text(stringResource(Res.string.common_refresh))
                     }
                 }
             }
@@ -524,7 +555,7 @@ private fun CategoryBrowseEntry(onClick: () -> Unit) {
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(end = 12.dp),
             )
-            Text("Browse by category", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            Text(stringResource(Res.string.category_browse_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
             Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
@@ -549,13 +580,13 @@ private fun RandomPickCard(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "Random pick",
+                    stringResource(Res.string.dashboard_random_pick),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Spacer(Modifier.size(2.dp))
                 Text(
-                    page?.title ?: "Loading...",
+                    page?.title ?: stringResource(Res.string.common_loading),
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -570,7 +601,7 @@ private fun RandomPickCard(
                 )
             }
             IconButton(onClick = onShuffle) {
-                Icon(Icons.Filled.Shuffle, contentDescription = "Shuffle")
+                Icon(Icons.Filled.Shuffle, contentDescription = stringResource(Res.string.dashboard_shuffle))
             }
         }
     }
@@ -592,7 +623,7 @@ private fun RecentChangeRow(
             if (!change.user.isNullOrBlank()) {
                 Spacer(Modifier.size(2.dp))
                 Text(
-                    "Edited by ${change.user}",
+                    stringResource(Res.string.dashboard_edited_by, change.user.orEmpty()),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
                 )
@@ -630,7 +661,7 @@ private fun TrendingCard(
                     modifier = Modifier.padding(end = 6.dp).size(18.dp),
                 )
                 Text(
-                    text = "Trending on $wikiName",
+                    text = stringResource(Res.string.dashboard_trending_on, wikiName),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -647,7 +678,7 @@ private fun TrendingCard(
             if (expandable) {
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp), color = MaterialTheme.colorScheme.surfaceVariant)
                 TextButton(onClick = onOpenTrending, modifier = Modifier.fillMaxWidth()) {
-                    Text("More trending")
+                    Text(stringResource(Res.string.dashboard_more_trending))
                     Icon(Icons.Filled.ChevronRight, contentDescription = null, modifier = Modifier.size(18.dp))
                 }
             }
@@ -682,7 +713,7 @@ private fun TrendingRow(rank: Int, trending: TrendingArticle, onClick: () -> Uni
             trending.views?.let { views ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "${formatViewCount(views)} views",
+                        text = stringResource(Res.string.dashboard_views_count, formatViewCount(views)),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -743,7 +774,7 @@ private fun RelevantLinksTabContent(
             }
             state.titles.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
-                    "Nothing to show here yet for ${state.wikiName}",
+                    stringResource(Res.string.dashboard_relevant_empty, state.wikiName),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -754,7 +785,7 @@ private fun RelevantLinksTabContent(
             ) {
                 item {
                     Text(
-                        text = state.label ?: "Recent community/project activity on ${state.wikiName}",
+                        text = state.label ?: stringResource(Res.string.dashboard_relevant_default_label, state.wikiName),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(bottom = 4.dp),
