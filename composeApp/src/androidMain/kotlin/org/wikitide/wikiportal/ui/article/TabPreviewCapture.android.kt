@@ -13,6 +13,8 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import org.wikitide.wikiportal.util.AppLog
 import kotlin.coroutines.resume
 
+private const val TAG = "TabPreviewCapture"
+
 private const val MAX_PREVIEW_WIDTH_PX = 320
 
 actual suspend fun captureTabPreview(nativeWebView: NativeWebView): ImageBitmap? {
@@ -54,7 +56,7 @@ actual suspend fun captureTabPreview(nativeWebView: NativeWebView): ImageBitmap?
                     if (result == PixelCopy.SUCCESS) {
                         continuation.resume(bitmap.toThumbnail().asImageBitmap())
                     } else {
-                        AppLog.w("TabPreview", "PixelCopy failed with code $result")
+                        AppLog.w(TAG, "PixelCopy failed with code $result")
                         bitmap.recycle()
                         continuation.resume(null)
                     }
@@ -62,7 +64,7 @@ actual suspend fun captureTabPreview(nativeWebView: NativeWebView): ImageBitmap?
                 Handler(Looper.getMainLooper()),
             )
         } catch (e: Exception) {
-            AppLog.e("TabPreview", "capture failed", e)
+            AppLog.e(TAG, "capture failed", e)
             if (continuation.isActive) {
                 continuation.resume(null)
             }
