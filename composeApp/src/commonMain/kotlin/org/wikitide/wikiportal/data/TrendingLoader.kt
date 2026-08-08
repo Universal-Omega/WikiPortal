@@ -17,6 +17,8 @@ import org.wikitide.wikiportal.network.wikimediaProjectDomain
 import org.wikitide.wikiportal.util.AppLog
 import org.wikitide.wikiportal.util.nowEpochMillis
 
+private const val TAG = "TrendingLoader"
+
 @Immutable
 @Serializable
 data class TrendingResult(
@@ -91,14 +93,14 @@ class TrendingLoader(
         if (restored != null) {
             cache.putAll(restored)
         } else {
-            AppLog.w("TrendingLoader", "Ignoring unreadable on-disk trending cache")
+            AppLog.w(TAG, "Ignoring unreadable on-disk trending cache")
         }
     }
 
     /** Must be called while holding [cacheMutex]. Best effort: a failed write just means the next cold start re-fetches instead of restoring from disk. */
     private suspend fun persistToDisk() {
         runCatching { store.setSetting(SettingKeys.TRENDING_CACHE, json.encodeToString(cache.toMap())) }
-            .onFailure { AppLog.e("TrendingLoader", "Failed to persist trending cache", it) }
+            .onFailure { AppLog.e(TAG, "Failed to persist trending cache", it) }
     }
 
     private fun TrendingResult.withLimit(limit: Int) = copy(articles = articles.take(limit))
