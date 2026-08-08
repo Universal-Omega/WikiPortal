@@ -46,6 +46,20 @@ import androidx.compose.ui.unit.dp
 import org.koin.compose.viewmodel.koinViewModel
 import org.jetbrains.compose.resources.stringResource
 import org.wikitide.wikiportal.resources.Res
+import org.wikitide.wikiportal.resources.add_wiki_browse_indie
+import org.wikitide.wikiportal.resources.add_wiki_checking
+import org.wikitide.wikiportal.resources.add_wiki_continue_original
+import org.wikitide.wikiportal.resources.add_wiki_indie_found_body
+import org.wikitide.wikiportal.resources.add_wiki_indie_found_title
+import org.wikitide.wikiportal.resources.add_wiki_intro
+import org.wikitide.wikiportal.resources.add_wiki_script_path_label
+import org.wikitide.wikiportal.resources.add_wiki_script_path_placeholder
+import org.wikitide.wikiportal.resources.add_wiki_submit
+import org.wikitide.wikiportal.resources.add_wiki_title
+import org.wikitide.wikiportal.resources.add_wiki_url_label
+import org.wikitide.wikiportal.resources.add_wiki_url_placeholder
+import org.wikitide.wikiportal.resources.add_wiki_use_indie
+import org.wikitide.wikiportal.resources.common_back
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
