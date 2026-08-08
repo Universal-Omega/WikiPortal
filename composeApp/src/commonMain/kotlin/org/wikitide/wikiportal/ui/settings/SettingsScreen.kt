@@ -45,7 +45,6 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import org.koin.compose.koinInject
 import org.wikitide.wikiportal.data.AppRepository
-import org.wikitide.wikiportal.data.model.AppLanguage
 import org.wikitide.wikiportal.data.model.ThemeMode
 import org.wikitide.wikiportal.util.AppVersionProvider
 import org.jetbrains.compose.resources.stringResource
