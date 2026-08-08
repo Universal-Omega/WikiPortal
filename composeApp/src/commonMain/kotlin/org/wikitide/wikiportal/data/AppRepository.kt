@@ -71,6 +71,15 @@ class AppRepository(
     private val _themeMode = MutableStateFlow(ThemeMode.SYSTEM)
     val themeMode: StateFlow<ThemeMode> = _themeMode
 
+    /**
+     * A BCP 47 tag such as "en", or null to follow the
+     * platform's own system language. Fed straight into
+     * AppLocaleEnvironment in App.kt. See AppLanguage for the fixed
+     * set of tags Settings actually offers.
+     */
+    private val _appLanguageTag = MutableStateFlow<String?>(null)
+    val appLanguageTag: StateFlow<String?> = _appLanguageTag
+
     private val _dynamicColor = MutableStateFlow(true)
     val dynamicColor: StateFlow<Boolean> = _dynamicColor
 
@@ -187,6 +196,7 @@ class AppRepository(
             store.getSetting(SettingKeys.THEME_MODE)?.let { raw ->
                 ThemeMode.entries.firstOrNull { it.name == raw }?.let { _themeMode.value = it }
             }
+            store.getSetting(SettingKeys.APP_LANGUAGE)?.let { _appLanguageTag.value = it.ifBlank { null } }
             store.getSetting(SettingKeys.DYNAMIC_COLOR)?.let { _dynamicColor.value = it.toBoolean() }
             store.getSetting(SettingKeys.TEXT_SCALE)?.let { it.toFloatOrNull()?.let { f -> _textScale.value = f } }
             store.getSetting(SettingKeys.SHOW_IMAGES)?.let { _showImages.value = it.toBoolean() }
@@ -508,6 +518,15 @@ class AppRepository(
     }
 
     fun setThemeMode(mode: ThemeMode) = persistSetting(_themeMode, SettingKeys.THEME_MODE, mode) { it.name }
+
+    /**
+     * [tag] is a BCP 47 tag such as "en", or null to go back to
+     * following the platform's own system language. This only updates
+     * the saved preference; actually applying it happens reactively,
+     * see AppLocaleEnvironment in App.kt, which every screen sits
+     * inside of.
+     */
+    fun setAppLanguage(tag: String?) = persistSetting(_appLanguageTag, SettingKeys.APP_LANGUAGE, tag) { it.orEmpty() }
     fun setDynamicColor(enabled: Boolean) = persistSetting(_dynamicColor, SettingKeys.DYNAMIC_COLOR, enabled)
     fun setTextScale(scale: Float) = persistSetting(_textScale, SettingKeys.TEXT_SCALE, scale)
     fun setShowImages(enabled: Boolean) = persistSetting(_showImages, SettingKeys.SHOW_IMAGES, enabled)
