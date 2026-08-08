@@ -1,9 +1,6 @@
 package org.wikitide.wikiportal.ui.theme
 
-import android.app.LocaleManager
 import android.content.res.Configuration
-import android.os.Build
-import android.os.LocaleList
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ProvidedValue
 import androidx.compose.ui.platform.LocalConfiguration
@@ -29,19 +26,6 @@ actual object LocalAppLocale {
         }
         Locale.setDefault(new)
         val updated = Configuration(configuration).apply { setLocale(new) }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val localeManager = LocalContext.current.getSystemService(LocaleManager::class.java)
-            val newLocales = if (value == null) LocaleList.getEmptyLocaleList() else LocaleList.forLanguageTags(value)
-            // Guards against re-setting the same value on every
-            // recomposition of this CompositionLocalProvider, since
-            // LocaleManager.applicationLocales normally recreates the
-            // Activity as a side effect of being set.
-            if (localeManager?.applicationLocales != newLocales) {
-                localeManager?.applicationLocales = newLocales
-            }
-        }
-
         return LocalConfiguration.provides(updated)
     }
 }
