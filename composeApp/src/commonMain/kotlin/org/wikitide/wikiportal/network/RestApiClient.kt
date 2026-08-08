@@ -9,9 +9,6 @@ import io.ktor.http.isSuccess
 import org.wikitide.wikiportal.util.AppLog
 import org.wikitide.wikiportal.util.runCatchingCancellable
 
-@PublishedApi
-internal const val TAG = "RestApiClient"
-
 /**
  * A shared transport for REST-style calls, both MediaWiki's own
  * rest.php modules, see [WikiSite.restUrl] and [MatomoAnalyticsApi],
@@ -28,6 +25,11 @@ internal const val TAG = "RestApiClient"
 class RestApiClient(
     @PublishedApi internal val httpClient: HttpClient,
 ) {
+
+    companion object {
+        @PublishedApi
+        internal const val TAG = "RestApiClient"
+    }
 
     /**
      * Unlike the Action API, a REST call's success or failure is a
