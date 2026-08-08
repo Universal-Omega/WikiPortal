@@ -35,7 +35,10 @@ object RankUtil {
             val l = if (i < lo.length) valueOf(lo[i]) else 0
             val h = when {
                 hiBounds && i < hi!!.length -> valueOf(hi[i])
-                hiBounds -> error("no room between \"$lo\" and \"$hi\"")
+                hiBounds -> {
+                    hiBounds = false
+                    BASE
+                }
                 else -> BASE
             }
             if (h - l >= 2) {
