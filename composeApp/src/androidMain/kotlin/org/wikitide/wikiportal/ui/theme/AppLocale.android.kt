@@ -2,13 +2,13 @@ package org.wikitide.wikiportal.ui.theme
 
 import android.app.LocaleManager
 import android.content.res.Configuration
-import android.content.res.Resources
 import android.os.Build
 import android.os.LocaleList
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ProvidedValue
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.app.LocaleManagerCompat
 import java.util.Locale
 
 actual object LocalAppLocale {
@@ -46,8 +46,11 @@ actual object LocalAppLocale {
     }
 }
 
+actual val appLocaleRemountRequired: Boolean = false
+
+@Composable
 actual fun languageNameInSystemLanguage(languageTag: String): String? {
-    val systemLocale = Resources.getSystem().configuration.locales[0] ?: return null
+    val systemLocale = LocaleManagerCompat.getSystemLocales(LocalContext.current).get(0) ?: return null
     return Locale.forLanguageTag(languageTag).getDisplayLanguage(systemLocale)
         .takeIf { it.isNotBlank() }
         ?.replaceFirstChar { it.titlecase(systemLocale) }
