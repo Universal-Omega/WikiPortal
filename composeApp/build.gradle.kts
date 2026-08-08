@@ -72,12 +72,6 @@ kotlin {
         androidMain {
             dependencies {
                 implementation(libs.androidx.activity.compose)
-                // Only used for AppCompatDelegate's per-app language
-                // support, see ui/theme/AppLocale.android.kt. MainActivity
-                // stays a plain ComponentActivity; it does not need to
-                // extend AppCompatActivity for that call to work, see
-                // AndroidManifest.xml's AppLocalesMetadataHolderService.
-                implementation(libs.androidx.appcompat)
                 implementation(libs.androidx.core)
                 implementation(libs.androidx.sqlite.framework)
                 implementation(libs.koin.android)
