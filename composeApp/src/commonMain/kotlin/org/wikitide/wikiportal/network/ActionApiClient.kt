@@ -5,6 +5,7 @@ import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import org.wikitide.wikiportal.util.AppLog
+import org.wikitide.wikiportal.util.runCatchingCancellable
 
 /**
  * A shared transport for MediaWiki's classic query-string Action API,
@@ -18,6 +19,11 @@ import org.wikitide.wikiportal.util.AppLog
 class ActionApiClient(
     @PublishedApi internal val httpClient: HttpClient,
 ) {
+
+    companion object {
+        @PublishedApi
+        internal const val TAG = "ActionApiClient"
+    }
 
     /**
      * [params] is the call-specific part: action, list, prop, meta,
@@ -51,7 +57,7 @@ class ActionApiClient(
         }
         response
     }.onFailure {
-        AppLog.e("ActionApiClient", "get($url, $params) failed", it)
+        AppLog.e(TAG, "get($url, $params) failed", it)
     }
 }
 

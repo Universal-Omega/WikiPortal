@@ -7,6 +7,7 @@ import io.ktor.client.request.parameter
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.isSuccess
 import org.wikitide.wikiportal.util.AppLog
+import org.wikitide.wikiportal.util.runCatchingCancellable
 
 /**
  * A shared transport for REST-style calls, both MediaWiki's own
@@ -24,6 +25,11 @@ import org.wikitide.wikiportal.util.AppLog
 class RestApiClient(
     @PublishedApi internal val httpClient: HttpClient,
 ) {
+
+    companion object {
+        @PublishedApi
+        internal const val TAG = "RestApiClient"
+    }
 
     /**
      * Unlike the Action API, a REST call's success or failure is a
@@ -48,6 +54,6 @@ class RestApiClient(
         }
         httpResponse.body<T>()
     }.onFailure {
-        AppLog.e("RestApiClient", "get($url, $params) failed", it)
+        AppLog.e(TAG, "get($url, $params) failed", it)
     }
 }

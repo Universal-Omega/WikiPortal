@@ -4,6 +4,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.engine.HttpClientEngineConfig
 import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.cache.HttpCache
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.LogLevel
@@ -15,6 +16,8 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import org.wikitide.wikiportal.BuildKonfig
 import org.wikitide.wikiportal.util.AppLog
+
+private const val TAG = "HttpClient"
 
 private val mediaWikiJson: Json = Json {
     ignoreUnknownKeys = true
@@ -29,6 +32,7 @@ private val mediaWikiJson: Json = Json {
 fun <T : HttpClientEngineConfig> HttpClientConfig<T>.configureMediaWikiClient() {
     expectSuccess = false
     install(ContentNegotiation) { json(mediaWikiJson) }
+    install(HttpCache)
     install(HttpTimeout) {
         connectTimeoutMillis = 5_000
         requestTimeoutMillis = 30_000
@@ -37,7 +41,7 @@ fun <T : HttpClientEngineConfig> HttpClientConfig<T>.configureMediaWikiClient() 
     install(Logging) {
         logger = object : Logger {
             override fun log(message: String) {
-                AppLog.d("Ktor", message)
+                AppLog.d(TAG, message)
             }
         }
         level = LogLevel.INFO

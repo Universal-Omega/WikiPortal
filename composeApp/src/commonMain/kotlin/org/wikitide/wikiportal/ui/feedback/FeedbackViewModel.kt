@@ -1,5 +1,6 @@
 package org.wikitide.wikiportal.ui.feedback
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -9,6 +10,8 @@ import org.wikitide.wikiportal.network.FeedbackApi
 import org.wikitide.wikiportal.util.AppLog
 import org.wikitide.wikiportal.util.AppVersionProvider
 
+private const val TAG = "FeedbackViewModel"
+
 enum class FeedbackCategory(val label: String) {
     BUG("Something's broken"),
     IDEA("Idea or request"),
@@ -16,6 +19,7 @@ enum class FeedbackCategory(val label: String) {
     OTHER("Other"),
 }
 
+@Immutable
 data class FeedbackUiState(
     val category: FeedbackCategory = FeedbackCategory.BUG,
     val message: String = "",
@@ -76,7 +80,7 @@ class FeedbackViewModel(
             result.onSuccess {
                 _state.value = _state.value.copy(isSubmitting = false, sent = true)
             }.onFailure {
-                AppLog.e("Feedback", "Couldn't submit feedback", it)
+                AppLog.e(TAG, "Couldn't submit feedback", it)
                 _state.value = _state.value.copy(
                     isSubmitting = false,
                     errorMessage = "Couldn't send that. Check your connection, or use \"Copy feedback\" and paste it in somewhere else.",

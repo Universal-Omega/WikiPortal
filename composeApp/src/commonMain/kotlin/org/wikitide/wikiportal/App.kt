@@ -33,6 +33,7 @@ import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.movableContentOf
@@ -65,10 +66,11 @@ import org.wikitide.wikiportal.navigation.Navigator
 import org.wikitide.wikiportal.navigation.Route
 import org.wikitide.wikiportal.navigation.SavedRoute
 import org.wikitide.wikiportal.navigation.SettingsRoute
+import org.wikitide.wikiportal.navigation.SystemBackInterceptor
 import org.wikitide.wikiportal.navigation.TabsRoute
-import org.wikitide.wikiportal.ui.navigation.SystemBackInterceptor
 import org.wikitide.wikiportal.ui.theme.WikiPortalTheme
 
+@Immutable
 private data class BottomDestination(val route: Route, val label: String, val selected: ImageVector, val unselected: ImageVector)
 
 private val bottomDestinations = listOf(

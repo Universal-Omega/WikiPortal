@@ -1,5 +1,6 @@
 package org.wikitide.wikiportal.data
 
+import androidx.compose.runtime.Stable
 import androidx.compose.ui.graphics.ImageBitmap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -10,10 +11,8 @@ import org.wikitide.wikiportal.data.model.ArticleTab
 import org.wikitide.wikiportal.data.model.WikiSite
 import org.wikitide.wikiportal.data.store.SettingKeys
 import org.wikitide.wikiportal.data.store.WikiPortalStore
+import org.wikitide.wikiportal.util.nowEpochMillis
 import kotlin.random.Random
-import kotlin.time.Clock
-
-private fun nowEpochMillis(): Long = Clock.System.now().toEpochMilliseconds()
 
 /**
  * Tracks open reading tabs, similar to a browser's tab strip. Each tab's
@@ -30,6 +29,7 @@ private fun nowEpochMillis(): Long = Clock.System.now().toEpochMilliseconds()
  * Every open tab's WebView stays mounted at the same time inside
  * ArticleHostScreen. See that file's comment for why.
  */
+@Stable
 class TabsRepository(
     private val store: WikiPortalStore,
     private val appScope: CoroutineScope,

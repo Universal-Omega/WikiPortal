@@ -1,5 +1,7 @@
 package org.wikitide.wikiportal.data.model
 
+import androidx.compose.runtime.Immutable
+
 /**
  * A per-wiki curated source for the Dashboard's "Relevant" tab. There
  * is no MediaWiki-protocol-level concept of "important announcements"
@@ -9,6 +11,7 @@ package org.wikitide.wikiportal.data.model
  * heuristic instead, recent activity in the Project namespace. See
  * MediaWikiApi.getRecentChanges and RelevantLinksViewModel.
  */
+@Immutable
 data class RelevantLinksSource(val category: String, val label: String)
 
 object RelevantLinksConfig {

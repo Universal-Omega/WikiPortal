@@ -2,8 +2,8 @@ package org.wikitide.wikiportal.util
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import org.wikitide.wikiportal.util.nowEpochMillis
 import java.io.File
-import kotlin.time.Clock
 
 @Serializable
 private data class DesktopLogLine(val epochMillis: Long, val level: String, val tag: String, val message: String)
@@ -20,7 +20,7 @@ internal object DesktopLogFile {
 
     @Synchronized
     fun append(level: LogLevel, tag: String, message: String) {
-        val entry = DesktopLogLine(Clock.System.now().toEpochMilliseconds(), level.name, tag, message)
+        val entry = DesktopLogLine(nowEpochMillis(), level.name, tag, message)
         file.appendText(json.encodeToString(DesktopLogLine.serializer(), entry) + "\n")
         trimIfNeeded()
     }

@@ -1,5 +1,6 @@
 package org.wikitide.wikiportal.ui.dashboard
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Job
@@ -13,6 +14,7 @@ import kotlinx.coroutines.launch
 import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.network.MediaWikiApi
 
+@Immutable
 data class CategoryBrowseUiState(
     val query: String = "",
     val matches: List<String> = emptyList(),

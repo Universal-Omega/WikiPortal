@@ -1,4 +1,4 @@
-package org.wikitide.wikiportal.network
+package org.wikitide.wikiportal.util
 
 import kotlinx.coroutines.CancellationException
 

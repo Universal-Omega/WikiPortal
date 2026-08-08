@@ -1,5 +1,6 @@
 package org.wikitide.wikiportal.data.model
 
+import androidx.compose.runtime.Immutable
 import kotlinx.serialization.Serializable
 import org.wikitide.wikiportal.network.IwbSiteDto
 
@@ -12,6 +13,7 @@ import org.wikitide.wikiportal.network.IwbSiteDto
  * IndieWikiDirectory.toDomainSites, since this app has no way to browse
  * or add anything else.
  */
+@Immutable
 @Serializable
 data class IndieWikiSite(
     val id: String,
@@ -47,6 +49,7 @@ object IndieWikiLanguages {
     fun displayName(code: String): String = displayNames[code] ?: code
 }
 
+@Immutable
 @Serializable
 data class IndieWikiOrigin(
     val originBaseUrl: String,

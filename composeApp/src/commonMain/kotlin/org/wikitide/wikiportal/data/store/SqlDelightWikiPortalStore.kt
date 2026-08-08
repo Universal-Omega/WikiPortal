@@ -10,6 +10,7 @@ import org.wikitide.wikiportal.data.model.ArticleTab
 import org.wikitide.wikiportal.data.model.SavedPage
 import org.wikitide.wikiportal.data.model.WikiFolder
 import org.wikitide.wikiportal.data.model.WikiSite
+import org.wikitide.wikiportal.db.Folder
 import org.wikitide.wikiportal.db.Wiki
 import org.wikitide.wikiportal.db.WikiPortalDatabase
 
@@ -33,10 +34,18 @@ class SqlDelightWikiPortalStore(
     private val offlineFiles: OfflineArticleFileStore,
 ) : WikiPortalStore {
 
-    // WikiAdapter only needs an entry for availableSkins. isCustom and
-    // skinIsUserSet are typed INTEGER AS Boolean in WikiPortal.sq, which
-    // SQLDelight handles natively without a ColumnAdapter.
-    private val database = WikiPortalDatabase(driver, WikiAdapter = Wiki.Adapter(availableSkinsAdapter = SkinOptionListColumnAdapter))
+    // Wiki needs adapters for availableSkins and rank, Folder just for
+    // rank. isCustom and skinIsUserSet are typed INTEGER AS Boolean in
+    // WikiPortal.sq, which SQLDelight handles natively without one.
+    private val database = WikiPortalDatabase(
+        driver,
+        FolderAdapter = Folder.Adapter(rankAdapter = RankColumnAdapter),
+        WikiAdapter = Wiki.Adapter(
+            availableSkinsAdapter = SkinOptionListColumnAdapter,
+            rankAdapter = RankColumnAdapter,
+        ),
+    )
+
     private val queries = database.wikiPortalQueries
     private val offlineArticleStore = OfflineArticleStore(queries, offlineFiles)
 
@@ -85,6 +94,7 @@ class SqlDelightWikiPortalStore(
                 mainPageIsDomainRoot = it.mainPageIsDomainRoot,
                 folderId = it.folderId,
                 disableSafeMode = it.disableSafeMode,
+                rank = it.rank,
             )
         }
     }
@@ -94,7 +104,7 @@ class SqlDelightWikiPortalStore(
         queries.upsertWiki(
             site.id, site.name, site.description, site.baseUrl, site.scriptPath, site.skin,
             site.articlePathPrefix, site.discoveredFaviconUrl, site.isCustom, site.availableSkins, site.skinIsUserSet,
-            site.mainPageTitle, site.folderId, site.mainPageIsDomainRoot, site.disableSafeMode,
+            site.mainPageTitle, site.folderId, site.mainPageIsDomainRoot, site.disableSafeMode, site.rank,
         )
     }
 
@@ -106,13 +116,13 @@ class SqlDelightWikiPortalStore(
     override suspend fun allFolders(): List<WikiFolder> {
         ensureSchema()
         return queries.selectAllFolders().awaitAsList().map {
-            WikiFolder(id = it.id, name = it.name, isCustom = true)
+            WikiFolder(id = it.id, name = it.name, isCustom = true, rank = it.rank)
         }
     }
 
-    override suspend fun upsertFolder(folder: WikiFolder, sortOrder: Int) {
+    override suspend fun upsertFolder(folder: WikiFolder) {
         ensureSchema()
-        queries.upsertFolder(folder.id, folder.name, sortOrder.toLong())
+        queries.upsertFolder(folder.id, folder.name, folder.rank)
     }
 
     override suspend fun removeFolder(id: String) {

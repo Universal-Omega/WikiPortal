@@ -1,5 +1,6 @@
 package org.wikitide.wikiportal.ui.settings
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,13 +24,17 @@ import org.wikitide.wikiportal.network.resolveFaviconUrl
 import org.wikitide.wikiportal.util.AppLog
 import org.wikitide.wikiportal.util.isMobilePlatform
 
+private const val TAG = "AddWikiViewModel"
+
 /** An independent wiki Indie Wiki Buddy knows replaces whatever was actually typed in, offered before resolution proceeds. */
+@Immutable
 data class IndieWikiSuggestion(
     val originalUrl: String,
     val destinationName: String,
     val destinationBaseUrl: String,
 )
 
+@Immutable
 data class AddWikiUiState(
     val isChecking: Boolean = false,
     val errorMessage: String? = null,
@@ -172,7 +177,7 @@ class AddWikiViewModel(
         }
 
         if (resolvedSite == null || sitename == null) {
-            lastError?.let { AppLog.e("AddWiki", "Couldn't resolve a MediaWiki API at $resolvedBaseUrl", it) }
+            lastError?.let { AppLog.e(TAG, "Couldn't resolve a MediaWiki API at $resolvedBaseUrl", it) }
             val message = buildString {
                 append("Couldn't find a MediaWiki API at that address.")
                 if (trimmedCustomPath.isBlank()) {
@@ -196,7 +201,7 @@ class AddWikiViewModel(
                 null
             }
             val detectedMobileSkin = matchCuratedSkin(detectedMobileSkinCode, availableSkins)
-            repository.setActiveWiki(
+            repository.addFreshCustomWiki(
                 resolvedSite.copy(
                     id = "${resolvedSite.id}-${lang.orEmpty()}",
                     name = sitename,

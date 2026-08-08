@@ -9,6 +9,9 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.json.Json
 import org.wikitide.wikiportal.util.AppLog
+import org.wikitide.wikiportal.util.runCatchingCancellable
+
+private const val TAG = "IndieWikiBuddyApi"
 
 /**
  * Every language Indie Wiki Buddy publishes a sites*.json file for. See
@@ -54,7 +57,7 @@ class IndieWikiBuddyApi(
             if (!response.status.isSuccess()) error("HTTP ${response.status.value} from $url")
             iwbJson.decodeFromString<List<IwbSiteDto>>(response.bodyAsText())
         }.onFailure {
-            AppLog.w("IndieWikiBuddyApi", "Couldn't fetch sites$lang.json: ${it.message}")
+            AppLog.w(TAG, "Couldn't fetch sites$lang.json: ${it.message}")
         }.getOrNull()?.map { lang to it }.orEmpty()
     }
 }

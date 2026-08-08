@@ -1,5 +1,6 @@
 package org.wikitide.wikiportal.util
 
+import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import org.wikitide.wikiportal.data.store.OfflineArticleFileStore
 import platform.Foundation.NSDocumentDirectory
@@ -32,6 +33,7 @@ class IosOfflineArticleFileStore : OfflineArticleFileStore {
 
     private fun path(fileName: String) = "$directory/$fileName"
 
+    @OptIn(BetaInteropApi::class)
     override suspend fun write(fileName: String, content: String) {
         NSString.create(string = content).writeToFile(path(fileName), atomically = true, encoding = NSUTF8StringEncoding, error = null)
     }

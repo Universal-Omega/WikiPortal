@@ -1,5 +1,7 @@
 package org.wikitide.wikiportal.data.model
 
+import androidx.compose.runtime.Immutable
+
 /**
  * A single open reading tab, like a browser tab. This is deliberately
  * lightweight, with no WebView state. See TabsRepository for why.
@@ -16,6 +18,7 @@ package org.wikitide.wikiportal.data.model
  * url for a page that isn't really an article on wikiId, like an
  * auth flow or an external link followed in the tab.
  */
+@Immutable
 data class ArticleTab(
     val id: String,
     val wikiId: String,

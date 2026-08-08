@@ -3,7 +3,7 @@ package org.wikitide.wikiportal.util
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
-import kotlin.time.Clock
+import org.wikitide.wikiportal.util.nowEpochMillis
 
 enum class LogLevel { DEBUG, INFO, WARN, ERROR }
 
@@ -67,7 +67,7 @@ object AppLog {
 
     private fun record(level: LogLevel, tag: String, message: String) {
         val redacted = redactPii(message)
-        val entry = LogEntry(Clock.System.now().toEpochMilliseconds(), level, tag, redacted)
+        val entry = LogEntry(nowEpochMillis(), level, tag, redacted)
         _entries.update { current -> (current + entry).takeLast(MAX_ENTRIES) }
         platformLog(level, tag, redacted)
     }

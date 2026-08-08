@@ -69,8 +69,8 @@ import org.wikitide.wikiportal.util.LogExporter
 import org.wikitide.wikiportal.util.LogLevel
 import org.wikitide.wikiportal.util.clearDeviceLogs
 import org.wikitide.wikiportal.util.copyPlainText
+import org.wikitide.wikiportal.util.nowEpochMillis
 import org.wikitide.wikiportal.util.readDeviceLogs
-import kotlin.time.Clock
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -185,7 +185,7 @@ fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
                                     onClick = {
                                         menuOpen = false
                                         scope.launch {
-                                            val fileName = "wikiportal-logs-${Clock.System.now().toEpochMilliseconds()}.txt"
+                                            val fileName = "wikiportal-logs-${nowEpochMillis()}.txt"
                                             val result = logExporter.export(fileName, formatted(displayed))
                                             snackbarHostState.showSnackbar(result.getOrElse { "Couldn't export logs" })
                                         }

@@ -1,5 +1,6 @@
 package org.wikitide.wikiportal.network
 
+import androidx.compose.runtime.Immutable
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
@@ -11,12 +12,16 @@ import io.ktor.http.Url
 import org.wikitide.wikiportal.data.model.WikiSite
 import org.wikitide.wikiportal.util.AppLog
 import org.wikitide.wikiportal.util.isMobilePlatform
+import org.wikitide.wikiportal.util.runCatchingCancellable
+
+private const val TAG = "MediaWikiApi"
 
 /**
  * The result of a search, including CirrusSearch's spelling suggestion
  * or query rewrite if the wiki has it enabled. This is null on wikis
  * without CirrusSearch.
  */
+@Immutable
 data class SearchResults(
     val pages: List<PageSummaryDto>,
     val suggestion: String? = null,
@@ -24,6 +29,7 @@ data class SearchResults(
 )
 
 /** One entry from a recentchanges query, see getRecentChanges. */
+@Immutable
 data class RecentChangeEntry(
     val title: String,
     val user: String?,
@@ -97,7 +103,7 @@ class MediaWikiApi(
         val html = httpClient.get(site.indexUrl).bodyAsText()
         parseFaviconFromHtml(html, site.baseUrl)
     }.onFailure {
-        AppLog.e("MediaWikiApi", "getFaviconUrlFromHtml(${site.indexUrl}) failed", it)
+        AppLog.e(TAG, "getFaviconUrlFromHtml(${site.indexUrl}) failed", it)
     }
 
     suspend fun getMobileDefaultSkin(site: WikiSite, mainPageTitle: String?): Result<String?> = runCatchingCancellable {
@@ -106,7 +112,7 @@ class MediaWikiApi(
         val html = httpClient.get(mobileUrl).bodyAsText()
         parseSkinFromBodyClass(html)
     }.onFailure {
-        AppLog.e("MediaWikiApi", "getMobileDefaultSkin(${site.id}) failed", it)
+        AppLog.e(TAG, "getMobileDefaultSkin(${site.id}) failed", it)
     }
 
     /**
@@ -264,7 +270,7 @@ class MediaWikiApi(
     suspend fun getRenderedPage(site: WikiSite, title: String): Result<String> = runCatchingCancellable {
         httpClient.get(site.articleUrl(title)).bodyAsText()
     }.onFailure {
-        AppLog.e("MediaWikiApi", "getRenderedPage(${site.id}, $title) failed", it)
+        AppLog.e(TAG, "getRenderedPage(${site.id}, $title) failed", it)
     }
 
     /**
@@ -300,7 +306,7 @@ class MediaWikiApi(
         val contentType = response.headers[HttpHeaders.ContentType] ?: "application/octet-stream"
         contentType to response.body<ByteArray>()
     }.onFailure {
-        AppLog.e("MediaWikiApi", "getRawBytes($url) failed", it)
+        AppLog.e(TAG, "getRawBytes($url) failed", it)
     }
 
     private fun isFandomWiki(site: WikiSite): Boolean {

@@ -1,4 +1,4 @@
-package org.wikitide.wikiportal.ui.navigation
+package org.wikitide.wikiportal.navigation
 
 import androidx.compose.runtime.Composable
 
