@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     Lists every language WikiPortal ships its own translated
+     strings.xml for, so Settings > Apps > WikiPortal > Language, and
+     Settings > System > Languages & input > App languages, can offer
+     it directly, on top of the in-app picker in AppLanguageDialog.kt.
+     Keep this in sync with composeApp/src/commonMain/composeResources:
+     add a locale here whenever a new values-<tag> folder is added
+     there, and whenever a new entry is added to AppLanguage.kt.
+-->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="en" />
+    <locale android:name="es" />
+</locale-config>
