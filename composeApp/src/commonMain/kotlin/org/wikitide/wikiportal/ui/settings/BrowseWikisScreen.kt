@@ -63,6 +63,17 @@ import org.wikitide.wikiportal.data.model.IndieWikiSite
 import org.wikitide.wikiportal.network.iwbFaviconUrl
 import org.jetbrains.compose.resources.stringResource
 import org.wikitide.wikiportal.resources.Res
+import org.wikitide.wikiportal.resources.browse_wikis_all_languages
+import org.wikitide.wikiportal.resources.browse_wikis_alternative_to
+import org.wikitide.wikiportal.resources.browse_wikis_clear_search
+import org.wikitide.wikiportal.resources.browse_wikis_load_failed
+import org.wikitide.wikiportal.resources.browse_wikis_no_matches
+import org.wikitide.wikiportal.resources.browse_wikis_official
+import org.wikitide.wikiportal.resources.browse_wikis_refresh_list
+import org.wikitide.wikiportal.resources.browse_wikis_search_placeholder
+import org.wikitide.wikiportal.resources.browse_wikis_title
+import org.wikitide.wikiportal.resources.common_back
+import org.wikitide.wikiportal.resources.common_retry
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
