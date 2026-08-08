@@ -24,6 +24,8 @@ import org.wikitide.wikiportal.network.resolveFaviconUrl
 import org.wikitide.wikiportal.util.AppLog
 import org.wikitide.wikiportal.util.isMobilePlatform
 
+private const val TAG = "AddWiki"
+
 /** An independent wiki Indie Wiki Buddy knows replaces whatever was actually typed in, offered before resolution proceeds. */
 @Immutable
 data class IndieWikiSuggestion(
@@ -175,7 +177,7 @@ class AddWikiViewModel(
         }
 
         if (resolvedSite == null || sitename == null) {
-            lastError?.let { AppLog.e("AddWiki", "Couldn't resolve a MediaWiki API at $resolvedBaseUrl", it) }
+            lastError?.let { AppLog.e(TAG, "Couldn't resolve a MediaWiki API at $resolvedBaseUrl", it) }
             val message = buildString {
                 append("Couldn't find a MediaWiki API at that address.")
                 if (trimmedCustomPath.isBlank()) {
