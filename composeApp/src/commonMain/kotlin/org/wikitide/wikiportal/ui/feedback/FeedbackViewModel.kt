@@ -9,14 +9,29 @@ import kotlinx.coroutines.launch
 import org.wikitide.wikiportal.network.FeedbackApi
 import org.wikitide.wikiportal.util.AppLog
 import org.wikitide.wikiportal.util.AppVersionProvider
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.getString
+import org.wikitide.wikiportal.resources.Res
+import org.wikitide.wikiportal.resources.feedback_category_bug
+import org.wikitide.wikiportal.resources.feedback_category_confusing
+import org.wikitide.wikiportal.resources.feedback_category_idea
+import org.wikitide.wikiportal.resources.feedback_category_other
+import org.wikitide.wikiportal.resources.feedback_error_empty_message
+import org.wikitide.wikiportal.resources.feedback_error_send_failed
 
 private const val TAG = "FeedbackViewModel"
 
-enum class FeedbackCategory(val label: String) {
-    BUG("Something's broken"),
-    IDEA("Idea or request"),
-    CONFUSING("Something felt confusing"),
-    OTHER("Other"),
+/**
+ * [apiValue] is a stable identifier sent to the feedback backend, kept in
+ * English regardless of the device's language so categorization stays
+ * consistent. [labelRes] is what's shown on screen, resolved with
+ * stringResource by the UI.
+ */
+enum class FeedbackCategory(val apiValue: String, val labelRes: StringResource) {
+    BUG("Something's broken", Res.string.feedback_category_bug),
+    IDEA("Idea or request", Res.string.feedback_category_idea),
+    CONFUSING("Something felt confusing", Res.string.feedback_category_confusing),
+    OTHER("Other", Res.string.feedback_category_other),
 }
 
 @Immutable
@@ -62,7 +77,9 @@ class FeedbackViewModel(
     fun submit() {
         val current = _state.value
         if (current.message.isBlank()) {
-            _state.value = current.copy(errorMessage = "Add a description of what happened before sending.")
+            viewModelScope.launch {
+                _state.value = current.copy(errorMessage = getString(Res.string.feedback_error_empty_message))
+            }
             return
         }
 
@@ -71,7 +88,7 @@ class FeedbackViewModel(
             val logs = if (current.includeLogs) recentLogText() else null
             val result = api.submit(
                 message = current.message,
-                category = current.category.label,
+                category = current.category.apiValue,
                 displayName = current.displayName,
                 contact = current.contact,
                 appVersion = versionProvider.versionName,
@@ -83,17 +100,17 @@ class FeedbackViewModel(
                 AppLog.e(TAG, "Couldn't submit feedback", it)
                 _state.value = _state.value.copy(
                     isSubmitting = false,
-                    errorMessage = "Couldn't send that. Check your connection, or use \"Copy feedback\" and paste it in somewhere else.",
+                    errorMessage = getString(Res.string.feedback_error_send_failed),
                 )
             }
         }
     }
 
     /** Same text a submission would send, for the copy-to-clipboard fallback. */
-    fun composeShareText(): String {
+    suspend fun composeShareText(): String {
         val current = _state.value
         return buildString {
-            appendLine("Category: ${current.category.label}")
+            appendLine("Category: ${current.category.apiValue}")
             appendLine("Version: ${versionProvider.versionName}")
             if (current.displayName.isNotBlank()) appendLine("From: ${current.displayName}")
             if (current.contact.isNotBlank()) appendLine("Contact: ${current.contact}")
