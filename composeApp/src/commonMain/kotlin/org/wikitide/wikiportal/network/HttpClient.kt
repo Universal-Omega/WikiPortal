@@ -17,7 +17,7 @@ import kotlinx.serialization.json.Json
 import org.wikitide.wikiportal.BuildKonfig
 import org.wikitide.wikiportal.util.AppLog
 
-private const val TAG = "Ktor"
+private const val TAG = "HttpClient"
 
 private val mediaWikiJson: Json = Json {
     ignoreUnknownKeys = true
