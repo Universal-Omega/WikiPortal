@@ -10,7 +10,7 @@ import org.wikitide.wikiportal.util.AppLog
 import org.wikitide.wikiportal.util.runCatchingCancellable
 
 @PublishedApi
-private const val TAG = "RestApiClient"
+internal const val TAG = "RestApiClient"
 
 /**
  * A shared transport for REST-style calls, both MediaWiki's own
