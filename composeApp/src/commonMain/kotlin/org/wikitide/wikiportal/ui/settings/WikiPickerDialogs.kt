@@ -34,6 +34,8 @@ import kotlin.math.roundToInt
 import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.model.WikiFolder
 import org.wikitide.wikiportal.data.model.WikiSite
+import org.jetbrains.compose.resources.stringResource
+import org.wikitide.wikiportal.resources.Res
 
 /**
  * Lets the person file a custom wiki into one of their own folders,
@@ -56,13 +58,13 @@ internal fun MoveToFolderDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Move \"${wiki.name}\"") },
+        title = { Text(stringResource(Res.string.wiki_picker_move_title, wiki.name)) },
         text = {
             if (creatingNew) {
                 OutlinedTextField(
                     value = newFolderName,
                     onValueChange = { newFolderName = it.replace("\n", "") },
-                    label = { Text("Folder name") },
+                    label = { Text(stringResource(Res.string.wiki_picker_folder_name_label)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -74,7 +76,7 @@ internal fun MoveToFolderDialog(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         RadioButton(selected = wiki.folderId == null, onClick = { onSelectFolder(null) })
-                        Text("No folder", modifier = Modifier.padding(start = 4.dp))
+                        Text(stringResource(Res.string.wiki_picker_no_folder), modifier = Modifier.padding(start = 4.dp))
                     }
                     folders.forEach { folder ->
                         Row(
@@ -90,20 +92,20 @@ internal fun MoveToFolderDialog(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(Icons.Filled.CreateNewFolder, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Text("New folder", color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 12.dp))
+                        Text(stringResource(Res.string.wiki_picker_new_folder), color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 12.dp))
                     }
                 }
             }
         },
         confirmButton = {
             if (creatingNew) {
-                TextButton(onClick = { if (newFolderName.isNotBlank()) onCreateFolder(newFolderName.trim()) }) { Text("Create") }
+                TextButton(onClick = { if (newFolderName.isNotBlank()) onCreateFolder(newFolderName.trim()) }) { Text(stringResource(Res.string.common_create)) }
             } else {
-                TextButton(onClick = onDismiss) { Text("Close") }
+                TextButton(onClick = onDismiss) { Text(stringResource(Res.string.common_close)) }
             }
         },
         dismissButton = {
-            if (creatingNew) TextButton(onClick = { creatingNew = false }) { Text("Back") }
+            if (creatingNew) TextButton(onClick = { creatingNew = false }) { Text(stringResource(Res.string.common_back)) }
         },
     )
 }
@@ -125,7 +127,7 @@ internal fun FolderNameDialog(
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it.replace("\n", "") },
-                label = { Text("Folder name") },
+                label = { Text(stringResource(Res.string.wiki_picker_folder_name_label)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -133,7 +135,7 @@ internal fun FolderNameDialog(
         confirmButton = {
             TextButton(onClick = { if (name.isNotBlank()) onConfirm(name.trim()) }) { Text(confirmLabel) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.common_cancel)) } },
     )
 }
 
@@ -172,7 +174,7 @@ internal fun SkinPickerDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Skin for ${wiki.name}") },
+        title = { Text(stringResource(Res.string.wiki_picker_skin_title, wiki.name)) },
         text = {
             if (isRefreshing && wiki.availableSkins == null) {
                 Box(modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp), contentAlignment = Alignment.Center) {
@@ -180,7 +182,7 @@ internal fun SkinPickerDialog(
                 }
             } else if (wiki.hasNoSkinData) {
                 Text(
-                    "Couldn't find any skins for ${wiki.name}.",
+                    stringResource(Res.string.wiki_picker_no_skins, wiki.name),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
@@ -215,6 +217,6 @@ internal fun SkinPickerDialog(
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.common_close)) } },
     )
 }
