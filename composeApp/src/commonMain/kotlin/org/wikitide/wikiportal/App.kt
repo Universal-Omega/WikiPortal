@@ -151,11 +151,11 @@ fun WikiPortalApp(onDarkThemeResolved: (Boolean) -> Unit = {}) {
     val dynamicColor by repository.dynamicColor.collectAsState()
     val appLanguageTag by repository.appLanguageTag.collectAsState()
 
+    val backStack = rememberNavBackStack(navConfig, DashboardRoute)
+    navigator.backStack = backStack
+
     AppLocaleEnvironment(appLanguageTag) {
     WikiPortalTheme(themeMode = themeMode, useDynamicColor = dynamicColor, onDarkThemeResolved = onDarkThemeResolved) {
-        val backStack = rememberNavBackStack(navConfig, DashboardRoute)
-        navigator.backStack = backStack
-
         val current = backStack.lastOrNull()
         // ArticleRoute is not one of the bottomDestinations on purpose, so
         // the nav stays hidden during normal article reading. That
