@@ -50,6 +50,22 @@ import org.wikitide.wikiportal.ui.components.rememberDragReorderState
 import org.wikitide.wikiportal.util.RankUtil
 import org.jetbrains.compose.resources.stringResource
 import org.wikitide.wikiportal.resources.Res
+import org.wikitide.wikiportal.resources.browse_wikis_title
+import org.wikitide.wikiportal.resources.common_back
+import org.wikitide.wikiportal.resources.common_cancel
+import org.wikitide.wikiportal.resources.common_create
+import org.wikitide.wikiportal.resources.common_delete
+import org.wikitide.wikiportal.resources.common_done
+import org.wikitide.wikiportal.resources.common_save
+import org.wikitide.wikiportal.resources.wiki_picker_add_by_url
+import org.wikitide.wikiportal.resources.wiki_picker_choose_title
+import org.wikitide.wikiportal.resources.wiki_picker_delete_folder_body
+import org.wikitide.wikiportal.resources.wiki_picker_delete_folder_title
+import org.wikitide.wikiportal.resources.wiki_picker_featured_wikis
+import org.wikitide.wikiportal.resources.wiki_picker_new_folder
+import org.wikitide.wikiportal.resources.wiki_picker_rename_folder
+import org.wikitide.wikiportal.resources.wiki_picker_reorder
+import org.wikitide.wikiportal.resources.wiki_picker_your_wikis
 
 /**
  * A folder or an ungrouped custom wiki, whichever sits at the root of
