@@ -283,7 +283,7 @@ class AppRepository(
      * reorder across. [nextCustomRank] and [createFolder] both need
      * this same combined view, not just the highest within their own
      * type, or two rows of different kinds can land on the exact same
-     * rank, see repairDuplicateRootRanks for what that actually breaks.
+     * rank.
      */
     private fun highestRootRank(): String =
         (_presetWikis.value.map { it.rank } + _customWikis.value.map { it.rank } + _customFolders.value.map { it.rank })
