@@ -2,6 +2,7 @@ package org.wikitide.wikiportal.ui.theme
 
 import android.app.LocaleManager
 import android.content.res.Configuration
+import android.content.res.Resources
 import android.os.Build
 import android.os.LocaleList
 import androidx.compose.runtime.Composable
@@ -10,16 +11,6 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import java.util.Locale
 
-/**
- * Below Android 13 (API 33) there is no framework-level per-app
- * language to sync with in the first place, since the system's own
- * per-app language screen is itself a 13-and-up feature, see
- * https://developer.android.com/guide/topics/resources/app-languages.
- * Below that, this only updates the Configuration compose-resources
- * reads strings from, an in-app-only override; that alone is enough
- * here since this app has no legacy View-based UI reading
- * context.resources directly, only Compose.
- */
 actual object LocalAppLocale {
     private var systemDefault: Locale? = null
 
@@ -53,4 +44,11 @@ actual object LocalAppLocale {
 
         return LocalConfiguration.provides(updated)
     }
+}
+
+actual fun languageNameInSystemLanguage(languageTag: String): String? {
+    val systemLocale = Resources.getSystem().configuration.locales[0] ?: return null
+    return Locale.forLanguageTag(languageTag).getDisplayLanguage(systemLocale)
+        .takeIf { it.isNotBlank() }
+        ?.replaceFirstChar { it.titlecase(systemLocale) }
 }
