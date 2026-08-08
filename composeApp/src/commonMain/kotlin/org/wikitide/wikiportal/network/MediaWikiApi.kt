@@ -1,5 +1,6 @@
 package org.wikitide.wikiportal.network
 
+import androidx.compose.runtime.Immutable
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
@@ -18,6 +19,7 @@ import org.wikitide.wikiportal.util.runCatchingCancellable
  * or query rewrite if the wiki has it enabled. This is null on wikis
  * without CirrusSearch.
  */
+@Immutable
 data class SearchResults(
     val pages: List<PageSummaryDto>,
     val suggestion: String? = null,
@@ -25,6 +27,7 @@ data class SearchResults(
 )
 
 /** One entry from a recentchanges query, see getRecentChanges. */
+@Immutable
 data class RecentChangeEntry(
     val title: String,
     val user: String?,
