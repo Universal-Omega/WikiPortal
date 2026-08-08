@@ -23,6 +23,8 @@ import org.wikitide.wikiportal.network.resolveDefaultSkin
 import org.wikitide.wikiportal.network.resolveFaviconUrl
 import org.wikitide.wikiportal.util.AppLog
 import org.wikitide.wikiportal.util.isMobilePlatform
+import org.jetbrains.compose.resources.getString
+import org.wikitide.wikiportal.resources.Res
 
 private const val TAG = "AddWikiViewModel"
 
@@ -71,7 +73,9 @@ class AddWikiViewModel(
     fun submit(rawUrl: String, customScriptPath: String = "", skipIndieWikiCheck: Boolean = false) {
         val normalizedInput = normalizeUrl(rawUrl)
         if (normalizedInput == null) {
-            _state.value = AddWikiUiState(errorMessage = "Enter a valid wiki URL, e.g. https://mywiki.example.com")
+            viewModelScope.launch {
+                _state.value = AddWikiUiState(errorMessage = getString(Res.string.add_wiki_error_invalid_url))
+            }
             return
         }
         _state.value = AddWikiUiState(isChecking = true)
@@ -119,7 +123,7 @@ class AddWikiViewModel(
 
         val duplicate = repository.allWikisNow().firstOrNull { hostOf(it.baseUrl) == host }
         if (duplicate != null) {
-            _state.value = AddWikiUiState(errorMessage = "${duplicate.name} is already in your wiki list.")
+            _state.value = AddWikiUiState(errorMessage = getString(Res.string.add_wiki_error_duplicate, duplicate.name))
             return
         }
 
@@ -179,10 +183,12 @@ class AddWikiViewModel(
         if (resolvedSite == null || sitename == null) {
             lastError?.let { AppLog.e(TAG, "Couldn't resolve a MediaWiki API at $resolvedBaseUrl", it) }
             val message = buildString {
-                append("Couldn't find a MediaWiki API at that address.")
+                append(getString(Res.string.add_wiki_error_no_api))
                 if (trimmedCustomPath.isBlank()) {
-                    append(" Tried: ${COMMON_SCRIPT_PATHS.joinToString(", ") { it.ifBlank { "(root)" } }}.")
-                    append(" If your wiki uses a different path, enter it above.")
+                    append(" ")
+                    append(getString(Res.string.add_wiki_error_tried_paths, COMMON_SCRIPT_PATHS.joinToString(", ") { it.ifBlank { "(root)" } }))
+                    append(" ")
+                    append(getString(Res.string.add_wiki_error_try_different_path))
                 }
             }
             _state.value = AddWikiUiState(errorMessage = message, showScriptPathField = true)
