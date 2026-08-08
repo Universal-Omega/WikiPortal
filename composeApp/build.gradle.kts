@@ -37,10 +37,6 @@ kotlin {
 
     jvm("desktop")
 
-    compilerOptions {
-        freeCompilerArgs.add("-Xexpect-actual-classes")
-    }
-
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
         outputModuleName.set("wikiportal")
