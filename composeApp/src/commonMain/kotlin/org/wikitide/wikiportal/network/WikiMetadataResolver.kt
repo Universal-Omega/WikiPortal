@@ -18,7 +18,7 @@ import org.wikitide.wikiportal.data.model.skinIsUnset
  * Anything outside these four needs the manual "Script path" override in
  * the Add wiki UI. There is no way to guess an arbitrary custom layout.
  */
-val COMMON_SCRIPT_PATHS = listOf("/w", "", "/wiki", "/mediawiki")
+val COMMON_SCRIPT_PATHS = listOf("/w", "", "/wiki", "/mediawiki", "/mw")
 
 /**
  * Works out the wiki's real article path prefix, the part that goes
