@@ -16,8 +16,11 @@ import org.wikitide.wikiportal.data.model.WikiFolder
 import org.wikitide.wikiportal.data.model.WikiSite
 import org.wikitide.wikiportal.data.store.SettingKeys
 import org.wikitide.wikiportal.data.store.WikiPortalStore
+import org.wikitide.wikiportal.util.AppLog
 import org.wikitide.wikiportal.util.RankUtil
 import kotlin.random.Random
+
+private const val TAG = "AppRepository"
 
 /**
  * A reactive layer over [WikiPortalStore]. The store itself is a plain
@@ -173,6 +176,7 @@ class AppRepository(
             _presetWikis.value = (resyncedPresetRows + missingPresets).sortedBy { it.rank }
             _customWikis.value = storedCustomRows.sortedBy { it.rank }
             _customFolders.value = store.allFolders().sortedBy { it.rank }
+            repairDuplicateRootRanks()
 
             val activeId = store.getSetting(SettingKeys.ACTIVE_WIKI_ID)
             val restoredActiveWiki =
@@ -196,6 +200,33 @@ class AppRepository(
             _history.value = store.history()
             _offlineKeys.value = store.offlineArticleKeys()
             _offlineArticles.value = store.offlineArticles()
+        }
+    }
+
+    private suspend fun repairDuplicateRootRanks() {
+        val seenRanks = mutableSetOf<String>()
+        val rootRows = (_customWikis.value.filter { it.folderId == null }.map { it.id to it.rank } + _customFolders.value.map { it.id to it.rank })
+            .sortedBy { it.second }
+        var repairedAny = false
+        for ((id, rank) in rootRows) {
+            if (seenRanks.add(rank.value)) continue
+            val freshRank = nextCustomRank()
+            val wiki = _customWikis.value.firstOrNull { it.id == id }
+            if (wiki != null) {
+                val updated = wiki.copy(rank = freshRank)
+                _customWikis.update { list -> list.map { if (it.id == id) updated else it } }
+                store.upsertWiki(updated)
+            } else {
+                val folder = _customFolders.value.firstOrNull { it.id == id } ?: continue
+                val updated = folder.copy(rank = freshRank)
+                _customFolders.update { list -> list.map { if (it.id == id) updated else it } }
+                store.upsertFolder(updated)
+            }
+            seenRanks.add(freshRank.value)
+            repairedAny = true
+        }
+        if (repairedAny) {
+            AppLog.w(TAG, "Repaired a duplicate rank collision in the wiki picker's root list")
         }
     }
 
@@ -244,11 +275,22 @@ class AppRepository(
         return updated
     }
 
+    /**
+     * The highest rank among every row sharing the wiki picker's
+     * root-level sort order: presets, ungrouped custom wikis, and
+     * custom folders together, since WikiPickerScreen's rootItems
+     * merges the latter two into one combined list a drag can freely
+     * reorder across. [nextCustomRank] and [createFolder] both need
+     * this same combined view, not just the highest within their own
+     * type, or two rows of different kinds can land on the exact same
+     * rank, see repairDuplicateRootRanks for what that actually breaks.
+     */
+    private fun highestRootRank(): String =
+        (_presetWikis.value.map { it.rank } + _customWikis.value.map { it.rank } + _customFolders.value.map { it.rank })
+            .maxOrNull()?.value ?: ""
+
     /** The next free rank for a custom wiki, placed after everything already in the picker. */
-    private fun nextCustomRank(): Rank {
-        val highest = (_presetWikis.value + _customWikis.value).maxByOrNull { it.rank }?.rank?.value ?: ""
-        return Rank(RankUtil.between(highest, null))
-    }
+    private fun nextCustomRank(): Rank = Rank(RankUtil.between(highestRootRank(), null))
 
     fun setActiveWiki(site: WikiSite) {
         _activeWiki.value = site
@@ -410,7 +452,7 @@ class AppRepository(
      */
     fun createFolder(name: String): WikiFolder {
         val slug = name.lowercase().map { if (it.isLetterOrDigit()) it else '-' }.joinToString("")
-        val rank = Rank(RankUtil.between(_customFolders.value.lastOrNull()?.rank?.value ?: "", null))
+        val rank = Rank(RankUtil.between(highestRootRank(), null))
         val folder = WikiFolder(id = "folder-custom-$slug-${Random.nextInt(100000, 999999)}", name = name, isCustom = true, rank = rank)
         _customFolders.update { it + folder }
         appScope.launch { store.upsertFolder(folder) }
