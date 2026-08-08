@@ -50,6 +50,24 @@
 <body>
     <div id="ComposeTarget"></div>
     <script>
+        // Lets AppLocale.web.kt override which language compose-resources
+        // sees, since Navigator.languages itself is otherwise read-only.
+        // window.__customLocale is set from Kotlin when the person picks
+        // an app language in Settings; until then this falls through to
+        // the browser's own languages exactly as before.
+        var currentLanguagesImplementation = Object.getOwnPropertyDescriptor(Navigator.prototype, "languages");
+        var newLanguagesImplementation = Object.assign({}, currentLanguagesImplementation, {
+            get: function () {
+                if (window.__customLocale) {
+                    return [window.__customLocale];
+                } else {
+                    return currentLanguagesImplementation.get.apply(this);
+                }
+            }
+        });
+        Object.defineProperty(Navigator.prototype, "languages", newLanguagesImplementation);
+    </script>
+    <script>
         // Polyfill to trick Skiko on certain browsers
         const originalGetContext = HTMLCanvasElement.prototype.getContext;
         HTMLCanvasElement.prototype.getContext = function(type, attributes) {
