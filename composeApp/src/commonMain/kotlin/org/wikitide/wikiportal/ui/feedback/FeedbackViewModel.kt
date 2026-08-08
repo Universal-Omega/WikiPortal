@@ -10,7 +10,7 @@ import org.wikitide.wikiportal.network.FeedbackApi
 import org.wikitide.wikiportal.util.AppLog
 import org.wikitide.wikiportal.util.AppVersionProvider
 
-private const val TAG = "Feedback"
+private const val TAG = "FeedbackViewModel"
 
 enum class FeedbackCategory(val label: String) {
     BUG("Something's broken"),
