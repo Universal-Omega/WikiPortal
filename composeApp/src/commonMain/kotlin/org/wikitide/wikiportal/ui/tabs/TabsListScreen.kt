@@ -45,6 +45,20 @@ import org.wikitide.wikiportal.ui.components.ArticleCard
 import org.wikitide.wikiportal.ui.components.DestructiveConfirmDialog
 import org.jetbrains.compose.resources.stringResource
 import org.wikitide.wikiportal.resources.Res
+import org.wikitide.wikiportal.resources.common_cannot_be_undone
+import org.wikitide.wikiportal.resources.saved_cancel_selection
+import org.wikitide.wikiportal.resources.saved_n_selected
+import org.wikitide.wikiportal.resources.tabs_close
+import org.wikitide.wikiportal.resources.tabs_close_all
+import org.wikitide.wikiportal.resources.tabs_close_all_body
+import org.wikitide.wikiportal.resources.tabs_close_all_confirm
+import org.wikitide.wikiportal.resources.tabs_close_all_title
+import org.wikitide.wikiportal.resources.tabs_close_n
+import org.wikitide.wikiportal.resources.tabs_close_one
+import org.wikitide.wikiportal.resources.tabs_close_selected
+import org.wikitide.wikiportal.resources.tabs_last_viewed
+import org.wikitide.wikiportal.resources.tabs_no_open_tabs
+import org.wikitide.wikiportal.resources.tabs_title
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
