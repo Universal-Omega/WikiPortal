@@ -73,6 +73,30 @@ import org.wikitide.wikiportal.util.nowEpochMillis
 import org.wikitide.wikiportal.util.readDeviceLogs
 import org.jetbrains.compose.resources.stringResource
 import org.wikitide.wikiportal.resources.Res
+import org.wikitide.wikiportal.resources.browse_wikis_clear_search
+import org.wikitide.wikiportal.resources.common_back
+import org.wikitide.wikiportal.resources.common_clear_action
+import org.wikitide.wikiportal.resources.common_more_options
+import org.wikitide.wikiportal.resources.common_refresh
+import org.wikitide.wikiportal.resources.logs_all
+import org.wikitide.wikiportal.resources.logs_app_only
+import org.wikitide.wikiportal.resources.logs_clear
+import org.wikitide.wikiportal.resources.logs_clear_body
+import org.wikitide.wikiportal.resources.logs_clear_title
+import org.wikitide.wikiportal.resources.logs_copied
+import org.wikitide.wikiportal.resources.logs_copy_all
+import org.wikitide.wikiportal.resources.logs_copy_failed
+import org.wikitide.wikiportal.resources.logs_copy_selected
+import org.wikitide.wikiportal.resources.logs_empty_session
+import org.wikitide.wikiportal.resources.logs_export
+import org.wikitide.wikiportal.resources.logs_export_failed
+import org.wikitide.wikiportal.resources.logs_no_filter_match
+import org.wikitide.wikiportal.resources.logs_no_match
+import org.wikitide.wikiportal.resources.logs_search_placeholder
+import org.wikitide.wikiportal.resources.logs_select
+import org.wikitide.wikiportal.resources.logs_title
+import org.wikitide.wikiportal.resources.saved_cancel_selection
+import org.wikitide.wikiportal.resources.saved_n_selected
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
