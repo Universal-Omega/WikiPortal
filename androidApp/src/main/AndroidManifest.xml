@@ -13,6 +13,24 @@
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
 
+        <!--
+             Lets AppCompatDelegate.setApplicationLocales, called from
+             ui/theme/AppLocale.android.kt, persist and restore the
+             chosen per-app language on its own, on API levels below 33
+             where there is no platform LocaleManager, even though
+             MainActivity is a plain ComponentActivity rather than an
+             AppCompatActivity. See
+             https://developer.android.com/guide/topics/resources/app-languages#androidx-impl
+        -->
+        <service
+            android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
+            android:enabled="false"
+            android:exported="false">
+            <meta-data
+                android:name="autoStoreLocales"
+                android:value="true" />
+        </service>
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
