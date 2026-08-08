@@ -1,62 +1,36 @@
 package org.wikitide.wikiportal.ui.settings
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.DriveFileMove
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CreateNewFolder
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DragHandle
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.Public
-import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.TravelExplore
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -65,28 +39,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInParent
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
-import kotlin.math.roundToInt
-import coil3.compose.AsyncImage
 import org.koin.compose.koinInject
 import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.model.PresetFolders
 import org.wikitide.wikiportal.data.model.Rank
 import org.wikitide.wikiportal.data.model.WikiFolder
 import org.wikitide.wikiportal.data.model.WikiSite
-import org.wikitide.wikiportal.ui.components.DragReorderState
 import org.wikitide.wikiportal.ui.components.rememberDragReorderState
-import org.wikitide.wikiportal.ui.components.trackDragPosition
 import org.wikitide.wikiportal.util.RankUtil
 
 /**
@@ -96,6 +56,7 @@ import org.wikitide.wikiportal.util.RankUtil
  * WikiPickerScreen's rootItems and rootDragState, so a drag can freely
  * move a folder past a wiki or the other way around.
  */
+@Immutable
 private sealed interface RootItem {
     val id: String
     val rank: Rank
@@ -410,540 +371,4 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
             dismissButton = { TextButton(onClick = { deletingFolder = null }) { Text("Cancel") } },
         )
     }
-}
-
-/**
- * Renders one folder as a collapsible header followed, when expanded,
- * by its wikis. Shared between preset folders, see [PresetFolders], and
- * the person's own custom folders, with rename, delete, and drag
- * reorder only wired up for the latter, through [onRenameFolder],
- * [onDeleteFolder], and [dragState], since a preset folder is not the
- * person's to reorganize.
- */
-@Composable
-private fun FolderSectionContent(
-    folder: WikiFolder,
-    wikis: List<WikiSite>,
-    expanded: Boolean,
-    activeWikiId: String,
-    repository: AppRepository,
-    onToggle: () -> Unit,
-    onClickWiki: (WikiSite) -> Unit,
-    onEditSkin: (WikiSite) -> Unit,
-    onRemoveWiki: ((WikiSite) -> Unit)? = null,
-    onMoveWikiToFolder: ((WikiSite) -> Unit)? = null,
-    onRenameFolder: (() -> Unit)? = null,
-    onDeleteFolder: (() -> Unit)? = null,
-    dragState: DragReorderState<*>? = null,
-    reorderMode: Boolean = false,
-    onEnterReorderMode: (() -> Unit)? = null,
-    wikisReorderable: Boolean = false,
-    onExitFolder: ((wikiId: String, direction: Int) -> Unit)? = null,
-) {
-    Column {
-        FolderHeaderRow(
-            folder = folder,
-            count = wikis.size,
-            expanded = expanded,
-            onToggle = onToggle,
-            onRename = onRenameFolder,
-            onDelete = onDeleteFolder,
-            dragState = dragState,
-            reorderMode = reorderMode,
-            onEnterReorderMode = onEnterReorderMode,
-        )
-        if (expanded) {
-            if (wikisReorderable) {
-                val wikiDragState = rememberDragReorderState(
-                    items = wikis,
-                    id = { it.id },
-                    rank = { it.rank },
-                    key = folder.id,
-                    onMove = { wikiId, newRank -> repository.setCustomWikiRank(wikiId, newRank) },
-                    onExitBounds = onExitFolder,
-                )
-                wikiDragState.items.forEach { wiki ->
-                    WikiRow(
-                        wiki, wiki.id == activeWikiId,
-                        onClick = { onClickWiki(wiki) },
-                        onRemove = onRemoveWiki?.let { { it(wiki) } },
-                        onEditSkin = { onEditSkin(wiki) },
-                        onMoveToFolder = onMoveWikiToFolder?.let { { it(wiki) } },
-                        repository = repository,
-                        indented = true,
-                        dragState = wikiDragState,
-                        reorderMode = reorderMode,
-                        onEnterReorderMode = onEnterReorderMode,
-                    )
-                }
-            } else {
-                wikis.forEach { wiki ->
-                    WikiRow(
-                        wiki, wiki.id == activeWikiId,
-                        onClick = { onClickWiki(wiki) },
-                        onRemove = onRemoveWiki?.let { { it(wiki) } },
-                        onEditSkin = { onEditSkin(wiki) },
-                        onMoveToFolder = onMoveWikiToFolder?.let { { it(wiki) } },
-                        repository = repository,
-                        indented = true,
-                    )
-                }
-            }
-        }
-    }
-}
-
-private fun LazyListScope.folderSection(
-    folder: WikiFolder,
-    wikis: List<WikiSite>,
-    expanded: Boolean,
-    activeWikiId: String,
-    repository: AppRepository,
-    onToggle: () -> Unit,
-    onClickWiki: (WikiSite) -> Unit,
-    onEditSkin: (WikiSite) -> Unit,
-) {
-    item(key = "folder-${folder.id}") {
-        FolderSectionContent(
-            folder = folder,
-            wikis = wikis,
-            expanded = expanded,
-            activeWikiId = activeWikiId,
-            repository = repository,
-            onToggle = onToggle,
-            onClickWiki = onClickWiki,
-            onEditSkin = onEditSkin,
-        )
-    }
-}
-
-@Composable
-private fun FolderHeaderRow(
-    folder: WikiFolder,
-    count: Int,
-    expanded: Boolean,
-    onToggle: () -> Unit,
-    onRename: (() -> Unit)?,
-    onDelete: (() -> Unit)?,
-    dragState: DragReorderState<*>? = null,
-    reorderMode: Boolean = false,
-    onEnterReorderMode: (() -> Unit)? = null,
-) {
-    var showMenu by remember { mutableStateOf(false) }
-    val isDragging = dragState?.draggingId == folder.id
-    val dragOffsetY = if (isDragging) dragState.dragOffsetY else 0f
-    val isDropTarget = dragState?.hoverContainerId == folder.id
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .let { if (dragState != null) it.trackDragPosition(dragState, folder.id) else it }
-            .graphicsLayer { translationY = dragOffsetY }
-            .zIndex(if (isDragging) 1f else 0f)
-            // A wiki hovering here to be dropped in gets a visible
-            // highlight across the whole row, not just the icon, so
-            // it's obvious which folder is about to receive it.
-            .background(if (isDropTarget) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
-            .clickable(onClick = onToggle)
-            .let {
-                if (dragState == null) {
-                    it
-                } else {
-                    it.pointerInput(folder.id) {
-                        detectDragGesturesAfterLongPress(
-                            onDragStart = { onEnterReorderMode?.invoke(); dragState.onDragStart(folder.id) },
-                            onDrag = { change, delta -> change.consume(); dragState.onDrag(folder.id, delta.y) },
-                            onDragEnd = { dragState.onDragEnd() },
-                            onDragCancel = { dragState.onDragEnd() },
-                        )
-                    }
-                }
-            }
-            .padding(horizontal = 20.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        if (dragState != null && reorderMode) {
-            Icon(
-                Icons.Filled.DragHandle,
-                contentDescription = "Drag to reorder ${folder.name}",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        // Same 40dp circular badge treatment as WikiRow's favicon, so a
-        // folder row carries the same visual weight as a wiki row
-        // instead of reading as two small bare icons crowded together.
-        Box(
-            modifier = Modifier.size(40.dp).clip(CircleShape)
-                .background(if (isDropTarget) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondaryContainer),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                Icons.Filled.Folder,
-                contentDescription = null,
-                tint = if (isDropTarget) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSecondaryContainer,
-            )
-        }
-        Column(Modifier.weight(1f)) {
-            Text(folder.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(
-                if (count == 1) "1 wiki" else "$count wikis",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Icon(
-            if (expanded) Icons.Filled.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = if (expanded) "Collapse" else "Expand",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        if (onRename != null || onDelete != null) {
-            Box {
-                IconButton(onClick = { showMenu = true }) {
-                    Icon(Icons.Filled.MoreVert, contentDescription = "Folder options for ${folder.name}")
-                }
-                DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                    if (onRename != null) {
-                        DropdownMenuItem(text = { Text("Rename") }, onClick = { showMenu = false; onRename() })
-                    }
-                    if (onDelete != null) {
-                        DropdownMenuItem(text = { Text("Delete") }, onClick = { showMenu = false; onDelete() })
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun GroupLabel(text: String, modifier: Modifier = Modifier) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier.padding(horizontal = 20.dp, vertical = 12.dp),
-    )
-}
-
-/**
- * Each row triggers its own favicon refresh rather than the screen
- * doing it for the whole list up front. LazyColumn only composes rows
- * actually on screen, plus a small overscan buffer, so tying this to
- * WikiRow's own composition lifecycle naturally limits concurrent
- * requests to roughly what is visible right now, regardless of whether
- * the full preset and custom list has five entries or five hundred, and
- * more get triggered lazily, a few at a time, as the person scrolls.
- *
- * This uses [AppRepository.refreshFaviconOnly], not the full
- * [AppRepository.refreshWikiMetadata], since a row only shows the
- * favicon, so there is no reason to also pay for script path
- * re-probing or article path, skin, and main page title resolution
- * here. That full refresh still happens exactly when it is actually
- * needed, when activating a wiki or opening its skin dialog below, and
- * is skipped by refreshFaviconOnly automatically once it has, since the
- * full refresh already covers favicon as a side effect.
- *
- * A wiki's extra actions, changing its skin, toggling safe mode,
- * moving it to a folder, removing it, sit behind one overflow menu
- * rather than as separate icons in a row, since that many icon buttons
- * next to a favicon and two lines of text would be cramped enough to be
- * hard to tap accurately. Every wiki, preset or custom, has at least a
- * skin and a safe mode toggle to offer, so this menu is never down to
- * a single item.
- */
-@Composable
-private fun WikiRow(
-    wiki: WikiSite,
-    selected: Boolean,
-    onClick: () -> Unit,
-    onEditSkin: () -> Unit,
-    repository: AppRepository,
-    onRemove: (() -> Unit)? = null,
-    onMoveToFolder: (() -> Unit)? = null,
-    indented: Boolean = false,
-    dragState: DragReorderState<*>? = null,
-    reorderMode: Boolean = false,
-    onEnterReorderMode: (() -> Unit)? = null,
-) {
-    LaunchedEffect(wiki.id) { repository.refreshFaviconOnly(wiki) }
-    var showMenu by remember { mutableStateOf(false) }
-    val isDragging = dragState?.draggingId == wiki.id
-    val dragOffsetY = if (isDragging) dragState.dragOffsetY else 0f
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .let { if (dragState != null) it.trackDragPosition(dragState, wiki.id) else it }
-            .graphicsLayer { translationY = dragOffsetY }
-            .zIndex(if (isDragging) 1f else 0f)
-            .clickable(onClick = onClick)
-            .let {
-                if (dragState == null) {
-                    it
-                } else {
-                    it.pointerInput(wiki.id) {
-                        detectDragGesturesAfterLongPress(
-                            onDragStart = { onEnterReorderMode?.invoke(); dragState.onDragStart(wiki.id) },
-                            onDrag = { change, delta -> change.consume(); dragState.onDrag(wiki.id, delta.y) },
-                            onDragEnd = { dragState.onDragEnd() },
-                            onDragCancel = { dragState.onDragEnd() },
-                        )
-                    }
-                }
-            }
-            .padding(horizontal = if (indented) 32.dp else 20.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        if (dragState != null && reorderMode) {
-            Icon(
-                Icons.Filled.DragHandle,
-                contentDescription = "Drag to reorder ${wiki.name}",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Box(
-            modifier = Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.secondaryContainer),
-            contentAlignment = Alignment.Center,
-        ) {
-            AsyncImage(
-                model = wiki.faviconUrl,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp).clip(CircleShape),
-                contentScale = ContentScale.Fit,
-                error = rememberVectorPainter(Icons.Filled.Public),
-                placeholder = rememberVectorPainter(Icons.Filled.Public),
-            )
-        }
-        Column(Modifier.weight(1f)) {
-            Text(wiki.name, style = MaterialTheme.typography.titleMedium)
-            Text(
-                wiki.description.ifBlank { wiki.baseUrl },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        if (selected) Icon(Icons.Filled.Check, contentDescription = "Selected", tint = MaterialTheme.colorScheme.primary)
-        // Every wiki has at least "Change skin" and "Disable safe mode"
-        // to offer here, custom or preset, so this always goes behind
-        // one overflow menu rather than ever falling back to a single
-        // bare icon.
-        Box {
-            IconButton(onClick = { showMenu = true }) {
-                Icon(Icons.Filled.MoreVert, contentDescription = "Options for ${wiki.name}")
-            }
-            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                DropdownMenuItem(
-                    text = { Text("Change skin") },
-                    leadingIcon = { Icon(Icons.Filled.Palette, contentDescription = null) },
-                    onClick = { showMenu = false; onEditSkin() },
-                )
-                DropdownMenuItem(
-                    text = { Text(if (wiki.disableSafeMode) "Enable safe mode" else "Disable safe mode") },
-                    leadingIcon = { Icon(Icons.Filled.Shield, contentDescription = null) },
-                    onClick = {
-                        showMenu = false
-                        repository.setWikiDisableSafeMode(wiki.id, !wiki.disableSafeMode)
-                    },
-                )
-                if (onMoveToFolder != null) {
-                    DropdownMenuItem(
-                        text = { Text("Move to folder") },
-                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.DriveFileMove, contentDescription = null) },
-                        onClick = { showMenu = false; onMoveToFolder() },
-                    )
-                }
-                if (onRemove != null) {
-                    DropdownMenuItem(
-                        text = { Text("Remove") },
-                        leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null) },
-                        onClick = { showMenu = false; onRemove() },
-                    )
-                }
-            }
-        }
-    }
-}
-
-/**
- * Lets the person file a custom wiki into one of their own folders,
- * pull it back out to ungrouped, or spin up a brand new folder on the
- * spot rather than having to back out to the "New folder" action first.
- * Only offered for custom wikis. Presets stay in whichever
- * [PresetFolders] entry [org.wikitide.wikiportal.data.model.PresetWikis]
- * already assigned them.
- */
-@Composable
-private fun MoveToFolderDialog(
-    wiki: WikiSite,
-    folders: List<WikiFolder>,
-    onDismiss: () -> Unit,
-    onSelectFolder: (String?) -> Unit,
-    onCreateFolder: (String) -> Unit,
-) {
-    var creatingNew by remember { mutableStateOf(false) }
-    var newFolderName by remember { mutableStateOf("") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Move \"${wiki.name}\"") },
-        text = {
-            if (creatingNew) {
-                OutlinedTextField(
-                    value = newFolderName,
-                    onValueChange = { newFolderName = it.replace("\n", "") },
-                    label = { Text("Folder name") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            } else {
-                val scrollState = rememberScrollState()
-                Column(modifier = Modifier.verticalScroll(scrollState)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().clickable { onSelectFolder(null) }.padding(vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(selected = wiki.folderId == null, onClick = { onSelectFolder(null) })
-                        Text("No folder", modifier = Modifier.padding(start = 4.dp))
-                    }
-                    folders.forEach { folder ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth().clickable { onSelectFolder(folder.id) }.padding(vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            RadioButton(selected = wiki.folderId == folder.id, onClick = { onSelectFolder(folder.id) })
-                            Text(folder.name, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 4.dp))
-                        }
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth().clickable { creatingNew = true }.padding(vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(Icons.Filled.CreateNewFolder, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Text("New folder", color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 12.dp))
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            if (creatingNew) {
-                TextButton(onClick = { if (newFolderName.isNotBlank()) onCreateFolder(newFolderName.trim()) }) { Text("Create") }
-            } else {
-                TextButton(onClick = onDismiss) { Text("Close") }
-            }
-        },
-        dismissButton = {
-            if (creatingNew) TextButton(onClick = { creatingNew = false }) { Text("Back") }
-        },
-    )
-}
-
-/** A plain name-entry dialog, shared by folder creation and renaming. */
-@Composable
-private fun FolderNameDialog(
-    title: String,
-    initialName: String,
-    confirmLabel: String,
-    onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit,
-) {
-    var name by remember { mutableStateOf(initialName) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = {
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it.replace("\n", "") },
-                label = { Text("Folder name") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        },
-        confirmButton = {
-            TextButton(onClick = { if (name.isNotBlank()) onConfirm(name.trim()) }) { Text(confirmLabel) }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-    )
-}
-
-/**
- * Lets the person override which MediaWiki skin a wiki renders with,
- * see WikiSite.skin. This offers wiki.skinChoices, not the full curated
- * list in WikiSkins. That full list is everything this app has been
- * tested against in principle, but a given wiki may not have every one
- * of those skins actually installed, see WikiSite.availableSkins, so
- * the choices shown here are always a subset, narrowed by that wiki's
- * own siteinfo, except the current skin itself, which is always
- * included even if it fell out of that list, so skinChoices is never
- * actually empty when there's any skin data at all. See its comment.
- *
- * When siprop=skins has genuinely never resolved for this wiki at all,
- * see WikiSite.hasNoSkinData, this shows a dedicated failure message
- * instead of any list. Falling back to this app's full curated list in
- * that case would offer skins that were never actually confirmed to
- * exist on this specific wiki.
- *
- * A wiki's availableSkins is only filled in once it has actually been
- * revalidated, see AppRepository.refreshWikiMetadata.
- */
-@Composable
-private fun SkinPickerDialog(
-    wiki: WikiSite,
-    repository: AppRepository,
-    onDismiss: () -> Unit,
-    onSkinSelected: (String) -> Unit,
-) {
-    var isRefreshing by remember(wiki.id) { mutableStateOf(true) }
-    LaunchedEffect(wiki.id) {
-        repository.refreshWikiMetadata(wiki)
-        isRefreshing = false
-    }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Skin for ${wiki.name}") },
-        text = {
-            if (isRefreshing && wiki.availableSkins == null) {
-                Box(modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            } else if (wiki.hasNoSkinData) {
-                Text(
-                    "Couldn't find any skins for ${wiki.name}.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else {
-                val scrollState = rememberScrollState()
-                // Where the selected row sits within the scrollable
-                // Column, in pixels, captured as it's laid out. Null
-                // until the selected row has actually been measured
-                // once.
-                var selectedOffset by remember(wiki.id) { mutableStateOf<Int?>(null) }
-                Column(modifier = Modifier.verticalScroll(scrollState)) {
-                    wiki.skinChoices.forEach { choice ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onSkinSelected(choice.code) }
-                                .padding(vertical = 4.dp)
-                                .onGloballyPositioned { coordinates ->
-                                    if (choice.code == wiki.skin) {
-                                        selectedOffset = coordinates.positionInParent().y.roundToInt()
-                                    }
-                                },
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            RadioButton(selected = choice.code == wiki.skin, onClick = { onSkinSelected(choice.code) })
-                            Text(choice.name, modifier = Modifier.padding(start = 4.dp))
-                        }
-                    }
-                }
-
-                LaunchedEffect(selectedOffset) {
-                    selectedOffset?.let { offset -> scrollState.animateScrollTo(offset) }
-                }
-            }
-        },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
-    )
 }

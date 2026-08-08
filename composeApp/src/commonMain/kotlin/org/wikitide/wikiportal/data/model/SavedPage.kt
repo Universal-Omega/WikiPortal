@@ -1,7 +1,9 @@
 package org.wikitide.wikiportal.data.model
 
+import androidx.compose.runtime.Immutable
 import kotlinx.serialization.Serializable
 
+@Immutable
 @Serializable
 data class SavedPage(
     val wikiId: String,

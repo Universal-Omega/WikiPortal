@@ -3,6 +3,8 @@ package org.wikitide.wikiportal.util
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+private const val TAG = "DeviceLogReader"
+
 /**
  * threadtime lines look like:
  * 07-27 21:49:12.345  1234  1234 E WikiPortal    : [Ktor] some message
@@ -97,7 +99,7 @@ actual suspend fun readDeviceLogs(maxLines: Int): List<LogEntry> = withContext(D
         // normal way, or denies exec() outright, falls back to
         // whatever this session's own AppLog buffer already has,
         // rather than showing nothing at all.
-        AppLog.e("DeviceLogReader", "logcat -d failed, falling back to the in-app log", e)
+        AppLog.e(TAG, "logcat -d failed, falling back to the in-app log", e)
         AppLog.entries.value.takeLast(maxLines)
     }
 }
@@ -107,7 +109,7 @@ actual suspend fun clearDeviceLogs() {
         try {
             Runtime.getRuntime().exec(arrayOf("logcat", "-c")).waitFor()
         } catch (e: Exception) {
-            AppLog.e("DeviceLogReader", "logcat -c failed", e)
+            AppLog.e(TAG, "logcat -c failed", e)
         }
     }
     AppLog.clear()

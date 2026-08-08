@@ -1,5 +1,6 @@
 package org.wikitide.wikiportal.data
 
+import androidx.compose.runtime.Stable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,6 +26,7 @@ import kotlin.random.Random
  * recompose right away when something changes, and it saves writes in the
  * background.
  */
+@Stable
 class AppRepository(
     private val store: WikiPortalStore,
     private val appScope: CoroutineScope,

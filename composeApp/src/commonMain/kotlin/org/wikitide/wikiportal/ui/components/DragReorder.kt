@@ -2,6 +2,7 @@ package org.wikitide.wikiportal.ui.components
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -21,6 +22,7 @@ private data class RowBounds(val top: Float, val height: Float) {
     operator fun contains(y: Float): Boolean = y in top..(top + height)
 }
 
+@Stable
 class DragReorderState<T> internal constructor(
     initialItems: List<T>,
     private val id: (T) -> String,

@@ -1,5 +1,6 @@
 package org.wikitide.wikiportal.ui.dashboard
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,6 +20,9 @@ import org.wikitide.wikiportal.network.TrendingArticle
 import org.wikitide.wikiportal.network.deriveMainPageTitle
 import org.wikitide.wikiportal.network.friendlyNetworkErrorMessage
 import org.wikitide.wikiportal.util.AppLog
+import org.wikitide.wikiportal.util.refreshOnWikiChange
+
+private const val TAG = "FeedViewModel"
 
 /** How many recently visited or saved pages to surface on the Dashboard. */
 private const val ROW_LIMIT = 12
@@ -26,6 +30,7 @@ private const val ROW_LIMIT = 12
 /** How many trending articles the Dashboard card itself shows, before "More trending". */
 private const val TRENDING_CARD_LIMIT = 5
 
+@Immutable
 data class FeedUiState(
     val wiki: WikiSite? = null,
     val recentChanges: List<RecentChangeEntry> = emptyList(),
@@ -100,11 +105,7 @@ class FeedViewModel(
     private var loadedForWikiId: String? = null
 
     init {
-        viewModelScope.launch {
-            repository.activeWiki.collect { wiki ->
-                if (wiki.id != loadedForWikiId) refresh()
-            }
-        }
+        viewModelScope.refreshOnWikiChange(repository.activeWiki, { loadedForWikiId }, ::refresh)
     }
 
     fun refresh() {
@@ -125,7 +126,7 @@ class FeedViewModel(
                     _recentChanges.value = changes
                 }.onFailure { e ->
                     _recentChanges.value = emptyList()
-                    AppLog.e("FeedViewModel", "getRecentChanges failed for ${wiki.id}", e)
+                    AppLog.e(TAG, "getRecentChanges failed for ${wiki.id}", e)
                     _errorMessage.value = friendlyNetworkErrorMessage(e)
                 }
                 _isLoading.value = false
@@ -180,7 +181,7 @@ class FeedViewModel(
 
     private suspend fun fetchRandomBatch(wiki: WikiSite) {
         val articles = api.getRandomArticles(wiki, count = 10).getOrElse { e ->
-            AppLog.e("FeedViewModel", "getRandomArticles failed for ${wiki.id}", e)
+            AppLog.e(TAG, "getRandomArticles failed for ${wiki.id}", e)
             emptyList()
         }
         if (repository.activeWiki.value.id != wiki.id) return

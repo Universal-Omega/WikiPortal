@@ -1,5 +1,6 @@
 package org.wikitide.wikiportal.data
 
+import androidx.compose.runtime.Stable
 import androidx.compose.ui.graphics.ImageBitmap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,6 +29,7 @@ import kotlin.random.Random
  * Every open tab's WebView stays mounted at the same time inside
  * ArticleHostScreen. See that file's comment for why.
  */
+@Stable
 class TabsRepository(
     private val store: WikiPortalStore,
     private val appScope: CoroutineScope,

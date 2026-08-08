@@ -26,6 +26,11 @@ class RestApiClient(
     @PublishedApi internal val httpClient: HttpClient,
 ) {
 
+    companion object {
+        @PublishedApi
+        internal const val TAG = "RestApiClient"
+    }
+
     /**
      * Unlike the Action API, a REST call's success or failure is a
      * normal HTTP status code, not a JSON-embedded error key, so that
@@ -49,6 +54,6 @@ class RestApiClient(
         }
         httpResponse.body<T>()
     }.onFailure {
-        AppLog.e("RestApiClient", "get($url, $params) failed", it)
+        AppLog.e(TAG, "get($url, $params) failed", it)
     }
 }

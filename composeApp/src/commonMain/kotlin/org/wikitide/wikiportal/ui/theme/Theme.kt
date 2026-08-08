@@ -6,6 +6,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import org.wikitide.wikiportal.data.model.ThemeMode
@@ -35,6 +36,7 @@ private val DarkColors = darkColorScheme(
 expect fun dynamicColorSchemeAvailable(): Boolean
 
 @Composable
+@ReadOnlyComposable
 expect fun platformDynamicColorScheme(useDark: Boolean): ColorScheme?
 
 /**

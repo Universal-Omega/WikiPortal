@@ -16,6 +16,8 @@ import org.wikitide.wikiportal.network.IndieWikiBuddyApi
 import org.wikitide.wikiportal.util.AppLog
 import org.wikitide.wikiportal.util.nowEpochMillis
 
+private const val TAG = "IndieWikiDirectory"
+
 /** Refetched at most this often. Indie Wiki Buddy's own data doesn't change fast enough to justify anything shorter. */
 private const val CACHE_MAX_AGE_MILLIS = 24L * 60 * 60 * 1000
 
@@ -81,7 +83,7 @@ class IndieWikiDirectory(
                 store.setSetting(SettingKeys.INDIE_WIKI_CACHE, json.encodeToString(fetched))
                 store.setSetting(SettingKeys.INDIE_WIKI_CACHE_UPDATED_AT, nowEpochMillis().toString())
             } else if (_sites.value.isEmpty()) {
-                AppLog.w("IndieWikiDirectory", "Refresh returned nothing and there's no cache to fall back on")
+                AppLog.w(TAG, "Refresh returned nothing and there's no cache to fall back on")
             }
         } finally {
             _isRefreshing.value = false

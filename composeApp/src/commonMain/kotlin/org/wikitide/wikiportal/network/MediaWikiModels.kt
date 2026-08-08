@@ -1,5 +1,6 @@
 package org.wikitide.wikiportal.network
 
+import androidx.compose.runtime.Immutable
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -82,6 +83,7 @@ data class RandomPagesQuery(
     val pages: List<PageSummaryDto>? = null,
 )
 
+@Immutable
 @Serializable
 data class PageSummaryDto(
     val pageid: Int = 0,
@@ -90,6 +92,7 @@ data class PageSummaryDto(
     val thumbnail: ThumbnailDto? = null,
 )
 
+@Immutable
 @Serializable
 data class ThumbnailDto(
     val source: String,
