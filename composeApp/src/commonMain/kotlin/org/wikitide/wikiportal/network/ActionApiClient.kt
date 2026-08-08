@@ -20,6 +20,11 @@ class ActionApiClient(
     @PublishedApi internal val httpClient: HttpClient,
 ) {
 
+    companion object {
+        @PublishedApi
+        internal const val TAG = "ActionApiClient"
+    }
+
     /**
      * [params] is the call-specific part: action, list, prop, meta,
      * whatever else that particular call needs. format=json and
@@ -52,7 +57,7 @@ class ActionApiClient(
         }
         response
     }.onFailure {
-        AppLog.e("ActionApiClient", "get($url, $params) failed", it)
+        AppLog.e(TAG, "get($url, $params) failed", it)
     }
 }
 
