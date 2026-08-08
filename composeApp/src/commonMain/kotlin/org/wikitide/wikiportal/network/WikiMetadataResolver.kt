@@ -14,8 +14,8 @@ import org.wikitide.wikiportal.data.model.skinIsUnset
  *  - "/w" is the short URL pattern used by WMF wikis, Miraheze, and others
  *  - "" is a root install, with api.php directly in the web root
  *  - "/wiki" serves both articles and the API under /wiki/
- *  - "/mediawiki" is common on shared hosting, where MediaWiki lives in a subdirectory
- * Anything outside these four needs the manual "Script path" override in
+ *  - "/mediawiki" and "/mw" is common on shared hosting, where MediaWiki lives in a subdirectory
+ * Anything outside these five needs the manual "Script path" override in
  * the Add wiki UI. There is no way to guess an arbitrary custom layout.
  */
 val COMMON_SCRIPT_PATHS = listOf("/w", "", "/wiki", "/mediawiki", "/mw")
