@@ -1,27 +1,24 @@
 package org.wikitide.wikiportal.ui.theme
 
-import androidx.appcompat.app.AppCompatDelegate
+import android.app.LocaleManager
+import android.content.res.Configuration
+import android.os.Build
+import android.os.LocaleList
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ProvidedValue
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.core.os.LocaleListCompat
 import java.util.Locale
 
 /**
- * Updates the Configuration compose-resources actually reads strings
- * from, so switching language here takes effect immediately, no
- * restart needed, and also calls through to AppCompatDelegate's own
- * per-app language support, so Android's system Settings > Apps >
- * Language screen and other system UI, like share sheets, agree with
- * what this app is showing. See this module's AndroidManifest.xml for
- * the AppLocalesMetadataHolderService entry that lets
- * AppCompatDelegate persist and restore this on its own, even though
- * MainActivity itself is a plain ComponentActivity rather than an
- * AppCompatActivity. That persistence is what makes the language
- * still correct the next time the app is launched, before
- * AppRepository's own saved setting has finished loading and this
- * actual has had a chance to run again.
+ * Below Android 13 (API 33) there is no framework-level per-app
+ * language to sync with in the first place, since the system's own
+ * per-app language screen is itself a 13-and-up feature, see
+ * https://developer.android.com/guide/topics/resources/app-languages.
+ * Below that, this only updates the Configuration compose-resources
+ * reads strings from, an in-app-only override; that alone is enough
+ * here since this app has no legacy View-based UI reading
+ * context.resources directly, only Compose.
  */
 actual object LocalAppLocale {
     private var systemDefault: Locale? = null
@@ -40,14 +37,20 @@ actual object LocalAppLocale {
             else -> Locale.forLanguageTag(value)
         }
         Locale.setDefault(new)
-        configuration.setLocale(new)
-        val resources = LocalContext.current.resources
-        resources.updateConfiguration(configuration, resources.displayMetrics)
+        val updated = Configuration(configuration).apply { setLocale(new) }
 
-        AppCompatDelegate.setApplicationLocales(
-            if (value == null) LocaleListCompat.getEmptyLocaleList() else LocaleListCompat.forLanguageTags(value),
-        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val localeManager = LocalContext.current.getSystemService(LocaleManager::class.java)
+            val newLocales = if (value == null) LocaleList.getEmptyLocaleList() else LocaleList.forLanguageTags(value)
+            // Guards against re-setting the same value on every
+            // recomposition of this CompositionLocalProvider, since
+            // LocaleManager.applicationLocales normally recreates the
+            // Activity as a side effect of being set.
+            if (localeManager?.applicationLocales != newLocales) {
+                localeManager?.applicationLocales = newLocales
+            }
+        }
 
-        return LocalConfiguration.provides(configuration)
+        return LocalConfiguration.provides(updated)
     }
 }
