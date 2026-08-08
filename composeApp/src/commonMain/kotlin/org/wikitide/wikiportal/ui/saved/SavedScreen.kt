@@ -38,6 +38,30 @@ import org.wikitide.wikiportal.data.model.SavedPage
 import org.wikitide.wikiportal.ui.components.ArticleCard
 import org.wikitide.wikiportal.ui.components.DestructiveConfirmDialog
 import org.wikitide.wikiportal.ui.components.OpenTabIndicator
+import org.jetbrains.compose.resources.stringResource
+import org.wikitide.wikiportal.resources.Res
+import org.wikitide.wikiportal.resources.common_cannot_be_undone
+import org.wikitide.wikiportal.resources.common_clear_action
+import org.wikitide.wikiportal.resources.common_remove
+import org.wikitide.wikiportal.resources.dashboard_saved
+import org.wikitide.wikiportal.resources.saved_cancel_selection
+import org.wikitide.wikiportal.resources.saved_clear_history
+import org.wikitide.wikiportal.resources.saved_clear_history_body
+import org.wikitide.wikiportal.resources.saved_clear_history_title
+import org.wikitide.wikiportal.resources.saved_empty_history
+import org.wikitide.wikiportal.resources.saved_empty_offline
+import org.wikitide.wikiportal.resources.saved_empty_saved
+import org.wikitide.wikiportal.resources.saved_n_selected
+import org.wikitide.wikiportal.resources.saved_remove_n_history
+import org.wikitide.wikiportal.resources.saved_remove_n_offline
+import org.wikitide.wikiportal.resources.saved_remove_n_saved
+import org.wikitide.wikiportal.resources.saved_remove_one_history
+import org.wikitide.wikiportal.resources.saved_remove_one_offline
+import org.wikitide.wikiportal.resources.saved_remove_one_saved
+import org.wikitide.wikiportal.resources.saved_remove_selected
+import org.wikitide.wikiportal.resources.saved_tab_history
+import org.wikitide.wikiportal.resources.saved_tab_offline
+import org.wikitide.wikiportal.resources.saved_tab_saved
 
 /** Index of the "Saved" tab in [SavedScreen]'s [SecondaryTabRow]. */
 private const val TAB_SAVED = 0
@@ -77,25 +101,25 @@ fun SavedScreen(
         TopAppBar(
             title = {
                 Text(
-                    if (selectionActive) "${selectedKeys.size} selected" else "Saved",
+                    if (selectionActive) stringResource(Res.string.saved_n_selected, selectedKeys.size) else stringResource(Res.string.dashboard_saved),
                     style = MaterialTheme.typography.headlineMedium,
                 )
             },
             navigationIcon = {
                 if (selectionActive) {
                     IconButton(onClick = { selectedKeys = emptySet() }) {
-                        Icon(Icons.Filled.Close, contentDescription = "Cancel selection")
+                        Icon(Icons.Filled.Close, contentDescription = stringResource(Res.string.saved_cancel_selection))
                     }
                 }
             },
             actions = {
                 if (selectionActive) {
                     IconButton(onClick = { showDeleteSelectedConfirm = true }) {
-                        Icon(Icons.Filled.Delete, contentDescription = "Remove selected")
+                        Icon(Icons.Filled.Delete, contentDescription = stringResource(Res.string.saved_remove_selected))
                     }
                 } else if (tab == TAB_HISTORY && history.isNotEmpty()) {
                     IconButton(onClick = { showClearHistoryConfirm = true }) {
-                        Icon(Icons.Filled.DeleteSweep, contentDescription = "Clear history")
+                        Icon(Icons.Filled.DeleteSweep, contentDescription = stringResource(Res.string.saved_clear_history))
                     }
                 }
             },
@@ -103,9 +127,9 @@ fun SavedScreen(
             colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
         )
         SecondaryTabRow(selectedTabIndex = tab) {
-            Tab(selected = tab == TAB_SAVED, onClick = { tab = TAB_SAVED }, text = { Text("Saved (${saved.size})") })
-            Tab(selected = tab == TAB_OFFLINE, onClick = { tab = TAB_OFFLINE }, text = { Text("Offline (${offline.size})") })
-            Tab(selected = tab == TAB_HISTORY, onClick = { tab = TAB_HISTORY }, text = { Text("History") })
+            Tab(selected = tab == TAB_SAVED, onClick = { tab = TAB_SAVED }, text = { Text(stringResource(Res.string.saved_tab_saved, saved.size)) })
+            Tab(selected = tab == TAB_OFFLINE, onClick = { tab = TAB_OFFLINE }, text = { Text(stringResource(Res.string.saved_tab_offline, offline.size)) })
+            Tab(selected = tab == TAB_HISTORY, onClick = { tab = TAB_HISTORY }, text = { Text(stringResource(Res.string.saved_tab_history)) })
         }
 
         val list = when (tab) {
@@ -114,9 +138,9 @@ fun SavedScreen(
             else -> history
         }
         val emptyLabel = when (tab) {
-            TAB_SAVED -> "Articles you save will show up here"
-            TAB_OFFLINE -> "Articles you download for offline reading will show up here"
-            else -> "Articles you read will show up here"
+            TAB_SAVED -> stringResource(Res.string.saved_empty_saved)
+            TAB_OFFLINE -> stringResource(Res.string.saved_empty_offline)
+            else -> stringResource(Res.string.saved_empty_history)
         }
 
         if (list.isEmpty()) {
@@ -166,14 +190,14 @@ fun SavedScreen(
     if (showDeleteSelectedConfirm) {
         val count = selectedKeys.size
         val confirmText = when (tab) {
-            TAB_SAVED -> if (count == 1) "Remove 1 saved article?" else "Remove $count saved articles?"
-            TAB_OFFLINE -> if (count == 1) "Remove 1 offline copy?" else "Remove $count offline copies?"
-            else -> if (count == 1) "Remove 1 history item?" else "Remove $count history items?"
+            TAB_SAVED -> if (count == 1) stringResource(Res.string.saved_remove_one_saved) else stringResource(Res.string.saved_remove_n_saved, count)
+            TAB_OFFLINE -> if (count == 1) stringResource(Res.string.saved_remove_one_offline) else stringResource(Res.string.saved_remove_n_offline, count)
+            else -> if (count == 1) stringResource(Res.string.saved_remove_one_history) else stringResource(Res.string.saved_remove_n_history, count)
         }
         DestructiveConfirmDialog(
             title = confirmText,
-            text = "This can't be undone.",
-            confirmLabel = "Remove",
+            text = stringResource(Res.string.common_cannot_be_undone),
+            confirmLabel = stringResource(Res.string.common_remove),
             onConfirm = {
                 val source = when (tab) {
                     TAB_SAVED -> saved
@@ -196,9 +220,9 @@ fun SavedScreen(
 
     if (showClearHistoryConfirm) {
         DestructiveConfirmDialog(
-            title = "Clear history?",
-            text = "This removes every article from your reading history. It can't be undone.",
-            confirmLabel = "Clear",
+            title = stringResource(Res.string.saved_clear_history_title),
+            text = stringResource(Res.string.saved_clear_history_body),
+            confirmLabel = stringResource(Res.string.common_clear_action),
             onConfirm = repository::clearHistory,
             onDismiss = { showClearHistoryConfirm = false },
         )

@@ -81,6 +81,7 @@ interface WikiPortalStore {
 object SettingKeys {
     const val ACTIVE_WIKI_ID = "active_wiki_id"
     const val THEME_MODE = "theme_mode"
+    const val APP_LANGUAGE = "app_language"
     const val DYNAMIC_COLOR = "dynamic_color"
     const val TEXT_SCALE = "text_scale"
     const val SHOW_IMAGES = "show_images"

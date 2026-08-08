@@ -35,6 +35,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.stringResource
+import org.wikitide.wikiportal.resources.Res
+import org.wikitide.wikiportal.resources.article_overflow_find_on_page
+import org.wikitide.wikiportal.resources.article_top_bar_close_search
+import org.wikitide.wikiportal.resources.article_top_bar_next_match
+import org.wikitide.wikiportal.resources.article_top_bar_previous_match
+import org.wikitide.wikiportal.resources.article_top_bar_save_for_later
+import org.wikitide.wikiportal.resources.article_top_bar_tabs
+import org.wikitide.wikiportal.resources.article_top_bar_unsave
+import org.wikitide.wikiportal.resources.common_close
+import org.wikitide.wikiportal.resources.common_more_options
 
 /** The "Find on page" top bar, shown instead of [ArticleTopBar] while a page search is active. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,7 +64,7 @@ fun PageSearchTopBar(
     TopAppBar(
         navigationIcon = {
             IconButton(onClick = onClose) {
-                Icon(Icons.Filled.Close, contentDescription = "Close search")
+                Icon(Icons.Filled.Close, contentDescription = stringResource(Res.string.article_top_bar_close_search))
             }
         },
         title = {
@@ -61,7 +72,7 @@ fun PageSearchTopBar(
                 value = query,
                 onValueChange = onQueryChange,
                 modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
-                placeholder = { Text("Find on page") },
+                placeholder = { Text(stringResource(Res.string.article_overflow_find_on_page)) },
                 singleLine = true,
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
@@ -83,11 +94,11 @@ fun PageSearchTopBar(
             }
 
             IconButton(enabled = matchCount > 0, onClick = onPreviousMatch) {
-                Icon(Icons.Filled.KeyboardArrowUp, contentDescription = "Previous match")
+                Icon(Icons.Filled.KeyboardArrowUp, contentDescription = stringResource(Res.string.article_top_bar_previous_match))
             }
 
             IconButton(enabled = matchCount > 0, onClick = onNextMatch) {
-                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Next match")
+                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = stringResource(Res.string.article_top_bar_next_match))
             }
         },
         windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
@@ -119,7 +130,7 @@ fun ArticleTopBar(
     TopAppBar(
         navigationIcon = {
             IconButton(onClick = onClose) {
-                Icon(Icons.Filled.Close, contentDescription = "Close")
+                Icon(Icons.Filled.Close, contentDescription = stringResource(Res.string.common_close))
             }
         },
         title = {
@@ -134,7 +145,7 @@ fun ArticleTopBar(
             IconButton(onClick = onToggleSaved) {
                 Icon(
                     imageVector = if (isSaved) Icons.Filled.Bookmark else Icons.Filled.BookmarkBorder,
-                    contentDescription = if (isSaved) "Unsave" else "Save for later",
+                    contentDescription = if (isSaved) stringResource(Res.string.article_top_bar_unsave) else stringResource(Res.string.article_top_bar_save_for_later),
                     tint = if (isSaved) MaterialTheme.colorScheme.primary else LocalContentColor.current,
                 )
             }
@@ -143,12 +154,12 @@ fun ArticleTopBar(
                 BadgedBox(
                     badge = { if (openTabCount > 0) Badge { Text("$openTabCount") } },
                 ) {
-                    Icon(Icons.Filled.Tab, contentDescription = "Tabs")
+                    Icon(Icons.Filled.Tab, contentDescription = stringResource(Res.string.article_top_bar_tabs))
                 }
             }
 
             IconButton(onClick = onOpenOverflowMenu) {
-                Icon(Icons.Filled.MoreVert, contentDescription = "More options")
+                Icon(Icons.Filled.MoreVert, contentDescription = stringResource(Res.string.common_more_options))
             }
 
             overflowMenu()

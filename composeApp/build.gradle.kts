@@ -22,6 +22,10 @@ kotlin {
         compileSdk = libs.versions.compileSdk.get().toInt()
         minSdk = libs.versions.minSdk.get().toInt()
 
+        androidResources {
+            enable = true
+        }
+
         compilerOptions {
             jvmTarget.set(javaTarget)
         }
@@ -32,6 +36,10 @@ kotlin {
     }
 
     jvm("desktop")
+
+    compilerOptions {
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
 
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
@@ -177,6 +185,12 @@ sqldelight {
             verifyMigrations.set(true)
         }
     }
+}
+
+compose.resources {
+    publicResClass = false
+    packageOfResClass = "org.wikitide.wikiportal.resources"
+    generateResClass = auto
 }
 
 compose.desktop {

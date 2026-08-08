@@ -46,6 +46,22 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import org.wikitide.wikiportal.util.copyPlainText
+import org.jetbrains.compose.resources.stringResource
+import org.wikitide.wikiportal.resources.Res
+import org.wikitide.wikiportal.resources.common_back
+import org.wikitide.wikiportal.resources.common_done
+import org.wikitide.wikiportal.resources.feedback_about_label
+import org.wikitide.wikiportal.resources.feedback_contact_label
+import org.wikitide.wikiportal.resources.feedback_copied_message
+import org.wikitide.wikiportal.resources.feedback_copy_failed
+import org.wikitide.wikiportal.resources.feedback_display_name_label
+import org.wikitide.wikiportal.resources.feedback_include_logs
+import org.wikitide.wikiportal.resources.feedback_include_logs_hint
+import org.wikitide.wikiportal.resources.feedback_intro
+import org.wikitide.wikiportal.resources.feedback_message_label
+import org.wikitide.wikiportal.resources.feedback_send
+import org.wikitide.wikiportal.resources.feedback_thanks_sent
+import org.wikitide.wikiportal.resources.feedback_title
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -55,10 +71,13 @@ fun FeedbackScreen(onBack: () -> Unit, viewModel: FeedbackViewModel = koinViewMo
     val clipboard = LocalClipboard.current
     val snackbarHostState = remember { SnackbarHostState() }
 
+    val copiedMessage = stringResource(Res.string.feedback_copied_message)
+    val copyFailedMessage = stringResource(Res.string.feedback_copy_failed)
+
     fun copyFeedback() {
         scope.launch {
             val ok = copyPlainText(clipboard, viewModel.composeShareText())
-            snackbarHostState.showSnackbar(if (ok) "Copied. Paste it wherever's easiest to send it over." else "Couldn't copy")
+            snackbarHostState.showSnackbar(if (ok) copiedMessage else copyFailedMessage)
         }
     }
 
@@ -66,8 +85,8 @@ fun FeedbackScreen(onBack: () -> Unit, viewModel: FeedbackViewModel = koinViewMo
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Beta feedback") },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } },
+                title = { Text(stringResource(Res.string.feedback_title)) },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.common_back)) } },
                 windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
             )
         },
@@ -79,8 +98,8 @@ fun FeedbackScreen(onBack: () -> Unit, viewModel: FeedbackViewModel = koinViewMo
                 verticalArrangement = Arrangement.Center,
             ) {
                 Icon(Icons.Filled.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.height(48.dp))
-                Text("Thanks, that's been sent.", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 12.dp))
-                Button(onClick = onBack, modifier = Modifier.padding(top = 20.dp)) { Text("Done") }
+                Text(stringResource(Res.string.feedback_thanks_sent), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 12.dp))
+                Button(onClick = onBack, modifier = Modifier.padding(top = 20.dp)) { Text(stringResource(Res.string.common_done)) }
             }
             return@Scaffold
         }
@@ -95,19 +114,19 @@ fun FeedbackScreen(onBack: () -> Unit, viewModel: FeedbackViewModel = koinViewMo
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
-                "Sent directly, only while the beta is running. Share a bug, something confusing, an idea, whatever's on your mind.",
+                stringResource(Res.string.feedback_intro),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
             Column {
-                Text("What's this about?", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 8.dp))
+                Text(stringResource(Res.string.feedback_about_label), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 8.dp))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     FeedbackCategory.entries.forEach { category ->
                         FilterChip(
                             selected = state.category == category,
                             onClick = { viewModel.setCategory(category) },
-                            label = { Text(category.label) },
+                            label = { Text(stringResource(category.labelRes)) },
                         )
                     }
                 }
@@ -117,7 +136,7 @@ fun FeedbackScreen(onBack: () -> Unit, viewModel: FeedbackViewModel = koinViewMo
                 value = state.message,
                 onValueChange = viewModel::setMessage,
                 modifier = Modifier.fillMaxWidth().height(160.dp),
-                label = { Text("What happened, or what would help") },
+                label = { Text(stringResource(Res.string.feedback_message_label)) },
                 isError = state.errorMessage != null,
             )
 
@@ -125,7 +144,7 @@ fun FeedbackScreen(onBack: () -> Unit, viewModel: FeedbackViewModel = koinViewMo
                 value = state.displayName,
                 onValueChange = viewModel::setDisplayName,
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("What to call you (optional, a username is fine)") },
+                label = { Text(stringResource(Res.string.feedback_display_name_label)) },
                 singleLine = true,
             )
 
@@ -133,16 +152,16 @@ fun FeedbackScreen(onBack: () -> Unit, viewModel: FeedbackViewModel = koinViewMo
                 value = state.contact,
                 onValueChange = viewModel::setContact,
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Email (optional, for a follow-up if needed)") },
+                label = { Text(stringResource(Res.string.feedback_contact_label)) },
                 singleLine = true,
             )
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = state.includeLogs, onCheckedChange = viewModel::setIncludeLogs)
                 Column {
-                    Text("Include recent app logs", style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(Res.string.feedback_include_logs), style = MaterialTheme.typography.bodyMedium)
                     Text(
-                        "Helps a lot for bug reports. Leave off if you'd rather not.",
+                        stringResource(Res.string.feedback_include_logs_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -158,7 +177,7 @@ fun FeedbackScreen(onBack: () -> Unit, viewModel: FeedbackViewModel = koinViewMo
                     if (state.isSubmitting) {
                         CircularProgressIndicator(modifier = Modifier.height(18.dp), color = MaterialTheme.colorScheme.onPrimary)
                     } else {
-                        Text("Send")
+                        Text(stringResource(Res.string.feedback_send))
                     }
                 }
                 // OutlinedButton(onClick = { copyFeedback() }) { Text("Copy feedback") }

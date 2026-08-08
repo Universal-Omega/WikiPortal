@@ -12,6 +12,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.stringResource
+import org.wikitide.wikiportal.resources.Res
+import org.wikitide.wikiportal.resources.open_tab_indicator_label
 
 /**
  * A small label shown on an ArticleCard when that article already has
@@ -31,7 +34,7 @@ fun OpenTabIndicator() {
             modifier = Modifier.size(14.dp),
         )
         Text(
-            text = "Open in a tab",
+            text = stringResource(Res.string.open_tab_indicator_label),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(start = 4.dp),

@@ -40,6 +40,13 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import org.koin.compose.viewmodel.koinViewModel
 import org.wikitide.wikiportal.network.TrendingArticle
+import org.jetbrains.compose.resources.stringResource
+import org.wikitide.wikiportal.resources.Res
+import org.wikitide.wikiportal.resources.common_back
+import org.wikitide.wikiportal.resources.dashboard_trending_on
+import org.wikitide.wikiportal.resources.dashboard_views_count
+import org.wikitide.wikiportal.resources.trending_nothing_trending
+import org.wikitide.wikiportal.resources.trending_top_read_on
 
 private val MONTH_NAMES = listOf(
     "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
@@ -63,7 +70,8 @@ fun TrendingScreen(
     viewModel: TrendingViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
-    val title = formatMostReadDate(state.date)?.let { "Top read on $it" } ?: "Trending on ${state.wikiName}"
+    val title = formatMostReadDate(state.date)?.let { stringResource(Res.string.trending_top_read_on, it) }
+        ?: stringResource(Res.string.dashboard_trending_on, state.wikiName)
 
     Scaffold(
         topBar = {
@@ -71,7 +79,7 @@ fun TrendingScreen(
                 title = { Text(title) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.common_back))
                     }
                 },
                 windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
@@ -85,7 +93,7 @@ fun TrendingScreen(
                 }
                 state.articles.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
-                        "Nothing trending right now",
+                        stringResource(Res.string.trending_nothing_trending),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -116,7 +124,7 @@ private fun TopReadRow(article: TrendingArticle, onClick: () -> Unit) {
                 overflow = TextOverflow.Ellipsis,
             )
             val secondaryLine = article.description?.takeIf { it.isNotBlank() }
-                ?: article.views?.let { "${formatViewCount(it)} views" }
+                ?: article.views?.let { stringResource(Res.string.dashboard_views_count, formatViewCount(it)) }
             secondaryLine?.let {
                 Spacer(Modifier.size(2.dp))
                 Text(

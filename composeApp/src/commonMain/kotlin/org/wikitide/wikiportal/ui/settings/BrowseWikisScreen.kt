@@ -61,6 +61,19 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.wikitide.wikiportal.data.model.IndieWikiLanguages
 import org.wikitide.wikiportal.data.model.IndieWikiSite
 import org.wikitide.wikiportal.network.iwbFaviconUrl
+import org.jetbrains.compose.resources.stringResource
+import org.wikitide.wikiportal.resources.Res
+import org.wikitide.wikiportal.resources.browse_wikis_all_languages
+import org.wikitide.wikiportal.resources.browse_wikis_alternative_to
+import org.wikitide.wikiportal.resources.browse_wikis_clear_search
+import org.wikitide.wikiportal.resources.browse_wikis_load_failed
+import org.wikitide.wikiportal.resources.browse_wikis_no_matches
+import org.wikitide.wikiportal.resources.browse_wikis_official
+import org.wikitide.wikiportal.resources.browse_wikis_refresh_list
+import org.wikitide.wikiportal.resources.browse_wikis_search_placeholder
+import org.wikitide.wikiportal.resources.browse_wikis_title
+import org.wikitide.wikiportal.resources.common_back
+import org.wikitide.wikiportal.resources.common_retry
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -123,14 +136,14 @@ fun BrowseWikisScreen(
         topBar = {
             Column {
                 TopAppBar(
-                    title = { Text("Browse wikis") },
-                    navigationIcon = { IconButton(onClick = onDone) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } },
+                    title = { Text(stringResource(Res.string.browse_wikis_title)) },
+                    navigationIcon = { IconButton(onClick = onDone) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.common_back)) } },
                     actions = {
                         if (isRefreshing) {
                             CircularProgressIndicator(modifier = Modifier.size(20.dp).padding(end = 12.dp), strokeWidth = 2.dp)
                         } else {
                             IconButton(onClick = browseViewModel::refresh) {
-                                Icon(Icons.Filled.Refresh, contentDescription = "Refresh wiki list")
+                                Icon(Icons.Filled.Refresh, contentDescription = stringResource(Res.string.browse_wikis_refresh_list))
                             }
                         }
                     },
@@ -140,12 +153,12 @@ fun BrowseWikisScreen(
                     value = searchQuery,
                     onValueChange = browseViewModel::setSearchQuery,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
-                    placeholder = { Text("Search wikis") },
+                    placeholder = { Text(stringResource(Res.string.browse_wikis_search_placeholder)) },
                     leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
                             IconButton(onClick = { browseViewModel.setSearchQuery("") }) {
-                                Icon(Icons.Filled.Close, contentDescription = "Clear search")
+                                Icon(Icons.Filled.Close, contentDescription = stringResource(Res.string.browse_wikis_clear_search))
                             }
                         }
                     },
@@ -176,18 +189,18 @@ fun BrowseWikisScreen(
                 ) {
                     Icon(Icons.Filled.TravelExplore, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
-                        "Couldn't load the wiki directory. Check your connection and try again.",
+                        stringResource(Res.string.browse_wikis_load_failed),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 8.dp),
                     )
-                    TextButton(onClick = browseViewModel::refresh, modifier = Modifier.padding(top = 8.dp)) { Text("Retry") }
+                    TextButton(onClick = browseViewModel::refresh, modifier = Modifier.padding(top = 8.dp)) { Text(stringResource(Res.string.common_retry)) }
                 }
             }
             filtered.isEmpty() -> {
                 Box(Modifier.fillMaxSize().padding(innerPadding).padding(24.dp), contentAlignment = Alignment.TopCenter) {
                     Text(
-                        "No wikis match the current search and filters.",
+                        stringResource(Res.string.browse_wikis_no_matches),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -228,7 +241,7 @@ private fun BrowseFilterRow(
         FilterChip(
             selected = officialOnly,
             onClick = { onOfficialOnlyChange(!officialOnly) },
-            label = { Text("Official") },
+            label = { Text(stringResource(Res.string.browse_wikis_official)) },
             leadingIcon = if (officialOnly) {
                 { Icon(Icons.Filled.VerifiedUser, contentDescription = null, modifier = Modifier.size(16.dp)) }
             } else {
@@ -238,7 +251,7 @@ private fun BrowseFilterRow(
         FilterChip(
             selected = selectedLanguage == null,
             onClick = { onLanguageSelected(null) },
-            label = { Text("All languages") },
+            label = { Text(stringResource(Res.string.browse_wikis_all_languages)) },
         )
         languages.forEach { language ->
             FilterChip(
@@ -279,7 +292,7 @@ private fun IndieWikiRow(site: IndieWikiSite, enabled: Boolean, onClick: () -> U
                 LanguageBadge(site.language)
                 if (site.isOfficial) OfficialBadge()
                 Text(
-                    "Alternative to ${site.originsLabel}",
+                    stringResource(Res.string.browse_wikis_alternative_to, site.originsLabel),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -320,7 +333,7 @@ private fun OfficialBadge() {
             modifier = Modifier.size(11.dp),
         )
         Text(
-            "Official",
+            stringResource(Res.string.browse_wikis_official),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onTertiaryContainer,
             modifier = Modifier.padding(start = 3.dp),
