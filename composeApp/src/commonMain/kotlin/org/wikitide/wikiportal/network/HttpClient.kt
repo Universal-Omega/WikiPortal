@@ -17,6 +17,8 @@ import kotlinx.serialization.json.Json
 import org.wikitide.wikiportal.BuildKonfig
 import org.wikitide.wikiportal.util.AppLog
 
+private const val TAG = "Ktor"
+
 private val mediaWikiJson: Json = Json {
     ignoreUnknownKeys = true
     isLenient = true
@@ -39,7 +41,7 @@ fun <T : HttpClientEngineConfig> HttpClientConfig<T>.configureMediaWikiClient() 
     install(Logging) {
         logger = object : Logger {
             override fun log(message: String) {
-                AppLog.d("Ktor", message)
+                AppLog.d(TAG, message)
             }
         }
         level = LogLevel.INFO
