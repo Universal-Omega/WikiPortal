@@ -128,6 +128,8 @@ class AppRepository(
     val offlineArticles: StateFlow<List<SavedPage>> = _offlineArticles
 
     init {
+        appScope.launch { loadAndReconcileAppLanguage() }
+
         appScope.launch {
             val stored = store.allStoredWikis()
             val presetDefaultsById = PresetWikis.all.associateBy { it.id }
@@ -196,13 +198,6 @@ class AppRepository(
 
             store.getSetting(SettingKeys.THEME_MODE)?.let { raw ->
                 ThemeMode.entries.firstOrNull { it.name == raw }?.let { _themeMode.value = it }
-            }
-            store.getSetting(SettingKeys.APP_LANGUAGE)?.let { _appLanguageTag.value = it.ifBlank { null } }
-
-            val platformState = platformLanguageSync.currentPlatformOverride()
-            if (platformState is PlatformLanguageState.Known && platformState.tag != _appLanguageTag.value) {
-                _appLanguageTag.value = platformState.tag
-                store.setSetting(SettingKeys.APP_LANGUAGE, platformState.tag.orEmpty())
             }
             store.getSetting(SettingKeys.DYNAMIC_COLOR)?.let { _dynamicColor.value = it.toBoolean() }
             store.getSetting(SettingKeys.TEXT_SCALE)?.let { it.toFloatOrNull()?.let { f -> _textScale.value = f } }
@@ -526,14 +521,19 @@ class AppRepository(
 
     fun setThemeMode(mode: ThemeMode) = persistSetting(_themeMode, SettingKeys.THEME_MODE, mode) { it.name }
 
-    /**
-     * [tag] is a BCP 47 tag such as "en", or null to go back to
-     * following the platform's own system language. This only updates
-     * the saved preference; actually applying it happens reactively,
-     * see AppLocaleEnvironment in App.kt, which every screen sits
-     * inside of. This is also the one and only place that pushes the
-     * choice out to platformLanguageSync.
-     */
+    private suspend fun loadAndReconcileAppLanguage() {
+        store.getSetting(SettingKeys.APP_LANGUAGE)?.let { _appLanguageTag.value = it.ifBlank { null } }
+        val platformState = platformLanguageSync.currentPlatformOverride()
+        if (platformState is PlatformLanguageState.Known && platformState.tag != _appLanguageTag.value) {
+            _appLanguageTag.value = platformState.tag
+            store.setSetting(SettingKeys.APP_LANGUAGE, platformState.tag.orEmpty())
+        }
+    }
+
+    fun reconcilePlatformLanguage() {
+        appScope.launch { loadAndReconcileAppLanguage() }
+    }
+
     fun setAppLanguage(tag: String?) {
         persistSetting(_appLanguageTag, SettingKeys.APP_LANGUAGE, tag) { it.orEmpty() }
         platformLanguageSync.applyToPlatform(tag)
