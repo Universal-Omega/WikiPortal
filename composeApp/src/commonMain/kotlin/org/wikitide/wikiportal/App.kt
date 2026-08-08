@@ -69,15 +69,18 @@ import org.wikitide.wikiportal.navigation.SettingsRoute
 import org.wikitide.wikiportal.navigation.SystemBackInterceptor
 import org.wikitide.wikiportal.navigation.TabsRoute
 import org.wikitide.wikiportal.ui.theme.WikiPortalTheme
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
+import org.wikitide.wikiportal.resources.Res
 
 @Immutable
-private data class BottomDestination(val route: Route, val label: String, val selected: ImageVector, val unselected: ImageVector)
+private data class BottomDestination(val route: Route, val labelRes: StringResource, val selected: ImageVector, val unselected: ImageVector)
 
 private val bottomDestinations = listOf(
-    BottomDestination(DashboardRoute, "Dashboard", Icons.Filled.Dashboard, Icons.Outlined.Dashboard),
-    BottomDestination(TabsRoute, "Tabs", Icons.Filled.Tab, Icons.Outlined.Tab),
-    BottomDestination(SavedRoute, "Saved", Icons.Filled.Bookmark, Icons.Outlined.Bookmark),
-    BottomDestination(SettingsRoute, "Settings", Icons.Filled.Settings, Icons.Outlined.Settings),
+    BottomDestination(DashboardRoute, Res.string.dashboard_title, Icons.Filled.Dashboard, Icons.Outlined.Dashboard),
+    BottomDestination(TabsRoute, Res.string.tabs_title, Icons.Filled.Tab, Icons.Outlined.Tab),
+    BottomDestination(SavedRoute, Res.string.dashboard_saved, Icons.Filled.Bookmark, Icons.Outlined.Bookmark),
+    BottomDestination(SettingsRoute, Res.string.settings_title, Icons.Filled.Settings, Icons.Outlined.Settings),
 )
 
 /**
@@ -95,7 +98,7 @@ private fun DestinationIcon(destination: BottomDestination, isSelected: Boolean,
     val icon = @Composable {
         Icon(
             imageVector = if (isSelected) destination.selected else destination.unselected,
-            contentDescription = destination.label,
+            contentDescription = stringResource(destination.labelRes),
         )
     }
     // Only the Tabs icon shows a count. This is just a small detail in
@@ -219,7 +222,7 @@ fun WikiPortalApp(onDarkThemeResolved: (Boolean) -> Unit = {}) {
                                         selected = isSelected,
                                         onClick = { navigator.switchTab(destination.route) },
                                         icon = { DestinationIcon(destination, isSelected, openTabs.size) },
-                                        label = { Text(destination.label) },
+                                        label = { Text(stringResource(destination.labelRes)) },
                                     )
                                 }
                             }
@@ -260,7 +263,7 @@ fun WikiPortalApp(onDarkThemeResolved: (Boolean) -> Unit = {}) {
                                         selected = isSelected,
                                         onClick = { navigator.switchTab(destination.route) },
                                         icon = { DestinationIcon(destination, isSelected, openTabs.size) },
-                                        label = { Text(destination.label) },
+                                        label = { Text(stringResource(destination.labelRes)) },
                                     )
                                 }
                             }
