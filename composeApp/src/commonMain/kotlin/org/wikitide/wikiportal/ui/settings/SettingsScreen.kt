@@ -133,14 +133,6 @@ fun SettingsScreen(
             item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
             item { SectionLabel(stringResource(Res.string.settings_section_appearance)) }
             item {
-                SettingsRow(
-                    icon = Icons.Filled.Translate,
-                    title = stringResource(Res.string.settings_app_language),
-                    subtitle = appLanguage.nativeName ?: stringResource(Res.string.theme_mode_system),
-                    onClick = onOpenAppLanguage,
-                )
-            }
-            item {
                 Column(Modifier.padding(horizontal = 20.dp)) {
                     RowLabel(icon = Icons.Filled.DarkMode, text = stringResource(Res.string.settings_theme))
                     ThemeMode.entries.forEach { mode ->
@@ -153,6 +145,14 @@ fun SettingsScreen(
                         }
                     }
                 }
+            }
+            item {
+                SettingsRow(
+                    icon = Icons.Filled.Translate,
+                    title = stringResource(Res.string.settings_app_language),
+                    subtitle = appLanguage.nativeName ?: stringResource(Res.string.theme_mode_system),
+                    onClick = onOpenAppLanguage,
+                )
             }
             item {
                 SwitchRow(
