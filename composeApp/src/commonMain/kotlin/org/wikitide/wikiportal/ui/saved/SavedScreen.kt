@@ -39,6 +39,15 @@ import org.wikitide.wikiportal.ui.components.ArticleCard
 import org.wikitide.wikiportal.ui.components.DestructiveConfirmDialog
 import org.wikitide.wikiportal.ui.components.OpenTabIndicator
 
+/** Index of the "Saved" tab in [SavedScreen]'s [SecondaryTabRow]. */
+private const val TAB_SAVED = 0
+
+/** Index of the "Offline" tab in [SavedScreen]'s [SecondaryTabRow]. */
+private const val TAB_OFFLINE = 1
+
+/** Index of the "History" tab in [SavedScreen]'s [SecondaryTabRow]. */
+private const val TAB_HISTORY = 2
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SavedScreen(
@@ -52,7 +61,7 @@ fun SavedScreen(
     val history by repository.history.collectAsState()
     val offline by repository.offlineArticles.collectAsState()
     val tabs by tabsRepository.tabs.collectAsState()
-    var tab by remember { mutableStateOf(0) }
+    var tab by remember { mutableStateOf(TAB_SAVED) }
     var selectedKeys by remember(tab) { mutableStateOf(setOf<String>()) }
     var showDeleteSelectedConfirm by remember(tab) { mutableStateOf(false) }
     var showClearHistoryConfirm by remember { mutableStateOf(false) }
@@ -84,7 +93,7 @@ fun SavedScreen(
                     IconButton(onClick = { showDeleteSelectedConfirm = true }) {
                         Icon(Icons.Filled.Delete, contentDescription = "Remove selected")
                     }
-                } else if (tab == 2 && history.isNotEmpty()) {
+                } else if (tab == TAB_HISTORY && history.isNotEmpty()) {
                     IconButton(onClick = { showClearHistoryConfirm = true }) {
                         Icon(Icons.Filled.DeleteSweep, contentDescription = "Clear history")
                     }
@@ -94,19 +103,19 @@ fun SavedScreen(
             colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
         )
         SecondaryTabRow(selectedTabIndex = tab) {
-            Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("Saved (${saved.size})") })
-            Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("Offline (${offline.size})") })
-            Tab(selected = tab == 2, onClick = { tab = 2 }, text = { Text("History") })
+            Tab(selected = tab == TAB_SAVED, onClick = { tab = TAB_SAVED }, text = { Text("Saved (${saved.size})") })
+            Tab(selected = tab == TAB_OFFLINE, onClick = { tab = TAB_OFFLINE }, text = { Text("Offline (${offline.size})") })
+            Tab(selected = tab == TAB_HISTORY, onClick = { tab = TAB_HISTORY }, text = { Text("History") })
         }
 
         val list = when (tab) {
-            0 -> saved
-            1 -> offline
+            TAB_SAVED -> saved
+            TAB_OFFLINE -> offline
             else -> history
         }
         val emptyLabel = when (tab) {
-            0 -> "Articles you save will show up here"
-            1 -> "Articles you download for offline reading will show up here"
+            TAB_SAVED -> "Articles you save will show up here"
+            TAB_OFFLINE -> "Articles you download for offline reading will show up here"
             else -> "Articles you read will show up here"
         }
 
@@ -134,7 +143,7 @@ fun SavedScreen(
                         onClick = {
                             if (selectionActive) {
                                 selectedKeys = if (isSelected) selectedKeys - itemKey else selectedKeys + itemKey
-                            } else if (tab == 1) {
+                            } else if (tab == TAB_OFFLINE) {
                                 onOfflineArticleClick(page.wikiId, page.title)
                             } else {
                                 onArticleClick(page.wikiId, page.title)
@@ -157,8 +166,8 @@ fun SavedScreen(
     if (showDeleteSelectedConfirm) {
         val count = selectedKeys.size
         val confirmText = when (tab) {
-            0 -> if (count == 1) "Remove 1 saved article?" else "Remove $count saved articles?"
-            1 -> if (count == 1) "Remove 1 offline copy?" else "Remove $count offline copies?"
+            TAB_SAVED -> if (count == 1) "Remove 1 saved article?" else "Remove $count saved articles?"
+            TAB_OFFLINE -> if (count == 1) "Remove 1 offline copy?" else "Remove $count offline copies?"
             else -> if (count == 1) "Remove 1 history item?" else "Remove $count history items?"
         }
         DestructiveConfirmDialog(
@@ -167,15 +176,15 @@ fun SavedScreen(
             confirmLabel = "Remove",
             onConfirm = {
                 val source = when (tab) {
-                    0 -> saved
-                    1 -> offline
+                    TAB_SAVED -> saved
+                    TAB_OFFLINE -> offline
                     else -> history
                 }
                 val toRemove = source.filter { keyOf(it) in selectedKeys }
                 toRemove.forEach { page ->
                     when (tab) {
-                        0 -> repository.toggleSaved(page)
-                        1 -> repository.removeOfflineArticle(page.wikiId, page.title)
+                        TAB_SAVED -> repository.toggleSaved(page)
+                        TAB_OFFLINE -> repository.removeOfflineArticle(page.wikiId, page.title)
                         else -> repository.removeHistoryEntry(page.wikiId, page.title)
                     }
                 }
