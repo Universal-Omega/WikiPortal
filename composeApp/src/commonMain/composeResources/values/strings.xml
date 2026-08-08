@@ -147,7 +147,6 @@
     <string name="saved_tab_offline">Offline (%1$d)</string>
     <string name="saved_tab_saved">Saved (%1$d)</string>
     <string name="settings_about_body">A universal MediaWiki client. Version %1$s</string>
-    <string name="settings_app_language">App language</string>
     <string name="settings_app_logs_subtitle">Recent app activity, useful when troubleshooting a problem</string>
     <string name="settings_confirm_leaving_subtitle">Ask before a tab loads a link to a site outside your wikis</string>
     <string name="settings_confirm_leaving_title">Confirm before leaving a site</string>
