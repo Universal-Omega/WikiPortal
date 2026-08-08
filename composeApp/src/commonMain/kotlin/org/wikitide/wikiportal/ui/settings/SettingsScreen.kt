@@ -39,6 +39,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -84,6 +87,7 @@ import org.wikitide.wikiportal.resources.settings_suggest_indie_title
 import org.wikitide.wikiportal.resources.settings_text_size
 import org.wikitide.wikiportal.resources.settings_theme
 import org.wikitide.wikiportal.resources.settings_title
+import org.wikitide.wikiportal.resources.theme_mode_system
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -98,6 +102,7 @@ fun SettingsScreen(
     val themeMode by repository.themeMode.collectAsState()
     val appLanguageTag by repository.appLanguageTag.collectAsState()
     val appLanguage = AppLanguage.fromTag(appLanguageTag)
+    var showLanguageDialog by remember { mutableStateOf(false) }
     val dynamicColor by repository.dynamicColor.collectAsState()
     val textScale by repository.textScale.collectAsState()
     val showImages by repository.showImages.collectAsState()
@@ -131,6 +136,14 @@ fun SettingsScreen(
             item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
             item { SectionLabel(stringResource(Res.string.settings_section_appearance)) }
             item {
+                SettingsRow(
+                    icon = Icons.Filled.Translate,
+                    title = stringResource(Res.string.settings_app_language),
+                    subtitle = appLanguage.nativeName ?: stringResource(Res.string.theme_mode_system),
+                    onClick = { showLanguageDialog = true },
+                )
+            }
+            item {
                 Column(Modifier.padding(horizontal = 20.dp)) {
                     RowLabel(icon = Icons.Filled.DarkMode, text = stringResource(Res.string.settings_theme))
                     ThemeMode.entries.forEach { mode ->
@@ -140,20 +153,6 @@ fun SettingsScreen(
                         ) {
                             RadioButton(selected = themeMode == mode, onClick = { repository.setThemeMode(mode) })
                             Text(stringResource(mode.labelRes), modifier = Modifier.padding(start = 8.dp))
-                        }
-                    }
-                }
-            }
-            item {
-                Column(Modifier.padding(horizontal = 20.dp)) {
-                    RowLabel(icon = Icons.Filled.Translate, text = stringResource(Res.string.settings_app_language))
-                    AppLanguage.entries.forEach { language ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth().clickable { repository.setAppLanguage(language.tag) }.padding(vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            RadioButton(selected = appLanguage == language, onClick = { repository.setAppLanguage(language.tag) })
-                            Text(stringResource(language.labelRes), modifier = Modifier.padding(start = 8.dp))
                         }
                     }
                 }
@@ -283,6 +282,17 @@ fun SettingsScreen(
                 )
             }
         }
+    }
+
+    if (showLanguageDialog) {
+        AppLanguageDialog(
+            selected = appLanguage,
+            onLanguageSelected = { language ->
+                repository.setAppLanguage(language.tag)
+                showLanguageDialog = false
+            },
+            onDismiss = { showLanguageDialog = false },
+        )
     }
 }
 
