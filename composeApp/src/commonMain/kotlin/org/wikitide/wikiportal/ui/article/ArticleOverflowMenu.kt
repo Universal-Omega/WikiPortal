@@ -21,6 +21,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.stringResource
+import org.wikitide.wikiportal.resources.Res
+import org.wikitide.wikiportal.resources.article_overflow_find_on_page
+import org.wikitide.wikiportal.resources.article_overflow_forward
+import org.wikitide.wikiportal.resources.article_overflow_remove_offline_copy
+import org.wikitide.wikiportal.resources.article_overflow_save_offline
+import org.wikitide.wikiportal.resources.article_overflow_share
+import org.wikitide.wikiportal.resources.common_refresh
 
 @Composable
 fun ArticleOverflowMenu(
@@ -43,7 +51,7 @@ fun ArticleOverflowMenu(
     ) {
         if (showForward) {
             DropdownMenuItem(
-                text = { Text("Forward") },
+                text = { Text(stringResource(Res.string.article_overflow_forward)) },
                 leadingIcon = { Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null) },
                 onClick = {
                     onDismiss()
@@ -53,7 +61,7 @@ fun ArticleOverflowMenu(
         }
 
         DropdownMenuItem(
-            text = { Text("Refresh") },
+            text = { Text(stringResource(Res.string.common_refresh)) },
             leadingIcon = { Icon(Icons.Filled.Refresh, contentDescription = null) },
             onClick = {
                 onDismiss()
@@ -62,7 +70,7 @@ fun ArticleOverflowMenu(
         )
 
         DropdownMenuItem(
-            text = { Text("Find on page") },
+            text = { Text(stringResource(Res.string.article_overflow_find_on_page)) },
             leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
             onClick = {
                 onDismiss()
@@ -73,7 +81,7 @@ fun ArticleOverflowMenu(
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
         DropdownMenuItem(
-            text = { Text("Share") },
+            text = { Text(stringResource(Res.string.article_overflow_share)) },
             leadingIcon = { Icon(Icons.Filled.Share, contentDescription = null) },
             onClick = {
                 onDismiss()
@@ -82,7 +90,7 @@ fun ArticleOverflowMenu(
         )
 
         DropdownMenuItem(
-            text = { Text(if (isOfflineSaved) "Remove offline copy" else "Save for offline reading") },
+            text = { Text(if (isOfflineSaved) stringResource(Res.string.article_overflow_remove_offline_copy) else stringResource(Res.string.article_overflow_save_offline)) },
             leadingIcon = {
                 if (isSavingOffline) {
                     CircularProgressIndicator(
