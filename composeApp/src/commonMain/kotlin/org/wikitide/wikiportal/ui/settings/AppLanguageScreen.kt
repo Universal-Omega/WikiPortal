@@ -10,29 +10,33 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
@@ -40,11 +44,13 @@ import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.model.AppLanguage
 import org.wikitide.wikiportal.resources.Res
 import org.wikitide.wikiportal.resources.app_language_search_placeholder
+import org.wikitide.wikiportal.resources.article_top_bar_close_search
 import org.wikitide.wikiportal.resources.common_back
-import org.wikitide.wikiportal.resources.common_clear
+import org.wikitide.wikiportal.resources.common_search
 import org.wikitide.wikiportal.resources.common_selected
 import org.wikitide.wikiportal.resources.settings_app_language
 import org.wikitide.wikiportal.resources.theme_mode_system
+import org.wikitide.wikiportal.ui.theme.languageNameInSystemLanguage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,24 +60,64 @@ fun AppLanguageScreen(
 ) {
     val appLanguageTag by repository.appLanguageTag.collectAsState()
     val selected = AppLanguage.fromTag(appLanguageTag)
+    var isSearching by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
-
-    val matches = AppLanguage.entries.filter { language ->
-        language != AppLanguage.SYSTEM && language.nativeName.orEmpty().contains(query, ignoreCase = true)
-    }
+    val focusRequester = remember { FocusRequester() }
 
     fun select(language: AppLanguage) {
         repository.setAppLanguage(language.tag)
         onBack()
     }
 
+    fun closeSearch() {
+        isSearching = false
+        query = ""
+    }
+
+    val matches = AppLanguage.entries.filter { language ->
+        language != AppLanguage.SYSTEM && language.nativeName.orEmpty().contains(query, ignoreCase = true)
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(Res.string.settings_app_language)) },
+                title = {
+                    if (isSearching) {
+                        LaunchedEffect(Unit) { focusRequester.requestFocus() }
+                        Box {
+                            if (query.isEmpty()) {
+                                Text(
+                                    stringResource(Res.string.app_language_search_placeholder),
+                                    style = LocalTextStyle.current,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            BasicTextField(
+                                value = query,
+                                onValueChange = { query = it },
+                                modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+                                singleLine = true,
+                                textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface),
+                                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                            )
+                        }
+                    } else {
+                        Text(stringResource(Res.string.settings_app_language))
+                    }
+                },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.common_back))
+                    IconButton(onClick = { if (isSearching) closeSearch() else onBack() }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(if (isSearching) Res.string.article_top_bar_close_search else Res.string.common_back),
+                        )
+                    }
+                },
+                actions = {
+                    if (!isSearching) {
+                        IconButton(onClick = { isSearching = true }) {
+                            Icon(Icons.Filled.Search, contentDescription = stringResource(Res.string.common_search))
+                        }
                     }
                 },
                 windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
@@ -80,35 +126,21 @@ fun AppLanguageScreen(
     ) { innerPadding ->
         Box(Modifier.padding(innerPadding).fillMaxSize()) {
             LazyColumn(contentPadding = PaddingValues(vertical = 8.dp)) {
-                item {
-                    OutlinedTextField(
-                        value = query,
-                        onValueChange = { query = it },
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                        placeholder = { Text(stringResource(Res.string.app_language_search_placeholder)) },
-                        singleLine = true,
-                        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                        trailingIcon = {
-                            if (query.isNotEmpty()) {
-                                IconButton(onClick = { query = "" }) {
-                                    Icon(Icons.Filled.Close, contentDescription = stringResource(Res.string.common_clear))
-                                }
-                            }
-                        },
-                        shape = MaterialTheme.shapes.large,
-                    )
+                if (!isSearching) {
+                    item {
+                        LanguageRow(
+                            nativeName = stringResource(Res.string.theme_mode_system),
+                            systemLanguageName = null,
+                            isSelected = selected == AppLanguage.SYSTEM,
+                            onClick = { select(AppLanguage.SYSTEM) },
+                        )
+                    }
+                    item { HorizontalDivider(Modifier.padding(vertical = 4.dp)) }
                 }
-                item {
-                    LanguageRow(
-                        label = stringResource(Res.string.theme_mode_system),
-                        isSelected = selected == AppLanguage.SYSTEM,
-                        onClick = { select(AppLanguage.SYSTEM) },
-                    )
-                }
-                item { HorizontalDivider(Modifier.padding(vertical = 4.dp)) }
                 items(matches, key = { it.name }) { language ->
                     LanguageRow(
-                        label = language.nativeName.orEmpty(),
+                        nativeName = language.nativeName.orEmpty(),
+                        systemLanguageName = language.tag?.let { languageNameInSystemLanguage(it) },
                         isSelected = selected == language,
                         onClick = { select(language) },
                     )
@@ -119,9 +151,14 @@ fun AppLanguageScreen(
 }
 
 @Composable
-private fun LanguageRow(label: String, isSelected: Boolean, onClick: () -> Unit) {
+private fun LanguageRow(nativeName: String, systemLanguageName: String?, isSelected: Boolean, onClick: () -> Unit) {
     ListItem(
-        headlineContent = { Text(label) },
+        headlineContent = { Text(nativeName) },
+        supportingContent = if (systemLanguageName != null && systemLanguageName != nativeName) {
+            { Text(systemLanguageName) }
+        } else {
+            null
+        },
         trailingContent = {
             if (isSelected) {
                 Icon(Icons.Filled.Check, contentDescription = stringResource(Res.string.common_selected), tint = MaterialTheme.colorScheme.primary)
