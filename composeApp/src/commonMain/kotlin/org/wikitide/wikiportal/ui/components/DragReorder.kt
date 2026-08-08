@@ -22,6 +22,8 @@ private data class RowBounds(val top: Float, val height: Float) {
     operator fun contains(y: Float): Boolean = y in top..(top + height)
 }
 
+private const val CROSSING_FRACTION = 0.4f
+
 @Stable
 class DragReorderState<T> internal constructor(
     initialItems: List<T>,
@@ -121,7 +123,10 @@ class DragReorderState<T> internal constructor(
             else -> return
         }
         val neighborCenter = positions[id(order[neighborIndex])]?.center ?: return
-        val crossedNeighbor = if (neighborIndex > currentIndex) draggedCenter > neighborCenter else draggedCenter < neighborCenter
+        // The point along the way to neighborCenter that actually
+        // triggers the swap, rather than neighborCenter itself.
+        val threshold = originalCenter + (neighborCenter - originalCenter) * CROSSING_FRACTION
+        val crossedNeighbor = if (neighborIndex > currentIndex) draggedCenter > threshold else draggedCenter < threshold
         if (crossedNeighbor) {
             val reordered = order.toMutableList()
             val moved = reordered.removeAt(currentIndex)
