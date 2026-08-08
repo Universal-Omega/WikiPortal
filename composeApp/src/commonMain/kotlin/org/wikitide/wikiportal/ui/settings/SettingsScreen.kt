@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.TextFields
+import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.filled.TravelExplore
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -45,10 +46,44 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import org.koin.compose.koinInject
 import org.wikitide.wikiportal.data.AppRepository
+import org.wikitide.wikiportal.data.model.AppLanguage
 import org.wikitide.wikiportal.data.model.ThemeMode
 import org.wikitide.wikiportal.util.AppVersionProvider
 import org.jetbrains.compose.resources.stringResource
 import org.wikitide.wikiportal.resources.Res
+import org.wikitide.wikiportal.resources.app_name
+import org.wikitide.wikiportal.resources.logs_title
+import org.wikitide.wikiportal.resources.settings_about_body
+import org.wikitide.wikiportal.resources.settings_app_language
+import org.wikitide.wikiportal.resources.settings_app_logs_subtitle
+import org.wikitide.wikiportal.resources.settings_confirm_leaving_subtitle
+import org.wikitide.wikiportal.resources.settings_confirm_leaving_title
+import org.wikitide.wikiportal.resources.settings_current_wiki
+import org.wikitide.wikiportal.resources.settings_disable_safe_mode_subtitle
+import org.wikitide.wikiportal.resources.settings_disable_safe_mode_title
+import org.wikitide.wikiportal.resources.settings_dynamic_color_subtitle
+import org.wikitide.wikiportal.resources.settings_dynamic_color_title
+import org.wikitide.wikiportal.resources.settings_github_subtitle
+import org.wikitide.wikiportal.resources.settings_github_title
+import org.wikitide.wikiportal.resources.settings_open_external_subtitle
+import org.wikitide.wikiportal.resources.settings_open_external_title
+import org.wikitide.wikiportal.resources.settings_open_new_tab_subtitle
+import org.wikitide.wikiportal.resources.settings_open_new_tab_title
+import org.wikitide.wikiportal.resources.settings_section_about
+import org.wikitide.wikiportal.resources.settings_section_appearance
+import org.wikitide.wikiportal.resources.settings_section_beta
+import org.wikitide.wikiportal.resources.settings_section_diagnostics
+import org.wikitide.wikiportal.resources.settings_section_reading
+import org.wikitide.wikiportal.resources.settings_section_wiki
+import org.wikitide.wikiportal.resources.settings_send_feedback_subtitle
+import org.wikitide.wikiportal.resources.settings_send_feedback_title
+import org.wikitide.wikiportal.resources.settings_show_images_subtitle
+import org.wikitide.wikiportal.resources.settings_show_images_title
+import org.wikitide.wikiportal.resources.settings_suggest_indie_subtitle
+import org.wikitide.wikiportal.resources.settings_suggest_indie_title
+import org.wikitide.wikiportal.resources.settings_text_size
+import org.wikitide.wikiportal.resources.settings_theme
+import org.wikitide.wikiportal.resources.settings_title
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,6 +96,8 @@ fun SettingsScreen(
 ) {
     val activeWiki by repository.activeWiki.collectAsState()
     val themeMode by repository.themeMode.collectAsState()
+    val appLanguageTag by repository.appLanguageTag.collectAsState()
+    val appLanguage = AppLanguage.fromTag(appLanguageTag)
     val dynamicColor by repository.dynamicColor.collectAsState()
     val textScale by repository.textScale.collectAsState()
     val showImages by repository.showImages.collectAsState()
@@ -103,6 +140,20 @@ fun SettingsScreen(
                         ) {
                             RadioButton(selected = themeMode == mode, onClick = { repository.setThemeMode(mode) })
                             Text(stringResource(mode.labelRes), modifier = Modifier.padding(start = 8.dp))
+                        }
+                    }
+                }
+            }
+            item {
+                Column(Modifier.padding(horizontal = 20.dp)) {
+                    RowLabel(icon = Icons.Filled.Translate, text = stringResource(Res.string.settings_app_language))
+                    AppLanguage.entries.forEach { language ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().clickable { repository.setAppLanguage(language.tag) }.padding(vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(selected = appLanguage == language, onClick = { repository.setAppLanguage(language.tag) })
+                            Text(stringResource(language.labelRes), modifier = Modifier.padding(start = 8.dp))
                         }
                     }
                 }
