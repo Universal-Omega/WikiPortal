@@ -24,7 +24,7 @@ import org.wikitide.wikiportal.network.resolveFaviconUrl
 import org.wikitide.wikiportal.util.AppLog
 import org.wikitide.wikiportal.util.isMobilePlatform
 
-private const val TAG = "AddWiki"
+private const val TAG = "AddWikiViewModel"
 
 /** An independent wiki Indie Wiki Buddy knows replaces whatever was actually typed in, offered before resolution proceeds. */
 @Immutable
