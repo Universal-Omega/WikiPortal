@@ -83,6 +83,12 @@ import org.wikitide.wikiportal.ui.components.CompactArticleChip
 import org.wikitide.wikiportal.ui.components.OpenTabIndicator
 import org.wikitide.wikiportal.ui.components.WikiSwitcherChip
 
+/** Index of the "Feed" tab in [DashboardScreen]'s [SecondaryTabRow]. */
+private const val TAB_FEED = 0
+
+/** Index of the "Relevant" tab in [DashboardScreen]'s [SecondaryTabRow]. */
+private const val TAB_RELEVANT = 1
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
@@ -99,7 +105,7 @@ fun DashboardScreen(
     val searchState by searchViewModel.state.collectAsState()
     val relevantState by relevantLinksViewModel.state.collectAsState()
     val tabs by tabsRepository.tabs.collectAsState()
-    var tabIndex by remember { mutableStateOf(0) }
+    var tabIndex by remember { mutableStateOf(TAB_FEED) }
     var isFullScreenSearchOpen by remember { mutableStateOf(false) }
 
     // Titles within the current wiki that already have an open tab. This
@@ -111,7 +117,7 @@ fun DashboardScreen(
     }
 
     LaunchedEffect(tabIndex) {
-        if (tabIndex == 1) relevantLinksViewModel.ensureLoaded()
+        if (tabIndex == TAB_RELEVANT) relevantLinksViewModel.ensureLoaded()
     }
 
     Box(Modifier.fillMaxSize()) {
@@ -204,11 +210,11 @@ fun DashboardScreen(
                 SearchResultsContent(searchState, onArticleClick, onSearchFor = searchViewModel::searchFor)
             } else {
                 SecondaryTabRow(selectedTabIndex = tabIndex) {
-                    Tab(selected = tabIndex == 0, onClick = { tabIndex = 0 }, text = { Text("Feed") })
-                    Tab(selected = tabIndex == 1, onClick = { tabIndex = 1 }, text = { Text("Relevant") })
+                    Tab(selected = tabIndex == TAB_FEED, onClick = { tabIndex = TAB_FEED }, text = { Text("Feed") })
+                    Tab(selected = tabIndex == TAB_RELEVANT, onClick = { tabIndex = TAB_RELEVANT }, text = { Text("Relevant") })
                 }
                 when (tabIndex) {
-                    0 -> FeedTabContent(
+                    TAB_FEED -> FeedTabContent(
                         state = feedState,
                         openTitles = openTitles,
                         onArticleClick = onArticleClick,
