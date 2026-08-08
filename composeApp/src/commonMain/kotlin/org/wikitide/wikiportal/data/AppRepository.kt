@@ -34,6 +34,7 @@ class AppRepository(
     private val store: WikiPortalStore,
     private val appScope: CoroutineScope,
     private val metadataRefresher: WikiMetadataRefresher,
+    private val platformLanguageSync: PlatformLanguageSync,
 ) {
     private val _activeWiki = MutableStateFlow(PresetWikis.default)
     val activeWiki: StateFlow<WikiSite> = _activeWiki
@@ -197,6 +198,12 @@ class AppRepository(
                 ThemeMode.entries.firstOrNull { it.name == raw }?.let { _themeMode.value = it }
             }
             store.getSetting(SettingKeys.APP_LANGUAGE)?.let { _appLanguageTag.value = it.ifBlank { null } }
+
+            val platformState = platformLanguageSync.currentPlatformOverride()
+            if (platformState is PlatformLanguageState.Known && platformState.tag != _appLanguageTag.value) {
+                _appLanguageTag.value = platformState.tag
+                store.setSetting(SettingKeys.APP_LANGUAGE, platformState.tag.orEmpty())
+            }
             store.getSetting(SettingKeys.DYNAMIC_COLOR)?.let { _dynamicColor.value = it.toBoolean() }
             store.getSetting(SettingKeys.TEXT_SCALE)?.let { it.toFloatOrNull()?.let { f -> _textScale.value = f } }
             store.getSetting(SettingKeys.SHOW_IMAGES)?.let { _showImages.value = it.toBoolean() }
@@ -524,9 +531,14 @@ class AppRepository(
      * following the platform's own system language. This only updates
      * the saved preference; actually applying it happens reactively,
      * see AppLocaleEnvironment in App.kt, which every screen sits
-     * inside of.
+     * inside of. This is also the one and only place that pushes the
+     * choice out to platformLanguageSync.
      */
-    fun setAppLanguage(tag: String?) = persistSetting(_appLanguageTag, SettingKeys.APP_LANGUAGE, tag) { it.orEmpty() }
+    fun setAppLanguage(tag: String?) {
+        persistSetting(_appLanguageTag, SettingKeys.APP_LANGUAGE, tag) { it.orEmpty() }
+        platformLanguageSync.applyToPlatform(tag)
+    }
+
     fun setDynamicColor(enabled: Boolean) = persistSetting(_dynamicColor, SettingKeys.DYNAMIC_COLOR, enabled)
     fun setTextScale(scale: Float) = persistSetting(_textScale, SettingKeys.TEXT_SCALE, scale)
     fun setShowImages(enabled: Boolean) = persistSetting(_showImages, SettingKeys.SHOW_IMAGES, enabled)
