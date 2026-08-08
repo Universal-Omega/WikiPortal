@@ -9,6 +9,8 @@ import io.ktor.http.Parameters
 import org.wikitide.wikiportal.util.AppLog
 import org.wikitide.wikiportal.util.runCatchingCancellable
 
+private const val TAG = "FeedbackApi"
+
 object FeedbackConfig {
     const val FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLScrmwsQSFFSz9J6Ewd9sfTw6yoMtlmlqeMo5vYFjgDJZTdlAg/formResponse"
     const val ENTRY_MESSAGE = "entry.1812969761"
@@ -46,6 +48,6 @@ class FeedbackApi(private val httpClient: HttpClient) {
         // server or routing error came back, not the exact status.
         if (response.status.value >= 400) error("HTTP ${response.status.value} from feedback form")
     }.onFailure {
-        AppLog.e("FeedbackApi", "submit() failed", it)
+        AppLog.e(TAG, "submit() failed", it)
     }
 }
