@@ -71,7 +71,7 @@ import org.wikitide.wikiportal.navigation.TabsRoute
 import org.wikitide.wikiportal.ui.theme.WikiPortalTheme
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
-import org.wikitide.wikiportal.resources.Res
+import org.wikitide.wikiportal.resources.*
 
 @Immutable
 private data class BottomDestination(val route: Route, val labelRes: StringResource, val selected: ImageVector, val unselected: ImageVector)
