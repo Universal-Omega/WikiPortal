@@ -194,8 +194,9 @@ sqldelight {
 }
 
 compose.resources {
-    publicResClass = true
+    publicResClass = false
     packageOfResClass = "org.wikitide.wikiportal.resources"
+    generateResClass = auto
 }
 
 compose.desktop {
