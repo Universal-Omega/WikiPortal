@@ -20,7 +20,7 @@
     <string name="add_wiki_use_indie">Hãy thêm %1$s</string>
     <string name="app_name">WikiPortal</string>
     <string name="article_card_not_selected">Không được chọn</string>
-<string name="article_host_link_copied">Đã sao chép liên kết</string>
+    <string name="article_host_link_copied">Đã sao chép liên kết</string>
     <string name="article_host_share_failed">Không thể chia sẻ trang này</string>
     <string name="article_overflow_find_on_page">Tìm trong trang</string>
     <string name="article_overflow_forward">Tiến</string>
@@ -221,4 +221,4 @@
     <string name="wiki_picker_skin_title">Giao diện cho %1$s</string>
     <string name="wiki_picker_your_wikis">Wiki của bạn</string>
     <string name="wiki_switcher_chip_switch_wiki">Chuyển wiki</string>
-    </resources>
+</resources>
