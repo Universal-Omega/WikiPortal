@@ -41,6 +41,8 @@ ktlint:
     maxLineLength: 120
   MultiLineIfElse:
     active: true
+  ParameterListWrapping:
+    active: false
   PropertyWrapping:
     active: false
   SpacingBetweenDeclarationsWithComments:
