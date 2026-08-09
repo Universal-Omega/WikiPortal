@@ -17,6 +17,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -319,7 +320,7 @@ private fun SingleArticleTab(
         },
     )
 
-    var historyNavTrigger by remember(tab.id) { mutableStateOf(0) }
+    var historyNavTrigger by remember(tab.id) { mutableIntStateOf(0) }
 
     // Registered once, at tab creation, keyed by tab.id and not isActive.
     // See TabsRepository's comment on backHandlers for why this must not
