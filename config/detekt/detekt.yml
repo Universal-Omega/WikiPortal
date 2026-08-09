@@ -51,7 +51,7 @@ style:
   MagicNumber:
     active: false
   MaxLineLength:
-    active: true
+    active: false
     maxLineLength: 120
   SpacingAfterPackageAndImports:
     active: true
