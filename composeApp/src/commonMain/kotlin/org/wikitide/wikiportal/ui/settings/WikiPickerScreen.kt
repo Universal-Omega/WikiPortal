@@ -1,14 +1,14 @@
 package org.wikitide.wikiportal.ui.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -40,15 +40,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.model.PresetFolders
 import org.wikitide.wikiportal.data.model.Rank
 import org.wikitide.wikiportal.data.model.WikiFolder
 import org.wikitide.wikiportal.data.model.WikiSite
-import org.wikitide.wikiportal.ui.components.rememberDragReorderState
-import org.wikitide.wikiportal.util.RankUtil
-import org.jetbrains.compose.resources.stringResource
 import org.wikitide.wikiportal.resources.Res
 import org.wikitide.wikiportal.resources.browse_wikis_title
 import org.wikitide.wikiportal.resources.common_back
@@ -66,6 +64,8 @@ import org.wikitide.wikiportal.resources.wiki_picker_new_folder
 import org.wikitide.wikiportal.resources.wiki_picker_rename_folder
 import org.wikitide.wikiportal.resources.wiki_picker_reorder
 import org.wikitide.wikiportal.resources.wiki_picker_your_wikis
+import org.wikitide.wikiportal.ui.components.rememberDragReorderState
+import org.wikitide.wikiportal.util.RankUtil
 
 /**
  * A folder or an ungrouped custom wiki, whichever sits at the root of

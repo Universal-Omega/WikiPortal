@@ -54,11 +54,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.wikitide.wikiportal.data.TabsRepository
 import org.wikitide.wikiportal.data.model.ArticleTab
-import org.wikitide.wikiportal.ui.components.DestructiveConfirmDialog
-import org.jetbrains.compose.resources.stringResource
 import org.wikitide.wikiportal.resources.Res
 import org.wikitide.wikiportal.resources.common_back
 import org.wikitide.wikiportal.resources.tabs_close_all
@@ -70,6 +69,7 @@ import org.wikitide.wikiportal.resources.tabs_grid_title_n
 import org.wikitide.wikiportal.resources.tabs_grid_title_one
 import org.wikitide.wikiportal.resources.tabs_no_open_tabs
 import org.wikitide.wikiportal.resources.tabs_viewing
+import org.wikitide.wikiportal.ui.components.DestructiveConfirmDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

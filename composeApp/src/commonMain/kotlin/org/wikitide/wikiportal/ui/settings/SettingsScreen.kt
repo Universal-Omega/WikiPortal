@@ -43,11 +43,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.model.ThemeMode
-import org.wikitide.wikiportal.util.AppVersionProvider
-import org.jetbrains.compose.resources.stringResource
 import org.wikitide.wikiportal.resources.Res
 import org.wikitide.wikiportal.resources.app_name
 import org.wikitide.wikiportal.resources.logs_title
@@ -81,7 +80,7 @@ import org.wikitide.wikiportal.resources.settings_suggest_indie_title
 import org.wikitide.wikiportal.resources.settings_text_size
 import org.wikitide.wikiportal.resources.settings_theme
 import org.wikitide.wikiportal.resources.settings_title
-import org.wikitide.wikiportal.resources.theme_mode_system
+import org.wikitide.wikiportal.util.AppVersionProvider
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

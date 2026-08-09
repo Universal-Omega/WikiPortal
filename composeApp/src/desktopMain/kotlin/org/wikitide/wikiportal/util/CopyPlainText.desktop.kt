@@ -1,8 +1,8 @@
 package org.wikitide.wikiportal.util
 
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.Clipboard
 import java.awt.datatransfer.StringSelection
 
 @OptIn(ExperimentalComposeUiApi::class)

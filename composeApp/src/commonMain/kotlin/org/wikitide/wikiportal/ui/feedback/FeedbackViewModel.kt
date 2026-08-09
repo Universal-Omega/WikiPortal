@@ -6,11 +6,9 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import org.wikitide.wikiportal.network.FeedbackApi
-import org.wikitide.wikiportal.util.AppLog
-import org.wikitide.wikiportal.util.AppVersionProvider
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
+import org.wikitide.wikiportal.network.FeedbackApi
 import org.wikitide.wikiportal.resources.Res
 import org.wikitide.wikiportal.resources.feedback_category_bug
 import org.wikitide.wikiportal.resources.feedback_category_confusing
@@ -18,6 +16,8 @@ import org.wikitide.wikiportal.resources.feedback_category_idea
 import org.wikitide.wikiportal.resources.feedback_category_other
 import org.wikitide.wikiportal.resources.feedback_error_empty_message
 import org.wikitide.wikiportal.resources.feedback_error_send_failed
+import org.wikitide.wikiportal.util.AppLog
+import org.wikitide.wikiportal.util.AppVersionProvider
 
 private const val TAG = "FeedbackViewModel"
 

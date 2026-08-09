@@ -36,6 +36,9 @@ import com.multiplatform.webview.web.NativeWebView
 import com.multiplatform.webview.web.WebViewNavigator
 import com.multiplatform.webview.web.rememberWebViewNavigator
 import io.ktor.http.Url
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.TabsRepository
@@ -45,20 +48,17 @@ import org.wikitide.wikiportal.data.model.SavedPage
 import org.wikitide.wikiportal.data.model.effectiveDisableSafeMode
 import org.wikitide.wikiportal.network.MediaWikiApi
 import org.wikitide.wikiportal.network.PageSummaryDto
+import org.wikitide.wikiportal.resources.Res
+import org.wikitide.wikiportal.resources.article_host_link_copied
+import org.wikitide.wikiportal.resources.article_host_share_failed
 import org.wikitide.wikiportal.ui.tabs.TabsScreen
 import org.wikitide.wikiportal.util.ShareOutcome
-import org.wikitide.wikiportal.util.rememberPageSharer
 import org.wikitide.wikiportal.util.nowEpochMillis
 import org.wikitide.wikiportal.util.offline.captureArticleForOffline
 import org.wikitide.wikiportal.util.offline.offlineLoadIdentityUrl
 import org.wikitide.wikiportal.util.offline.offlineTitlesForWiki
 import org.wikitide.wikiportal.util.offline.rewriteOfflineLinks
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.stringResource
-import org.wikitide.wikiportal.resources.Res
-import org.wikitide.wikiportal.resources.article_host_link_copied
-import org.wikitide.wikiportal.resources.article_host_share_failed
+import org.wikitide.wikiportal.util.rememberPageSharer
 
 @Composable
 fun ArticleHostScreen(

@@ -61,17 +61,8 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import org.koin.compose.koinInject
-import org.wikitide.wikiportal.ui.components.DestructiveConfirmDialog
-import org.wikitide.wikiportal.util.AppLog
-import org.wikitide.wikiportal.util.LogEntry
-import org.wikitide.wikiportal.util.LogExporter
-import org.wikitide.wikiportal.util.LogLevel
-import org.wikitide.wikiportal.util.clearDeviceLogs
-import org.wikitide.wikiportal.util.copyPlainText
-import org.wikitide.wikiportal.util.nowEpochMillis
-import org.wikitide.wikiportal.util.readDeviceLogs
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.koinInject
 import org.wikitide.wikiportal.resources.Res
 import org.wikitide.wikiportal.resources.browse_wikis_clear_search
 import org.wikitide.wikiportal.resources.common_back
@@ -97,6 +88,15 @@ import org.wikitide.wikiportal.resources.logs_select
 import org.wikitide.wikiportal.resources.logs_title
 import org.wikitide.wikiportal.resources.saved_cancel_selection
 import org.wikitide.wikiportal.resources.saved_n_selected
+import org.wikitide.wikiportal.ui.components.DestructiveConfirmDialog
+import org.wikitide.wikiportal.util.AppLog
+import org.wikitide.wikiportal.util.LogEntry
+import org.wikitide.wikiportal.util.LogExporter
+import org.wikitide.wikiportal.util.LogLevel
+import org.wikitide.wikiportal.util.clearDeviceLogs
+import org.wikitide.wikiportal.util.copyPlainText
+import org.wikitide.wikiportal.util.nowEpochMillis
+import org.wikitide.wikiportal.util.readDeviceLogs
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable

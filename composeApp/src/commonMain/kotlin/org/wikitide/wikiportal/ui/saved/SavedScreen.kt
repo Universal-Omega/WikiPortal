@@ -31,14 +31,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.TabsRepository
 import org.wikitide.wikiportal.data.model.SavedPage
-import org.wikitide.wikiportal.ui.components.ArticleCard
-import org.wikitide.wikiportal.ui.components.DestructiveConfirmDialog
-import org.wikitide.wikiportal.ui.components.OpenTabIndicator
-import org.jetbrains.compose.resources.stringResource
 import org.wikitide.wikiportal.resources.Res
 import org.wikitide.wikiportal.resources.common_cannot_be_undone
 import org.wikitide.wikiportal.resources.common_clear_action
@@ -62,6 +59,9 @@ import org.wikitide.wikiportal.resources.saved_remove_selected
 import org.wikitide.wikiportal.resources.saved_tab_history
 import org.wikitide.wikiportal.resources.saved_tab_offline
 import org.wikitide.wikiportal.resources.saved_tab_saved
+import org.wikitide.wikiportal.ui.components.ArticleCard
+import org.wikitide.wikiportal.ui.components.DestructiveConfirmDialog
+import org.wikitide.wikiportal.ui.components.OpenTabIndicator
 
 /** Index of the "Saved" tab in [SavedScreen]'s [SecondaryTabRow]. */
 private const val TAB_SAVED = 0
