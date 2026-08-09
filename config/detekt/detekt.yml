@@ -36,8 +36,13 @@ ktlint:
     active: false
   Indentation:
     active: true
+  MaximumLineLength:
+    active: false
+    maxLineLength: 120
   MultiLineIfElse:
     active: true
+  PropertyWrapping:
+    active: false
   SpacingBetweenDeclarationsWithComments:
     active: false
     severity: info
