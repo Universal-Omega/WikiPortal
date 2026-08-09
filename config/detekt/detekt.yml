@@ -49,6 +49,8 @@ ktlint:
     active: true
   ParameterListWrapping:
     active: false
+  ParameterNaming:
+    active: false
   PropertyName:
     active: false
   PropertyWrapping:
