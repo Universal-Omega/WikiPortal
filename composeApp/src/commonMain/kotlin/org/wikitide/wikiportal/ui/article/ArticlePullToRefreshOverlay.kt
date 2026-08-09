@@ -8,7 +8,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -41,7 +41,7 @@ fun ArticlePullToRefreshOverlay(
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
-    var dragAmount by remember(tabKey) { mutableStateOf(0f) }
+    var dragAmount by remember(tabKey) { mutableFloatStateOf(0f) }
     val pullThresholdPx = with(LocalDensity.current) { PullToRefreshDefaults.PositionalThreshold.toPx() }
 
     Box(modifier) {
