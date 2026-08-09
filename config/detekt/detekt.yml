@@ -48,6 +48,8 @@ ktlint:
   SpacingBetweenDeclarationsWithComments:
     active: false
     severity: info
+  StatementWrapping:
+    active: false
   Wrapping:
     active: false
 
