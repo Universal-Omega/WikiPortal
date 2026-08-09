@@ -16,6 +16,8 @@ complexity:
 
 ktlint:
   active: true
+  # ArgumentListWrapping:
+  #  active: false
   BackingPropertyNaming:
     active: true
   BlankLineBetweenWhenConditions:
@@ -37,8 +39,10 @@ ktlint:
     severity: info
   TrailingCommaOnCallSite:
     active: true
+    useTrailingCommaOnCallSite: true
   TrailingCommaOnDeclarationSite:
     active: true
+    useTrailingCommaOnDeclarationSite: true
 
 style:
   ForbiddenComment:
