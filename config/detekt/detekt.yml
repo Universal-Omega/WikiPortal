@@ -36,7 +36,7 @@ ktlint:
     active: false
     severity: info
   TrailingCommaOnCallSite:
-    active: false
+    active: true
 
 style:
   ForbiddenComment:
