@@ -12,7 +12,7 @@
     <string name="add_wiki_indie_found_title">This site has an independent wiki</string>
     <string name="add_wiki_intro">Enter the address of any MediaWiki-powered site. We\'ll look for its API automatically.</string>
     <string name="add_wiki_script_path_label">Script path</string>
-    <string name="add_wiki_script_path_placeholder">e.g. /w, /wiki, /mediawiki</string>
+    <string name="add_wiki_script_path_placeholder">e.g. /w, /wiki, /mediawiki, /mw</string>
     <string name="add_wiki_submit">Add wiki</string>
     <string name="add_wiki_title">Add a wiki</string>
     <string name="add_wiki_url_label">Wiki URL</string>
