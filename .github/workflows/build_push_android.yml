@@ -34,3 +34,12 @@ jobs:
       with:
         name: debug-build
         path: "androidApp/build/outputs/apk/alpha/debug/*.apk"
+
+    - name: Upload Lint Results
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: lint-results
+        path: |
+          **/build/reports/lint-results-*.html
+          **/build/reports/lint-results-*.xml
