@@ -108,8 +108,6 @@ naming:
     ignoreAnnotated: ['Composable']
   MatchingDeclarationName:
     active: false
-  ParameterNaming:
-    active: false
   VariableNaming:
     active: false
 
@@ -171,7 +169,7 @@ Compose:
   MutableStateParam:
     active: true
   ParameterNaming:
-    active: true
+    active: false
   PreviewAnnotationNaming:
     active: true
   PreviewNaming:
