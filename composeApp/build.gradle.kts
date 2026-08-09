@@ -10,6 +10,7 @@ plugins {
     alias(libs.plugins.buildkonfig)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.compose.multiplatform)
+    alias(libs.plugins.detekt)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.sqldelight)
 }
@@ -31,6 +32,8 @@ kotlin {
         }
 
         lint {
+            checkTestSources = true
+            checkDependencies = true
             targetSdk = libs.versions.targetSdk.get().toInt()
         }
     }
@@ -150,8 +153,16 @@ kotlin {
     }
 }
 
+detekt {
+    buildUponDefaultConfig = true
+    config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
+}
+
 dependencies {
     androidRuntimeClasspath(libs.compose.ui.tooling)
+
+    detektPlugins(libs.compose.rules.detekt)
+    detektPlugins(libs.detekt.rules.ktlint.wrapper)
 }
 
 buildkonfig {
