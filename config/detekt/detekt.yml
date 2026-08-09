@@ -20,6 +20,8 @@ ktlint:
     active: false
   BackingPropertyNaming:
     active: true
+  BinaryExpressionWrapping:
+    active: false
   BlankLineBetweenWhenConditions:
     active: false
     severity: info
