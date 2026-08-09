@@ -16,8 +16,8 @@ complexity:
 
 ktlint:
   active: true
-  # ArgumentListWrapping:
-  #  active: false
+  ArgumentListWrapping:
+    active: false
   BackingPropertyNaming:
     active: true
   BlankLineBetweenWhenConditions:
