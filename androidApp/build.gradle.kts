@@ -108,14 +108,19 @@ android {
         }
     }
 
-    androidResources {
-        generateLocaleConfig = true
-    }
-
-
     val sharedComposeResDir = project(":composeApp").projectDir.resolve("src/commonMain/composeResources")
     val dynamicLocalesProvider = providers.of(LocateLocales::class.java) {
         parameters.composeResourceDir.set(sharedComposeResDir)
+    }
+
+    androidResources {
+        generateLocaleConfig = true
+
+        val detectedLocales = dynamicLocalesProvider.getOrElse(emptyList())
+        localeFilters.addAll(detectedLocales)
+        if (!detectedLocales.contains("en")) {
+            localeFilters.add("en")
+        }
     }
 
     bundle {
@@ -138,12 +143,6 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
-
-            val detectedLocales = dynamicLocalesProvider.getOrElse(emptyList())
-            localeFilters.addAll(detectedLocales)
-            if (!detectedLocales.contains("en")) {
-                localeFilters.add("en")
-            }
         }
     }
 }
