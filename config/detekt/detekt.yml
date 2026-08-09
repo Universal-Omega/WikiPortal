@@ -5,13 +5,19 @@ comments:
   active: false
 
 complexity:
+  ComplexCondition:
+    active: false
+  CyclomaticComplexMethod:
+    active: false
   LongMethod:
     active: false
   LongParameterList:
     active: false
   TooManyFunctions:
     active: false
-  CyclomaticComplexMethod:
+
+exceptions:
+  TooGenericExceptionCaught:
     active: false
 
 ktlint:
@@ -97,6 +103,8 @@ naming:
     active: true
     ignoreAnnotated: ['Composable']
   MatchingDeclarationName:
+    active: false
+  VariableNaming:
     active: false
 
 Compose:
