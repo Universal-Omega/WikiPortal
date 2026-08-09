@@ -52,8 +52,7 @@ import org.wikitide.wikiportal.resources.wiki_picker_skin_title
  * pull it back out to ungrouped, or spin up a brand new folder on the
  * spot rather than having to back out to the "New folder" action first.
  * Only offered for custom wikis. Presets stay in whichever
- * [PresetFolders] entry [org.wikitide.wikiportal.data.model.PresetWikis]
- * already assigned them.
+ * [PresetFolders] entry [PresetWikis] already assigned them.
  */
 @Composable
 internal fun MoveToFolderDialog(
