@@ -7,7 +7,7 @@ private const val TAG = "DeviceLogReader"
 
 /**
  * threadtime lines look like:
- * 07-27 21:49:12.345  1234  1234 E WikiPortal    : [Ktor] some message
+ * 07-27 21:49:12.345  1234  1234 E WikiPortal    : [HttpClient] some message
  * Captures pid and tid, not just to discard them, but because
  * Android's native logging layer, not just logcat's own display, really
  * does split a single Log.d/i/w/e call into several separate records
