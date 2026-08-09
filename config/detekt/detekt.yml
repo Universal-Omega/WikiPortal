@@ -49,6 +49,8 @@ ktlint:
     active: true
   ParameterListWrapping:
     active: false
+  PropertyName:
+    active: false
   PropertyWrapping:
     active: false
   SpacingBetweenDeclarationsWithComments:
@@ -69,6 +71,8 @@ style:
         reason: 'Use explicit backing properties instead.'
       - value: 'java.util.*'
         reason: 'Use Kotlin standard library APIs instead.'
+  LoopWithTooManyJumpStatements:
+    active: false
   MagicNumber:
     active: false
   MaxLineLength:
