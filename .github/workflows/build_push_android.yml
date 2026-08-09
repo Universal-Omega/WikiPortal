@@ -57,7 +57,7 @@ jobs:
         commit-message: "Apply detekt auto fixes"
         committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
         author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
-        branch: detekt-autofix/${{ github.head_ref }}
+        branch: detekt-autofix
         base: ${{ github.head_ref }}
         title: "Detekt auto fixes"
         body: "Automated detekt fixes generated from the CI run on this PR."
