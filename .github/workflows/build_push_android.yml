@@ -27,7 +27,7 @@ jobs:
         cache-read-only: false
 
     - name: Run Gradle
-      run: ./gradlew :androidApp:assembleAlphaDebug
+      run: ./gradlew :androidApp:assembleAlphaDebug check lint
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v7
