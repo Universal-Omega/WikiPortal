@@ -2,9 +2,9 @@ name: Fix locale issues
 
 on:
   push:
-    branches: [ main, locales ]
-    # paths:
-    #  - '**.xml'
+    branches: [ main ]
+    paths:
+      - '**.xml'
   workflow_dispatch:
 
 concurrency:
