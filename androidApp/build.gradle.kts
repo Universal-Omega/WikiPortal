@@ -1,9 +1,34 @@
+import org.gradle.api.provider.ValueSource
+import org.gradle.api.provider.ValueSourceParameters
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.io.File
 
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.compose.compiler)
 }
+
+interface LocaleScannerParams : ValueSourceParameters {
+    val composeResourceDir: Property<File>
+}
+
+abstract class LocateLocales : ValueSource<List<String>, LocaleScannerParams> {
+    override fun obtain(): List<String>? {
+        val baseDir = parameters.composeResourceDir.orNull ?: return null
+        if (!baseDir.exists()) return null
+
+        val locales = mutableListOf<String>()
+        baseDir.listFiles()?.forEach { file ->
+            if (file.isDirectory && file.name.startsWith("values-")) {
+                val qualifier = file.name.substringAfter("values-")
+                val cleanedLocale = qualifier.replace("-r", "-")
+                locales.add(cleanedLocale)
+            }
+        }
+        return locales
+    }
+}
+
 
 val javaTarget = JvmTarget.fromTarget(libs.versions.jvmTarget.get())
 
@@ -87,6 +112,12 @@ android {
         generateLocaleConfig = true
     }
 
+
+    val sharedComposeResDir = project(":composeApp").projectDir.resolve("src/commonMain/composeResources")
+    val dynamicLocalesProvider = providers.of(LocateLocales::class.java) {
+        parameters.composeResourceDir.set(sharedComposeResDir)
+    }
+
     bundle {
         language {
             enableSplit = true
@@ -107,6 +138,12 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+
+            val detectedLocales = dynamicLocalesProvider.getOrElse(emptyList())
+            localeFilters.addAll(detectedLocales)
+            if (!detectedLocales.contains("en")) {
+                localeFilters.add("en")
+            }
         }
     }
 }
