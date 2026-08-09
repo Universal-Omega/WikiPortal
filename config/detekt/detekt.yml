@@ -49,8 +49,6 @@ ktlint:
     active: true
   ParameterListWrapping:
     active: false
-  ParameterNaming:
-    active: false
   PropertyName:
     active: false
   PropertyWrapping:
@@ -109,6 +107,8 @@ naming:
     active: true
     ignoreAnnotated: ['Composable']
   MatchingDeclarationName:
+    active: false
+  ParameterNaming:
     active: false
   VariableNaming:
     active: false
