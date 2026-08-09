@@ -24,6 +24,7 @@ kotlin {
 
         androidResources {
             enable = true
+            generateLocaleConfig = true
         }
 
         compilerOptions {
