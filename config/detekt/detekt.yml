@@ -30,6 +30,8 @@ ktlint:
   FunctionExpressionBody:
     active: false
     severity: info
+  FunctionLiteral:
+    active: false
   FunctionSignature:
     active: false
   Indentation:
@@ -55,6 +57,8 @@ style:
   MaxLineLength:
     active: false
     maxLineLength: 120
+  ReturnCount:
+    active: false
   SpacingAfterPackageAndImports:
     active: true
   UnusedImport:
