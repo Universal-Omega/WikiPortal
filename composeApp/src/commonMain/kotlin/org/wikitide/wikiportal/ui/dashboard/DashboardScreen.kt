@@ -70,6 +70,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.wikitide.wikiportal.data.TabsRepository
@@ -78,11 +79,6 @@ import org.wikitide.wikiportal.network.PageSummaryDto
 import org.wikitide.wikiportal.network.RecentChangeEntry
 import org.wikitide.wikiportal.network.TrendDirection
 import org.wikitide.wikiportal.network.TrendingArticle
-import org.wikitide.wikiportal.ui.components.ArticleCard
-import org.wikitide.wikiportal.ui.components.CompactArticleChip
-import org.wikitide.wikiportal.ui.components.OpenTabIndicator
-import org.wikitide.wikiportal.ui.components.WikiSwitcherChip
-import org.jetbrains.compose.resources.stringResource
 import org.wikitide.wikiportal.resources.Res
 import org.wikitide.wikiportal.resources.article_top_bar_close_search
 import org.wikitide.wikiportal.resources.category_browse_title
@@ -113,6 +109,10 @@ import org.wikitide.wikiportal.resources.dashboard_tab_relevant
 import org.wikitide.wikiportal.resources.dashboard_title
 import org.wikitide.wikiportal.resources.dashboard_trending_on
 import org.wikitide.wikiportal.resources.dashboard_views_count
+import org.wikitide.wikiportal.ui.components.ArticleCard
+import org.wikitide.wikiportal.ui.components.CompactArticleChip
+import org.wikitide.wikiportal.ui.components.OpenTabIndicator
+import org.wikitide.wikiportal.ui.components.WikiSwitcherChip
 
 /** Index of the "Feed" tab in [DashboardScreen]'s [SecondaryTabRow]. */
 private const val TAB_FEED = 0

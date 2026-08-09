@@ -30,11 +30,10 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import kotlin.math.roundToInt
+import org.jetbrains.compose.resources.stringResource
 import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.model.WikiFolder
 import org.wikitide.wikiportal.data.model.WikiSite
-import org.jetbrains.compose.resources.stringResource
 import org.wikitide.wikiportal.resources.Res
 import org.wikitide.wikiportal.resources.common_back
 import org.wikitide.wikiportal.resources.common_cancel
@@ -46,6 +45,7 @@ import org.wikitide.wikiportal.resources.wiki_picker_new_folder
 import org.wikitide.wikiportal.resources.wiki_picker_no_folder
 import org.wikitide.wikiportal.resources.wiki_picker_no_skins
 import org.wikitide.wikiportal.resources.wiki_picker_skin_title
+import kotlin.math.roundToInt
 
 /**
  * Lets the person file a custom wiki into one of their own folders,

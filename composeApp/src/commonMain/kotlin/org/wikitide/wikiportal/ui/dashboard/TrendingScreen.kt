@@ -38,9 +38,9 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.wikitide.wikiportal.network.TrendingArticle
-import org.jetbrains.compose.resources.stringResource
 import org.wikitide.wikiportal.resources.Res
 import org.wikitide.wikiportal.resources.common_back
 import org.wikitide.wikiportal.resources.dashboard_trending_on

@@ -57,11 +57,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.wikitide.wikiportal.data.model.IndieWikiLanguages
 import org.wikitide.wikiportal.data.model.IndieWikiSite
 import org.wikitide.wikiportal.network.iwbFaviconUrl
-import org.jetbrains.compose.resources.stringResource
 import org.wikitide.wikiportal.resources.Res
 import org.wikitide.wikiportal.resources.browse_wikis_all_languages
 import org.wikitide.wikiportal.resources.browse_wikis_alternative_to
