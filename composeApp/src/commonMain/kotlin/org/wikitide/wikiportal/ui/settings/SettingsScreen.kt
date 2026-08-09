@@ -47,6 +47,41 @@ import org.koin.compose.koinInject
 import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.model.ThemeMode
 import org.wikitide.wikiportal.util.AppVersionProvider
+import org.jetbrains.compose.resources.stringResource
+import org.wikitide.wikiportal.resources.Res
+import org.wikitide.wikiportal.resources.app_name
+import org.wikitide.wikiportal.resources.logs_title
+import org.wikitide.wikiportal.resources.settings_about_body
+import org.wikitide.wikiportal.resources.settings_app_logs_subtitle
+import org.wikitide.wikiportal.resources.settings_confirm_leaving_subtitle
+import org.wikitide.wikiportal.resources.settings_confirm_leaving_title
+import org.wikitide.wikiportal.resources.settings_current_wiki
+import org.wikitide.wikiportal.resources.settings_disable_safe_mode_subtitle
+import org.wikitide.wikiportal.resources.settings_disable_safe_mode_title
+import org.wikitide.wikiportal.resources.settings_dynamic_color_subtitle
+import org.wikitide.wikiportal.resources.settings_dynamic_color_title
+import org.wikitide.wikiportal.resources.settings_github_subtitle
+import org.wikitide.wikiportal.resources.settings_github_title
+import org.wikitide.wikiportal.resources.settings_open_external_subtitle
+import org.wikitide.wikiportal.resources.settings_open_external_title
+import org.wikitide.wikiportal.resources.settings_open_new_tab_subtitle
+import org.wikitide.wikiportal.resources.settings_open_new_tab_title
+import org.wikitide.wikiportal.resources.settings_section_about
+import org.wikitide.wikiportal.resources.settings_section_appearance
+import org.wikitide.wikiportal.resources.settings_section_beta
+import org.wikitide.wikiportal.resources.settings_section_diagnostics
+import org.wikitide.wikiportal.resources.settings_section_reading
+import org.wikitide.wikiportal.resources.settings_section_wiki
+import org.wikitide.wikiportal.resources.settings_send_feedback_subtitle
+import org.wikitide.wikiportal.resources.settings_send_feedback_title
+import org.wikitide.wikiportal.resources.settings_show_images_subtitle
+import org.wikitide.wikiportal.resources.settings_show_images_title
+import org.wikitide.wikiportal.resources.settings_suggest_indie_subtitle
+import org.wikitide.wikiportal.resources.settings_suggest_indie_title
+import org.wikitide.wikiportal.resources.settings_text_size
+import org.wikitide.wikiportal.resources.settings_theme
+import org.wikitide.wikiportal.resources.settings_title
+import org.wikitide.wikiportal.resources.theme_mode_system
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,36 +106,36 @@ fun SettingsScreen(
 
     Column(Modifier.fillMaxSize()) {
         TopAppBar(
-            title = { Text("Settings", style = MaterialTheme.typography.headlineMedium) },
+            title = { Text(stringResource(Res.string.settings_title), style = MaterialTheme.typography.headlineMedium) },
             windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
             colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
         )
 
         LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
-            item { SectionLabel("Wiki") }
-            item { SettingsRow(icon = Icons.Filled.Public, title = "Current wiki", subtitle = activeWiki.name, onClick = onOpenWikiPicker) }
+            item { SectionLabel(stringResource(Res.string.settings_section_wiki)) }
+            item { SettingsRow(icon = Icons.Filled.Public, title = stringResource(Res.string.settings_current_wiki), subtitle = activeWiki.name, onClick = onOpenWikiPicker) }
             item {
                 SwitchRow(
                     icon = Icons.Filled.TravelExplore,
-                    title = "Suggest independent wikis",
-                    subtitle = "When adding a wiki that moved off Fandom or a similar host, suggest its independent replacement",
+                    title = stringResource(Res.string.settings_suggest_indie_title),
+                    subtitle = stringResource(Res.string.settings_suggest_indie_subtitle),
                     checked = indieWikiSuggestionsEnabled,
                     onCheckedChange = repository::setIndieWikiSuggestionsEnabled,
                 )
             }
 
             item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
-            item { SectionLabel("Appearance") }
+            item { SectionLabel(stringResource(Res.string.settings_section_appearance)) }
             item {
                 Column(Modifier.padding(horizontal = 20.dp)) {
-                    RowLabel(icon = Icons.Filled.DarkMode, text = "Theme")
+                    RowLabel(icon = Icons.Filled.DarkMode, text = stringResource(Res.string.settings_theme))
                     ThemeMode.entries.forEach { mode ->
                         Row(
                             modifier = Modifier.fillMaxWidth().clickable { repository.setThemeMode(mode) }.padding(vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             RadioButton(selected = themeMode == mode, onClick = { repository.setThemeMode(mode) })
-                            Text(mode.label, modifier = Modifier.padding(start = 8.dp))
+                            Text(stringResource(mode.labelRes), modifier = Modifier.padding(start = 8.dp))
                         }
                     }
                 }
@@ -108,15 +143,15 @@ fun SettingsScreen(
             item {
                 SwitchRow(
                     icon = Icons.Filled.Palette,
-                    title = "Dynamic color",
-                    subtitle = "Match app colors to your device wallpaper (Android 12+)",
+                    title = stringResource(Res.string.settings_dynamic_color_title),
+                    subtitle = stringResource(Res.string.settings_dynamic_color_subtitle),
                     checked = dynamicColor,
                     onCheckedChange = repository::setDynamicColor,
                 )
             }
             item {
                 Column(Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
-                    RowLabel(icon = Icons.Filled.TextFields, text = "Article text size")
+                    RowLabel(icon = Icons.Filled.TextFields, text = stringResource(Res.string.settings_text_size))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("A", style = MaterialTheme.typography.bodyMedium)
                         Slider(
@@ -132,12 +167,12 @@ fun SettingsScreen(
             }
 
             item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
-            item { SectionLabel("Reading") }
+            item { SectionLabel(stringResource(Res.string.settings_section_reading)) }
             item {
                 SwitchRow(
                     icon = Icons.Filled.Image,
-                    title = "Show images",
-                    subtitle = "Show thumbnails in Dashboard, Search, Tabs, and Saved",
+                    title = stringResource(Res.string.settings_show_images_title),
+                    subtitle = stringResource(Res.string.settings_show_images_subtitle),
                     checked = showImages,
                     onCheckedChange = repository::setShowImages,
                 )
@@ -145,8 +180,8 @@ fun SettingsScreen(
             item {
                 SwitchRow(
                     icon = Icons.AutoMirrored.Filled.OpenInNew,
-                    title = "Open outside links in browser",
-                    subtitle = "Links to sites outside your saved wikis open in your browser instead of the in-app reader",
+                    title = stringResource(Res.string.settings_open_external_title),
+                    subtitle = stringResource(Res.string.settings_open_external_subtitle),
                     checked = openLinksExternally,
                     onCheckedChange = repository::setOpenLinksExternally,
                 )
@@ -154,8 +189,8 @@ fun SettingsScreen(
             item {
                 SwitchRow(
                     icon = Icons.Filled.Shield,
-                    title = "Confirm before leaving a site",
-                    subtitle = "Ask before a tab loads a link to a site outside your wikis",
+                    title = stringResource(Res.string.settings_confirm_leaving_title),
+                    subtitle = stringResource(Res.string.settings_confirm_leaving_subtitle),
                     checked = confirmExternalNavigation,
                     onCheckedChange = repository::setConfirmExternalNavigation,
                 )
@@ -163,8 +198,8 @@ fun SettingsScreen(
             item {
                 SwitchRow(
                     icon = Icons.Filled.Shield,
-                    title = "Disable safe mode",
-                    subtitle = "Load pages without MediaWiki's safemode restrictions on gadgets and scripts. Can also be set per wiki from its options menu.",
+                    title = stringResource(Res.string.settings_disable_safe_mode_title),
+                    subtitle = stringResource(Res.string.settings_disable_safe_mode_subtitle),
                     checked = disableSafeMode,
                     onCheckedChange = repository::setDisableSafeMode,
                 )
@@ -172,37 +207,37 @@ fun SettingsScreen(
             item {
                 SwitchRow(
                     icon = Icons.AutoMirrored.Filled.OpenInNew,
-                    title = "Open new-tab links in a real tab",
-                    subtitle = "Links that open in a new window open a new WikiPortal tab instead of replacing the page",
+                    title = stringResource(Res.string.settings_open_new_tab_title),
+                    subtitle = stringResource(Res.string.settings_open_new_tab_subtitle),
                     checked = openBlankInNewTab,
                     onCheckedChange = repository::setOpenBlankInNewTab,
                 )
             }
 
             item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
-            item { SectionLabel("Beta") }
+            item { SectionLabel(stringResource(Res.string.settings_section_beta)) }
             item {
                 SettingsRow(
                     icon = Icons.Filled.Feedback,
-                    title = "Send feedback",
-                    subtitle = "Report a bug, share an idea, or flag what's confusing",
+                    title = stringResource(Res.string.settings_send_feedback_title),
+                    subtitle = stringResource(Res.string.settings_send_feedback_subtitle),
                     onClick = onOpenFeedback,
                 )
             }
 
             item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
-            item { SectionLabel("Diagnostics") }
+            item { SectionLabel(stringResource(Res.string.settings_section_diagnostics)) }
             item {
                 SettingsRow(
                     icon = Icons.Filled.Description,
-                    title = "App logs",
-                    subtitle = "Recent app activity, useful when troubleshooting a problem",
+                    title = stringResource(Res.string.logs_title),
+                    subtitle = stringResource(Res.string.settings_app_logs_subtitle),
                     onClick = onOpenLogs,
                 )
             }
 
             item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
-            item { SectionLabel("About") }
+            item { SectionLabel(stringResource(Res.string.settings_section_about)) }
             item {
                 Row(Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
                     Icon(
@@ -212,9 +247,9 @@ fun SettingsScreen(
                         modifier = Modifier.size(24.dp).padding(top = 2.dp),
                     )
                     Column(Modifier.padding(start = 16.dp)) {
-                        Text("WikiPortal", style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(Res.string.app_name), style = MaterialTheme.typography.titleMedium)
                         Text(
-                            "A universal MediaWiki client. Version ${versionProvider.versionName}",
+                            stringResource(Res.string.settings_about_body, versionProvider.versionName),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -224,8 +259,8 @@ fun SettingsScreen(
             item {
                 SettingsRow(
                     icon = Icons.Filled.Code,
-                    title = "GitHub repository",
-                    subtitle = "View the source, file an issue, or see what's changed",
+                    title = stringResource(Res.string.settings_github_title),
+                    subtitle = stringResource(Res.string.settings_github_subtitle),
                     onClick = { uriHandler.openUri("https://github.com/Universal-Omega/WikiPortal") },
                 )
             }

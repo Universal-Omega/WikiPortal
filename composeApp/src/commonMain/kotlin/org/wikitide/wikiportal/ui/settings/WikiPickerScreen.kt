@@ -48,6 +48,24 @@ import org.wikitide.wikiportal.data.model.WikiFolder
 import org.wikitide.wikiportal.data.model.WikiSite
 import org.wikitide.wikiportal.ui.components.rememberDragReorderState
 import org.wikitide.wikiportal.util.RankUtil
+import org.jetbrains.compose.resources.stringResource
+import org.wikitide.wikiportal.resources.Res
+import org.wikitide.wikiportal.resources.browse_wikis_title
+import org.wikitide.wikiportal.resources.common_back
+import org.wikitide.wikiportal.resources.common_cancel
+import org.wikitide.wikiportal.resources.common_create
+import org.wikitide.wikiportal.resources.common_delete
+import org.wikitide.wikiportal.resources.common_done
+import org.wikitide.wikiportal.resources.common_save
+import org.wikitide.wikiportal.resources.wiki_picker_add_by_url
+import org.wikitide.wikiportal.resources.wiki_picker_choose_title
+import org.wikitide.wikiportal.resources.wiki_picker_delete_folder_body
+import org.wikitide.wikiportal.resources.wiki_picker_delete_folder_title
+import org.wikitide.wikiportal.resources.wiki_picker_featured_wikis
+import org.wikitide.wikiportal.resources.wiki_picker_new_folder
+import org.wikitide.wikiportal.resources.wiki_picker_rename_folder
+import org.wikitide.wikiportal.resources.wiki_picker_reorder
+import org.wikitide.wikiportal.resources.wiki_picker_your_wikis
 
 /**
  * A folder or an ungrouped custom wiki, whichever sits at the root of
@@ -171,14 +189,14 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
         contentWindowInsets = WindowInsets(0.dp),
         topBar = {
             TopAppBar(
-                title = { Text("Choose a wiki") },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } },
+                title = { Text(stringResource(Res.string.wiki_picker_choose_title)) },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.common_back)) } },
                 windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddCustomWiki) {
-                Icon(Icons.Filled.Add, contentDescription = "Add a wiki by URL")
+                Icon(Icons.Filled.Add, contentDescription = stringResource(Res.string.wiki_picker_add_by_url))
             }
         },
     ) { innerPadding ->
@@ -187,7 +205,7 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
             modifier = Modifier.padding(innerPadding).fillMaxSize(),
             contentPadding = PaddingValues(top = 16.dp, bottom = 8.dp),
         ) {
-            item { GroupLabel("Featured wikis") }
+            item { GroupLabel(stringResource(Res.string.wiki_picker_featured_wikis)) }
             items(ungroupedPresetWikis, key = { it.id }) { wiki ->
                 WikiRow(
                     wiki, wiki.id == activeWiki.id,
@@ -218,9 +236,9 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
                         modifier = Modifier.fillMaxWidth().padding(end = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        GroupLabel("Your wikis", modifier = Modifier.weight(1f))
+                        GroupLabel(stringResource(Res.string.wiki_picker_your_wikis), modifier = Modifier.weight(1f))
                         TextButton(onClick = { reorderMode = !reorderMode }) {
-                            Text(if (reorderMode) "Done" else "Reorder")
+                            Text(if (reorderMode) stringResource(Res.string.common_done) else stringResource(Res.string.wiki_picker_reorder))
                         }
                     }
                 }
@@ -273,7 +291,7 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
                 ) {
                     Icon(Icons.Filled.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Text(
-                        "Add a wiki by URL",
+                        stringResource(Res.string.wiki_picker_add_by_url),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(start = 12.dp),
@@ -287,7 +305,7 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
                 ) {
                     Icon(Icons.Filled.TravelExplore, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Text(
-                        "Browse wikis",
+                        stringResource(Res.string.browse_wikis_title),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(start = 12.dp),
@@ -301,7 +319,7 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
                 ) {
                     Icon(Icons.Filled.CreateNewFolder, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Text(
-                        "New folder",
+                        stringResource(Res.string.wiki_picker_new_folder),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(start = 12.dp),
@@ -342,9 +360,9 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
 
     if (showNewFolderDialog) {
         FolderNameDialog(
-            title = "New folder",
+            title = stringResource(Res.string.wiki_picker_new_folder),
             initialName = "",
-            confirmLabel = "Create",
+            confirmLabel = stringResource(Res.string.common_create),
             onDismiss = { showNewFolderDialog = false },
             onConfirm = { name -> repository.createFolder(name); showNewFolderDialog = false },
         )
@@ -352,9 +370,9 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
 
     renamingFolder?.let { folder ->
         FolderNameDialog(
-            title = "Rename folder",
+            title = stringResource(Res.string.wiki_picker_rename_folder),
             initialName = folder.name,
-            confirmLabel = "Save",
+            confirmLabel = stringResource(Res.string.common_save),
             onDismiss = { renamingFolder = null },
             onConfirm = { name -> repository.renameFolder(folder.id, name); renamingFolder = null },
         )
@@ -363,12 +381,12 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
     deletingFolder?.let { folder ->
         AlertDialog(
             onDismissRequest = { deletingFolder = null },
-            title = { Text("Delete \"${folder.name}\"?") },
-            text = { Text("The wikis inside stay, they just won't be grouped in a folder anymore.") },
+            title = { Text(stringResource(Res.string.wiki_picker_delete_folder_title, folder.name)) },
+            text = { Text(stringResource(Res.string.wiki_picker_delete_folder_body)) },
             confirmButton = {
-                TextButton(onClick = { repository.deleteFolder(folder.id); deletingFolder = null }) { Text("Delete") }
+                TextButton(onClick = { repository.deleteFolder(folder.id); deletingFolder = null }) { Text(stringResource(Res.string.common_delete)) }
             },
-            dismissButton = { TextButton(onClick = { deletingFolder = null }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { deletingFolder = null }) { Text(stringResource(Res.string.common_cancel)) } },
         )
     }
 }

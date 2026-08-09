@@ -5,6 +5,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import io.ktor.http.Url
+import org.jetbrains.compose.resources.stringResource
+import org.wikitide.wikiportal.resources.Res
+import org.wikitide.wikiportal.resources.external_site_dialog_body
+import org.wikitide.wikiportal.resources.external_site_dialog_continue
+import org.wikitide.wikiportal.resources.external_site_dialog_outside_site
+import org.wikitide.wikiportal.resources.external_site_dialog_stay
+import org.wikitide.wikiportal.resources.external_site_dialog_title
 
 /**
  * Confirms leaving [currentWikiName] before following a link to [url],
@@ -23,13 +30,13 @@ fun ExternalSiteDialog(
     val host = runCatching { Url(url).host }.getOrNull()?.ifBlank { null }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Leave $currentWikiName?") },
-        text = { Text("This link goes to ${host ?: "an outside site"}, not $currentWikiName.") },
+        title = { Text(stringResource(Res.string.external_site_dialog_title, currentWikiName)) },
+        text = { Text(stringResource(Res.string.external_site_dialog_body, host ?: stringResource(Res.string.external_site_dialog_outside_site), currentWikiName)) },
         confirmButton = {
-            TextButton(onClick = onContinue) { Text("Continue") }
+            TextButton(onClick = onContinue) { Text(stringResource(Res.string.external_site_dialog_continue)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Stay here") }
+            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.external_site_dialog_stay)) }
         },
     )
 }

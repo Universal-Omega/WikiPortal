@@ -34,6 +34,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.koin.compose.viewmodel.koinViewModel
+import org.jetbrains.compose.resources.stringResource
+import org.wikitide.wikiportal.resources.Res
+import org.wikitide.wikiportal.resources.category_browse_empty
+import org.wikitide.wikiportal.resources.category_browse_no_results
+import org.wikitide.wikiportal.resources.category_browse_search_placeholder
+import org.wikitide.wikiportal.resources.category_browse_title
+import org.wikitide.wikiportal.resources.category_browse_type_to_search
+import org.wikitide.wikiportal.resources.common_back
+import org.wikitide.wikiportal.resources.common_clear
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,10 +57,10 @@ fun CategoryBrowseScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(selectedCategory?.removePrefix("Category:") ?: "Browse by category") },
+                title = { Text(selectedCategory?.removePrefix("Category:") ?: stringResource(Res.string.category_browse_title)) },
                 navigationIcon = {
                     IconButton(onClick = { if (selectedCategory != null) viewModel.clearSelection() else onBack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.common_back))
                     }
                 },
                 windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
@@ -79,13 +88,13 @@ private fun CategorySearchContent(
             value = state.query,
             onValueChange = onQueryChange,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-            placeholder = { Text("Search categories on ${state.wikiName}") },
+            placeholder = { Text(stringResource(Res.string.category_browse_search_placeholder, state.wikiName)) },
             singleLine = true,
             leadingIcon = { Icon(Icons.Filled.Category, contentDescription = null) },
             trailingIcon = {
                 if (state.query.isNotEmpty()) {
                     IconButton(onClick = { onQueryChange("") }) {
-                        Icon(Icons.Filled.Close, contentDescription = "Clear")
+                        Icon(Icons.Filled.Close, contentDescription = stringResource(Res.string.common_clear))
                     }
                 }
             },
@@ -97,14 +106,14 @@ private fun CategorySearchContent(
             }
             state.query.isNotBlank() && state.matches.isEmpty() && !state.isSearching -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
-                    "No categories found for \"${state.query}\"",
+                    stringResource(Res.string.category_browse_no_results, state.query),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             state.query.isBlank() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
-                    "Type a topic to find its category",
+                    stringResource(Res.string.category_browse_type_to_search),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -133,7 +142,7 @@ private fun CategoryMembersContent(
         }
         state.members.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(
-                "This category is empty",
+                stringResource(Res.string.category_browse_empty),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

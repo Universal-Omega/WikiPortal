@@ -58,6 +58,18 @@ import org.koin.compose.koinInject
 import org.wikitide.wikiportal.data.TabsRepository
 import org.wikitide.wikiportal.data.model.ArticleTab
 import org.wikitide.wikiportal.ui.components.DestructiveConfirmDialog
+import org.jetbrains.compose.resources.stringResource
+import org.wikitide.wikiportal.resources.Res
+import org.wikitide.wikiportal.resources.common_back
+import org.wikitide.wikiportal.resources.tabs_close_all
+import org.wikitide.wikiportal.resources.tabs_close_all_body
+import org.wikitide.wikiportal.resources.tabs_close_all_confirm
+import org.wikitide.wikiportal.resources.tabs_close_all_title
+import org.wikitide.wikiportal.resources.tabs_close_tab
+import org.wikitide.wikiportal.resources.tabs_grid_title_n
+import org.wikitide.wikiportal.resources.tabs_grid_title_one
+import org.wikitide.wikiportal.resources.tabs_no_open_tabs
+import org.wikitide.wikiportal.resources.tabs_viewing
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,12 +93,12 @@ fun TabsScreen(
         contentWindowInsets = WindowInsets(0.dp),
         topBar = {
             TopAppBar(
-                title = { Text("${tabs.size} tab${if (tabs.size == 1) "" else "s"}") },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } },
+                title = { Text(if (tabs.size == 1) stringResource(Res.string.tabs_grid_title_one) else stringResource(Res.string.tabs_grid_title_n, tabs.size)) },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.common_back)) } },
                 actions = {
                     if (tabs.isNotEmpty()) {
                         IconButton(onClick = { showCloseAllConfirm = true }) {
-                            Icon(Icons.Filled.DeleteSweep, contentDescription = "Close all tabs")
+                            Icon(Icons.Filled.DeleteSweep, contentDescription = stringResource(Res.string.tabs_close_all))
                         }
                     }
                 },
@@ -96,7 +108,7 @@ fun TabsScreen(
     ) { innerPadding ->
         if (tabs.isEmpty()) {
             Box(Modifier.padding(innerPadding).fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No open tabs", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(Res.string.tabs_no_open_tabs), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
             LazyVerticalGrid(
@@ -121,9 +133,9 @@ fun TabsScreen(
 
     if (showCloseAllConfirm) {
         DestructiveConfirmDialog(
-            title = "Close all tabs?",
-            text = "This closes every open tab. It can't be undone.",
-            confirmLabel = "Close all",
+            title = stringResource(Res.string.tabs_close_all_title),
+            text = stringResource(Res.string.tabs_close_all_body),
+            confirmLabel = stringResource(Res.string.tabs_close_all_confirm),
             onConfirm = { tabsRepository.closeAllTabs(); onBack() },
             onDismiss = { showCloseAllConfirm = false },
         )
@@ -201,7 +213,7 @@ private fun TabCard(
                             modifier = Modifier.size(12.dp),
                         )
                         Text(
-                            "Viewing",
+                            stringResource(Res.string.tabs_viewing),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.padding(start = 3.dp),
@@ -220,7 +232,7 @@ private fun TabCard(
                     IconButton(onClick = onClose, modifier = Modifier.matchParentSize()) {
                         Icon(
                             imageVector = Icons.Filled.Close,
-                            contentDescription = "Close tab",
+                            contentDescription = stringResource(Res.string.tabs_close_tab),
                             tint = Color.White,
                             modifier = Modifier.size(18.dp),
                         )

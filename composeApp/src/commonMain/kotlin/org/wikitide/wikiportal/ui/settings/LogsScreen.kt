@@ -71,6 +71,32 @@ import org.wikitide.wikiportal.util.clearDeviceLogs
 import org.wikitide.wikiportal.util.copyPlainText
 import org.wikitide.wikiportal.util.nowEpochMillis
 import org.wikitide.wikiportal.util.readDeviceLogs
+import org.jetbrains.compose.resources.stringResource
+import org.wikitide.wikiportal.resources.Res
+import org.wikitide.wikiportal.resources.browse_wikis_clear_search
+import org.wikitide.wikiportal.resources.common_back
+import org.wikitide.wikiportal.resources.common_clear_action
+import org.wikitide.wikiportal.resources.common_more_options
+import org.wikitide.wikiportal.resources.common_refresh
+import org.wikitide.wikiportal.resources.logs_all
+import org.wikitide.wikiportal.resources.logs_app_only
+import org.wikitide.wikiportal.resources.logs_clear
+import org.wikitide.wikiportal.resources.logs_clear_body
+import org.wikitide.wikiportal.resources.logs_clear_title
+import org.wikitide.wikiportal.resources.logs_copied
+import org.wikitide.wikiportal.resources.logs_copy_all
+import org.wikitide.wikiportal.resources.logs_copy_failed
+import org.wikitide.wikiportal.resources.logs_copy_selected
+import org.wikitide.wikiportal.resources.logs_empty_session
+import org.wikitide.wikiportal.resources.logs_export
+import org.wikitide.wikiportal.resources.logs_export_failed
+import org.wikitide.wikiportal.resources.logs_no_filter_match
+import org.wikitide.wikiportal.resources.logs_no_match
+import org.wikitide.wikiportal.resources.logs_search_placeholder
+import org.wikitide.wikiportal.resources.logs_select
+import org.wikitide.wikiportal.resources.logs_title
+import org.wikitide.wikiportal.resources.saved_cancel_selection
+import org.wikitide.wikiportal.resources.saved_n_selected
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -88,6 +114,9 @@ fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
     val scope = rememberCoroutineScope()
     val clipboard = LocalClipboard.current
     val snackbarHostState = remember { SnackbarHostState() }
+    val copiedMessage = stringResource(Res.string.logs_copied)
+    val copyFailedMessage = stringResource(Res.string.logs_copy_failed)
+    val exportFailedMessage = stringResource(Res.string.logs_export_failed)
 
     fun exitSelection() {
         selectionMode = false
@@ -132,7 +161,7 @@ fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
     fun copyToClipboard(text: String) {
         scope.launch {
             val ok = copyPlainText(clipboard, text)
-            snackbarHostState.showSnackbar(if (ok) "Copied" else "Couldn't copy")
+            snackbarHostState.showSnackbar(if (ok) copiedMessage else copyFailedMessage)
         }
     }
 
@@ -141,12 +170,12 @@ fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
         topBar = {
             Column {
                 TopAppBar(
-                    title = { Text(if (selectionMode) "${selectedIndices.size} selected" else "App logs") },
+                    title = { Text(if (selectionMode) stringResource(Res.string.saved_n_selected, selectedIndices.size) else stringResource(Res.string.logs_title)) },
                     navigationIcon = {
                         IconButton(onClick = { if (selectionMode) exitSelection() else onBack() }) {
                             Icon(
                                 imageVector = if (selectionMode) Icons.Filled.Close else Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = if (selectionMode) "Cancel selection" else "Back",
+                                contentDescription = if (selectionMode) stringResource(Res.string.saved_cancel_selection) else stringResource(Res.string.common_back),
                             )
                         }
                     },
@@ -159,40 +188,40 @@ fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
                                 },
                                 enabled = selectedIndices.isNotEmpty(),
                             ) {
-                                Icon(Icons.Filled.ContentCopy, contentDescription = "Copy selected")
+                                Icon(Icons.Filled.ContentCopy, contentDescription = stringResource(Res.string.logs_copy_selected))
                             }
                         } else {
                             IconButton(onClick = { scope.launch { load() } }) {
-                                Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
+                                Icon(Icons.Filled.Refresh, contentDescription = stringResource(Res.string.common_refresh))
                             }
                             IconButton(onClick = { menuOpen = true }) {
-                                Icon(Icons.Filled.MoreVert, contentDescription = "More options")
+                                Icon(Icons.Filled.MoreVert, contentDescription = stringResource(Res.string.common_more_options))
                             }
                             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                                 DropdownMenuItem(
-                                    text = { Text("Select") },
+                                    text = { Text(stringResource(Res.string.logs_select)) },
                                     onClick = { menuOpen = false; selectionMode = true },
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("Copy all") },
+                                    text = { Text(stringResource(Res.string.logs_copy_all)) },
                                     onClick = {
                                         menuOpen = false
                                         copyToClipboard(formatted(displayed))
                                     },
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("Export to file") },
+                                    text = { Text(stringResource(Res.string.logs_export)) },
                                     onClick = {
                                         menuOpen = false
                                         scope.launch {
                                             val fileName = "wikiportal-logs-${nowEpochMillis()}.txt"
                                             val result = logExporter.export(fileName, formatted(displayed))
-                                            snackbarHostState.showSnackbar(result.getOrElse { "Couldn't export logs" })
+                                            snackbarHostState.showSnackbar(result.getOrElse { exportFailedMessage })
                                         }
                                     },
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("Clear logs") },
+                                    text = { Text(stringResource(Res.string.logs_clear)) },
                                     leadingIcon = { Icon(Icons.Filled.DeleteSweep, contentDescription = null) },
                                     onClick = {
                                         menuOpen = false
@@ -224,9 +253,9 @@ fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
             }
             displayed.isEmpty() -> Box(Modifier.fillMaxSize().padding(innerPadding).padding(20.dp)) {
                 val message = when {
-                    (if (appOnly) appEntries else deviceEntries).isEmpty() -> "Nothing logged yet this session."
-                    searchQuery.isNotBlank() -> "No logs match \"$searchQuery\"."
-                    else -> "Nothing matches the current filters."
+                    (if (appOnly) appEntries else deviceEntries).isEmpty() -> stringResource(Res.string.logs_empty_session)
+                    searchQuery.isNotBlank() -> stringResource(Res.string.logs_no_match, searchQuery)
+                    else -> stringResource(Res.string.logs_no_filter_match)
                 }
                 Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -257,9 +286,9 @@ fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
 
     if (showClearConfirm) {
         DestructiveConfirmDialog(
-            title = "Clear logs?",
-            text = "This clears the current in-app log buffer. It can't be undone.",
-            confirmLabel = "Clear",
+            title = stringResource(Res.string.logs_clear_title),
+            text = stringResource(Res.string.logs_clear_body),
+            confirmLabel = stringResource(Res.string.common_clear_action),
             onConfirm = { scope.launch { clearDeviceLogs(); load() } },
             onDismiss = { showClearConfirm = false },
         )
@@ -272,12 +301,12 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
         value = query,
         onValueChange = onQueryChange,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
-        placeholder = { Text("Search logs") },
+        placeholder = { Text(stringResource(Res.string.logs_search_placeholder)) },
         leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
         trailingIcon = {
             if (query.isNotEmpty()) {
                 IconButton(onClick = { onQueryChange("") }) {
-                    Icon(Icons.Filled.Close, contentDescription = "Clear search")
+                    Icon(Icons.Filled.Close, contentDescription = stringResource(Res.string.browse_wikis_clear_search))
                 }
             }
         },
@@ -300,7 +329,7 @@ private fun FilterRow(
         FilterChip(
             selected = appOnly,
             onClick = { onAppOnlyChange(!appOnly) },
-            label = { Text(if (appOnly) "App only" else "All") },
+            label = { Text(if (appOnly) stringResource(Res.string.logs_app_only) else stringResource(Res.string.logs_all)) },
         )
         LogLevel.entries.forEach { level ->
             FilterChip(

@@ -44,6 +44,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.koin.compose.viewmodel.koinViewModel
+import org.jetbrains.compose.resources.stringResource
+import org.wikitide.wikiportal.resources.Res
+import org.wikitide.wikiportal.resources.add_wiki_browse_indie
+import org.wikitide.wikiportal.resources.add_wiki_checking
+import org.wikitide.wikiportal.resources.add_wiki_continue_original
+import org.wikitide.wikiportal.resources.add_wiki_indie_found_body
+import org.wikitide.wikiportal.resources.add_wiki_indie_found_title
+import org.wikitide.wikiportal.resources.add_wiki_intro
+import org.wikitide.wikiportal.resources.add_wiki_script_path_label
+import org.wikitide.wikiportal.resources.add_wiki_script_path_placeholder
+import org.wikitide.wikiportal.resources.add_wiki_submit
+import org.wikitide.wikiportal.resources.add_wiki_title
+import org.wikitide.wikiportal.resources.add_wiki_url_label
+import org.wikitide.wikiportal.resources.add_wiki_url_placeholder
+import org.wikitide.wikiportal.resources.add_wiki_use_indie
+import org.wikitide.wikiportal.resources.common_back
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,8 +74,8 @@ fun AddWikiScreen(onDone: () -> Unit, onBrowseWikis: () -> Unit, viewModel: AddW
         contentWindowInsets = WindowInsets(0.dp),
         topBar = {
             TopAppBar(
-                title = { Text("Add a wiki") },
-                navigationIcon = { IconButton(onClick = onDone) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } },
+                title = { Text(stringResource(Res.string.add_wiki_title)) },
+                navigationIcon = { IconButton(onClick = onDone) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.common_back)) } },
                 windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
             )
         },
@@ -74,15 +90,15 @@ fun AddWikiScreen(onDone: () -> Unit, onBrowseWikis: () -> Unit, viewModel: AddW
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                "Enter the address of any MediaWiki-powered site. We'll look for its API automatically.",
+                stringResource(Res.string.add_wiki_intro),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             OutlinedTextField(
                 value = urlInput,
                 onValueChange = { urlInput = it },
-                label = { Text("Wiki URL") },
-                placeholder = { Text("https://mywiki.example.com") },
+                label = { Text(stringResource(Res.string.add_wiki_url_label)) },
+                placeholder = { Text(stringResource(Res.string.add_wiki_url_placeholder)) },
                 singleLine = true,
                 isError = state.errorMessage != null,
                 modifier = Modifier.fillMaxWidth(),
@@ -91,8 +107,8 @@ fun AddWikiScreen(onDone: () -> Unit, onBrowseWikis: () -> Unit, viewModel: AddW
                 OutlinedTextField(
                     value = scriptPathInput,
                     onValueChange = { scriptPathInput = it },
-                    label = { Text("Script path") },
-                    placeholder = { Text("e.g. /w, /wiki, /mediawiki") },
+                    label = { Text(stringResource(Res.string.add_wiki_script_path_label)) },
+                    placeholder = { Text(stringResource(Res.string.add_wiki_script_path_placeholder)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -108,7 +124,7 @@ fun AddWikiScreen(onDone: () -> Unit, onBrowseWikis: () -> Unit, viewModel: AddW
                 if (state.isChecking) {
                     CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp).size(18.dp), strokeWidth = 2.dp)
                 }
-                Text(if (state.isChecking) "Checking..." else "Add wiki")
+                Text(if (state.isChecking) stringResource(Res.string.add_wiki_checking) else stringResource(Res.string.add_wiki_submit))
             }
 
             Row(
@@ -117,7 +133,7 @@ fun AddWikiScreen(onDone: () -> Unit, onBrowseWikis: () -> Unit, viewModel: AddW
             ) {
                 TextButton(onClick = onBrowseWikis) {
                     Icon(Icons.Filled.TravelExplore, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Text("Or browse independent wikis", modifier = Modifier.padding(start = 8.dp))
+                    Text(stringResource(Res.string.add_wiki_browse_indie), modifier = Modifier.padding(start = 8.dp))
                 }
             }
         }
@@ -158,21 +174,21 @@ private fun IndieWikiSuggestionCard(
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Filled.TravelExplore, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
                 Text(
-                    "This site has an independent wiki",
+                    stringResource(Res.string.add_wiki_indie_found_title),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                 )
                 Text(
-                    "${suggestion.destinationName} (${suggestion.destinationBaseUrl}) is a fan-run replacement not tied to a for-profit host, and is likely more up to date.",
+                    stringResource(Res.string.add_wiki_indie_found_body, suggestion.destinationName, suggestion.destinationBaseUrl),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Button(onClick = onUseIndieWiki, enabled = !isChecking, modifier = Modifier.fillMaxWidth()) {
-                    Text("Add ${suggestion.destinationName} instead")
+                    Text(stringResource(Res.string.add_wiki_use_indie, suggestion.destinationName))
                 }
                 OutlinedButton(onClick = onContinueAnyway, enabled = !isChecking, modifier = Modifier.fillMaxWidth()) {
-                    Text("Add the original site anyway")
+                    Text(stringResource(Res.string.add_wiki_continue_original))
                 }
             }
         }

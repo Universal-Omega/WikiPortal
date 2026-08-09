@@ -43,6 +43,22 @@ import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.TabsRepository
 import org.wikitide.wikiportal.ui.components.ArticleCard
 import org.wikitide.wikiportal.ui.components.DestructiveConfirmDialog
+import org.jetbrains.compose.resources.stringResource
+import org.wikitide.wikiportal.resources.Res
+import org.wikitide.wikiportal.resources.common_cannot_be_undone
+import org.wikitide.wikiportal.resources.saved_cancel_selection
+import org.wikitide.wikiportal.resources.saved_n_selected
+import org.wikitide.wikiportal.resources.tabs_close
+import org.wikitide.wikiportal.resources.tabs_close_all
+import org.wikitide.wikiportal.resources.tabs_close_all_body
+import org.wikitide.wikiportal.resources.tabs_close_all_confirm
+import org.wikitide.wikiportal.resources.tabs_close_all_title
+import org.wikitide.wikiportal.resources.tabs_close_n
+import org.wikitide.wikiportal.resources.tabs_close_one
+import org.wikitide.wikiportal.resources.tabs_close_selected
+import org.wikitide.wikiportal.resources.tabs_last_viewed
+import org.wikitide.wikiportal.resources.tabs_no_open_tabs
+import org.wikitide.wikiportal.resources.tabs_title
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,25 +90,25 @@ fun TabsListScreen(
         TopAppBar(
             title = {
                 Text(
-                    if (selectionActive) "${selectedIds.size} selected" else "Tabs",
+                    if (selectionActive) stringResource(Res.string.saved_n_selected, selectedIds.size) else stringResource(Res.string.tabs_title),
                     style = MaterialTheme.typography.headlineMedium,
                 )
             },
             navigationIcon = {
                 if (selectionActive) {
                     IconButton(onClick = { selectedIds = emptySet() }) {
-                        Icon(Icons.Filled.Close, contentDescription = "Cancel selection")
+                        Icon(Icons.Filled.Close, contentDescription = stringResource(Res.string.saved_cancel_selection))
                     }
                 }
             },
             actions = {
                 if (selectionActive) {
                     IconButton(onClick = { showDeleteSelectedConfirm = true }) {
-                        Icon(Icons.Filled.Delete, contentDescription = "Close selected tabs")
+                        Icon(Icons.Filled.Delete, contentDescription = stringResource(Res.string.tabs_close_selected))
                     }
                 } else if (tabs.isNotEmpty()) {
                     IconButton(onClick = { showCloseAllConfirm = true }) {
-                        Icon(Icons.Filled.DeleteSweep, contentDescription = "Close all tabs")
+                        Icon(Icons.Filled.DeleteSweep, contentDescription = stringResource(Res.string.tabs_close_all))
                     }
                 }
             },
@@ -102,7 +118,7 @@ fun TabsListScreen(
 
         if (tabs.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No open tabs", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(Res.string.tabs_no_open_tabs), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
             LazyColumn(
@@ -147,7 +163,7 @@ fun TabsListScreen(
                                         modifier = Modifier.size(16.dp),
                                     )
                                     Text(
-                                        "Last viewed",
+                                        stringResource(Res.string.tabs_last_viewed),
                                         style = MaterialTheme.typography.labelMedium,
                                         color = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.padding(start = 4.dp),
@@ -165,9 +181,9 @@ fun TabsListScreen(
 
     if (showCloseAllConfirm) {
         DestructiveConfirmDialog(
-            title = "Close all tabs?",
-            text = "This closes every open tab. It can't be undone.",
-            confirmLabel = "Close all",
+            title = stringResource(Res.string.tabs_close_all_title),
+            text = stringResource(Res.string.tabs_close_all_body),
+            confirmLabel = stringResource(Res.string.tabs_close_all_confirm),
             onConfirm = tabsRepository::closeAllTabs,
             onDismiss = { showCloseAllConfirm = false },
         )
@@ -176,9 +192,9 @@ fun TabsListScreen(
     if (showDeleteSelectedConfirm) {
         val count = selectedIds.size
         DestructiveConfirmDialog(
-            title = if (count == 1) "Close 1 tab?" else "Close $count tabs?",
-            text = "This can't be undone.",
-            confirmLabel = "Close",
+            title = if (count == 1) stringResource(Res.string.tabs_close_one) else stringResource(Res.string.tabs_close_n, count),
+            text = stringResource(Res.string.common_cannot_be_undone),
+            confirmLabel = stringResource(Res.string.tabs_close),
             onConfirm = {
                 selectedIds.forEach { id -> tabsRepository.closeTab(id) }
                 selectedIds = emptySet()

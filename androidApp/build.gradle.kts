@@ -83,6 +83,10 @@ android {
         }
     }
 
+    androidResources {
+        generateLocaleConfig = true
+    }
+
     bundle {
         language {
             enableSplit = true
