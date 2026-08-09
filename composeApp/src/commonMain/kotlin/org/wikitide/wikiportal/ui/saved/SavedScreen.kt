@@ -31,14 +31,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.TabsRepository
 import org.wikitide.wikiportal.data.model.SavedPage
-import org.wikitide.wikiportal.ui.components.ArticleCard
-import org.wikitide.wikiportal.ui.components.DestructiveConfirmDialog
-import org.wikitide.wikiportal.ui.components.OpenTabIndicator
-import org.jetbrains.compose.resources.stringResource
 import org.wikitide.wikiportal.resources.Res
 import org.wikitide.wikiportal.resources.common_cannot_be_undone
 import org.wikitide.wikiportal.resources.common_clear_action
@@ -62,6 +59,9 @@ import org.wikitide.wikiportal.resources.saved_remove_selected
 import org.wikitide.wikiportal.resources.saved_tab_history
 import org.wikitide.wikiportal.resources.saved_tab_offline
 import org.wikitide.wikiportal.resources.saved_tab_saved
+import org.wikitide.wikiportal.ui.components.ArticleCard
+import org.wikitide.wikiportal.ui.components.DestructiveConfirmDialog
+import org.wikitide.wikiportal.ui.components.OpenTabIndicator
 
 /** Index of the "Saved" tab in [SavedScreen]'s [SecondaryTabRow]. */
 private const val TAB_SAVED = 0
@@ -101,7 +101,10 @@ fun SavedScreen(
         TopAppBar(
             title = {
                 Text(
-                    if (selectionActive) stringResource(Res.string.saved_n_selected, selectedKeys.size) else stringResource(Res.string.dashboard_saved),
+                    if (selectionActive) stringResource(
+                            Res.string.saved_n_selected,
+                            selectedKeys.size
+                        ) else stringResource(Res.string.dashboard_saved),
                     style = MaterialTheme.typography.headlineMedium,
                 )
             },
@@ -119,7 +122,10 @@ fun SavedScreen(
                     }
                 } else if (tab == TAB_HISTORY && history.isNotEmpty()) {
                     IconButton(onClick = { showClearHistoryConfirm = true }) {
-                        Icon(Icons.Filled.DeleteSweep, contentDescription = stringResource(Res.string.saved_clear_history))
+                        Icon(
+                            Icons.Filled.DeleteSweep,
+                            contentDescription = stringResource(Res.string.saved_clear_history)
+                        )
                     }
                 }
             },
@@ -127,9 +133,21 @@ fun SavedScreen(
             colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
         )
         SecondaryTabRow(selectedTabIndex = tab) {
-            Tab(selected = tab == TAB_SAVED, onClick = { tab = TAB_SAVED }, text = { Text(stringResource(Res.string.saved_tab_saved, saved.size)) })
-            Tab(selected = tab == TAB_OFFLINE, onClick = { tab = TAB_OFFLINE }, text = { Text(stringResource(Res.string.saved_tab_offline, offline.size)) })
-            Tab(selected = tab == TAB_HISTORY, onClick = { tab = TAB_HISTORY }, text = { Text(stringResource(Res.string.saved_tab_history)) })
+            Tab(
+                selected = tab == TAB_SAVED,
+                onClick = { tab = TAB_SAVED },
+                text = { Text(stringResource(Res.string.saved_tab_saved, saved.size)) }
+            )
+            Tab(
+                selected = tab == TAB_OFFLINE,
+                onClick = { tab = TAB_OFFLINE },
+                text = { Text(stringResource(Res.string.saved_tab_offline, offline.size)) }
+            )
+            Tab(
+                selected = tab == TAB_HISTORY,
+                onClick = { tab = TAB_HISTORY },
+                text = { Text(stringResource(Res.string.saved_tab_history)) }
+            )
         }
 
         val list = when (tab) {
@@ -190,9 +208,15 @@ fun SavedScreen(
     if (showDeleteSelectedConfirm) {
         val count = selectedKeys.size
         val confirmText = when (tab) {
-            TAB_SAVED -> if (count == 1) stringResource(Res.string.saved_remove_one_saved) else stringResource(Res.string.saved_remove_n_saved, count)
-            TAB_OFFLINE -> if (count == 1) stringResource(Res.string.saved_remove_one_offline) else stringResource(Res.string.saved_remove_n_offline, count)
-            else -> if (count == 1) stringResource(Res.string.saved_remove_one_history) else stringResource(Res.string.saved_remove_n_history, count)
+            TAB_SAVED -> if (count == 1) stringResource(
+                    Res.string.saved_remove_one_saved
+                ) else stringResource(Res.string.saved_remove_n_saved, count)
+            TAB_OFFLINE -> if (count == 1) stringResource(
+                    Res.string.saved_remove_one_offline
+                ) else stringResource(Res.string.saved_remove_n_offline, count)
+            else -> if (count == 1) stringResource(
+                    Res.string.saved_remove_one_history
+                ) else stringResource(Res.string.saved_remove_n_history, count)
         }
         DestructiveConfirmDialog(
             title = confirmText,

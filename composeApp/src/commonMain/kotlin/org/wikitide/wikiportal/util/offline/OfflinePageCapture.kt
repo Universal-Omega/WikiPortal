@@ -27,7 +27,9 @@ import org.wikitide.wikiportal.network.MediaWikiApi
  * visibly freeze the whole app, not just the tab doing the saving,
  * for as long as the save took.
  */
-suspend fun captureArticleForOffline(site: WikiSite, title: String, api: MediaWikiApi): Result<String> = withContext(Dispatchers.Default) {
+suspend fun captureArticleForOffline(site: WikiSite, title: String, api: MediaWikiApi): Result<String> = withContext(
+    Dispatchers.Default
+) {
     val rendered = api.getRenderedPage(site, title).getOrElse { return@withContext Result.failure(it) }
 
     val withoutJunk = stripKnownJunkElements(rendered)

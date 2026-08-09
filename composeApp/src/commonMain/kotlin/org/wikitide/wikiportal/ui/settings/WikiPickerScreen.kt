@@ -1,14 +1,14 @@
 package org.wikitide.wikiportal.ui.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -40,15 +40,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.model.PresetFolders
 import org.wikitide.wikiportal.data.model.Rank
 import org.wikitide.wikiportal.data.model.WikiFolder
 import org.wikitide.wikiportal.data.model.WikiSite
-import org.wikitide.wikiportal.ui.components.rememberDragReorderState
-import org.wikitide.wikiportal.util.RankUtil
-import org.jetbrains.compose.resources.stringResource
 import org.wikitide.wikiportal.resources.Res
 import org.wikitide.wikiportal.resources.browse_wikis_title
 import org.wikitide.wikiportal.resources.common_back
@@ -66,6 +64,8 @@ import org.wikitide.wikiportal.resources.wiki_picker_new_folder
 import org.wikitide.wikiportal.resources.wiki_picker_rename_folder
 import org.wikitide.wikiportal.resources.wiki_picker_reorder
 import org.wikitide.wikiportal.resources.wiki_picker_your_wikis
+import org.wikitide.wikiportal.ui.components.rememberDragReorderState
+import org.wikitide.wikiportal.util.RankUtil
 
 /**
  * A folder or an ungrouped custom wiki, whichever sits at the root of
@@ -92,7 +92,12 @@ private sealed interface RootItem {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWikis: () -> Unit, repository: AppRepository = koinInject()) {
+fun WikiPickerScreen(
+    onBack: () -> Unit,
+    onAddCustomWiki: () -> Unit,
+    onBrowseWikis: () -> Unit,
+    repository: AppRepository = koinInject(),
+) {
     val activeWiki by repository.activeWiki.collectAsState()
     val presetWikis by repository.presetWikis.collectAsState()
     val customWikis by repository.customWikis.collectAsState()
@@ -126,7 +131,9 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
     // turning back into one long list the person has to scroll past.
     val expandedFolders = remember { mutableStateMapOf<String, Boolean>() }
     fun isExpanded(folderId: String) = expandedFolders[folderId] == true
-    fun toggleExpanded(folderId: String) { expandedFolders[folderId] = !isExpanded(folderId) }
+    fun toggleExpanded(folderId: String) {
+        expandedFolders[folderId] = !isExpanded(folderId)
+    }
 
     val presetsByFolder = remember(presetWikis) { presetWikis.groupBy { it.folderId } }
     val ungroupedPresetWikis = presetsByFolder[null] ?: emptyList()
@@ -135,7 +142,13 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
     val ungroupedCustomWikis = customByFolder[null] ?: emptyList()
 
     val rootItems = remember(customFolders, ungroupedCustomWikis) {
-        (customFolders.map { RootItem.FolderRoot(it) } + ungroupedCustomWikis.map { RootItem.WikiRoot(it) }).sortedBy { it.rank }
+        (
+            customFolders.map {
+            RootItem.FolderRoot(
+            it
+        )
+        } + ungroupedCustomWikis.map { RootItem.WikiRoot(it) }
+        ).sortedBy { it.rank }
     }
 
     // A rank for a wiki that's about to land inside [folderId], placed
@@ -179,7 +192,13 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
                 null -> Unit
             }
         },
-        onDropIntoContainer = { wikiId, folderId -> repository.moveWikiToFolder(wikiId, folderId, nextRankInFolder(folderId)) },
+        onDropIntoContainer = { wikiId, folderId ->
+            repository.moveWikiToFolder(
+            wikiId,
+            folderId,
+            nextRankInFolder(folderId)
+        )
+        },
     )
 
     var reorderMode by remember { mutableStateOf(false) }
@@ -190,7 +209,16 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(Res.string.wiki_picker_choose_title)) },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.common_back)) } },
+                navigationIcon = {
+                    IconButton(
+                    onClick = onBack
+                ) {
+                    Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = stringResource(Res.string.common_back)
+                )
+                }
+                },
                 windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
             )
         },
@@ -208,8 +236,12 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
             item { GroupLabel(stringResource(Res.string.wiki_picker_featured_wikis)) }
             items(ungroupedPresetWikis, key = { it.id }) { wiki ->
                 WikiRow(
-                    wiki, wiki.id == activeWiki.id,
-                    onClick = { repository.setActiveWiki(wiki); onBack() },
+                    wiki,
+                    wiki.id == activeWiki.id,
+                    onClick = {
+                        repository.setActiveWiki(wiki);
+                        onBack()
+                    },
                     onEditSkin = { editingSkinForId = wiki.id },
                     repository = repository,
                 )
@@ -224,7 +256,10 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
                     activeWikiId = activeWiki.id,
                     repository = repository,
                     onToggle = { toggleExpanded(folder.id) },
-                    onClickWiki = { wiki -> repository.setActiveWiki(wiki); onBack() },
+                    onClickWiki = { wiki ->
+                        repository.setActiveWiki(wiki);
+                        onBack()
+                    },
                     onEditSkin = { wiki -> editingSkinForId = wiki.id },
                 )
             }
@@ -238,17 +273,29 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
                     ) {
                         GroupLabel(stringResource(Res.string.wiki_picker_your_wikis), modifier = Modifier.weight(1f))
                         TextButton(onClick = { reorderMode = !reorderMode }) {
-                            Text(if (reorderMode) stringResource(Res.string.common_done) else stringResource(Res.string.wiki_picker_reorder))
+                            Text(
+                                if (reorderMode) stringResource(
+                                        Res.string.common_done
+                                    ) else stringResource(Res.string.wiki_picker_reorder)
+                            )
                         }
                     }
                 }
-                items(rootDragState.items, key = { item -> if (item is RootItem.FolderRoot) "folder-${item.id}" else "wiki-${item.id}" }) { item ->
+                items(
+                    rootDragState.items,
+                    key = { item -> if (item is RootItem.FolderRoot) "folder-${item.id}" else "wiki-${item.id}" }
+                ) { item ->
                     when (item) {
                         is RootItem.WikiRoot -> {
                             val wiki = item.wiki
                             WikiRow(
                                 wiki, wiki.id == activeWiki.id,
-                                onClick = { if (!reorderMode) { repository.setActiveWiki(wiki); onBack() } },
+                                onClick = {
+                                    if (!reorderMode) {
+                                    repository.setActiveWiki(wiki);
+                                    onBack()
+                                }
+                                },
                                 onRemove = { repository.removeCustomWiki(wiki) },
                                 onEditSkin = { editingSkinForId = wiki.id },
                                 onMoveToFolder = { movingWikiId = wiki.id },
@@ -268,7 +315,14 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
                                 activeWikiId = activeWiki.id,
                                 repository = repository,
                                 onToggle = { toggleExpanded(folder.id) },
-                                onClickWiki = { wiki -> if (!reorderMode) { repository.setActiveWiki(wiki); onBack() } },
+                                onClickWiki = { wiki ->
+                                    if (!reorderMode) {
+                                        repository.setActiveWiki(
+                                        wiki
+                                    );
+                                    onBack()
+                                    }
+                                },
                                 onEditSkin = { wiki -> editingSkinForId = wiki.id },
                                 onRemoveWiki = { wiki -> repository.removeCustomWiki(wiki) },
                                 onMoveWikiToFolder = { wiki -> movingWikiId = wiki.id },
@@ -286,7 +340,9 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
             }
             item {
                 Row(
-                    modifier = Modifier.fillMaxWidth().clickable(onClick = onAddCustomWiki).padding(horizontal = 20.dp, vertical = 16.dp),
+                    modifier = Modifier.fillMaxWidth().clickable(
+                        onClick = onAddCustomWiki
+                    ).padding(horizontal = 20.dp, vertical = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(Icons.Filled.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
@@ -300,10 +356,16 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
             }
             item {
                 Row(
-                    modifier = Modifier.fillMaxWidth().clickable(onClick = onBrowseWikis).padding(horizontal = 20.dp, vertical = 16.dp),
+                    modifier = Modifier.fillMaxWidth().clickable(
+                        onClick = onBrowseWikis
+                    ).padding(horizontal = 20.dp, vertical = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(Icons.Filled.TravelExplore, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Icon(
+                        Icons.Filled.TravelExplore,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
                     Text(
                         stringResource(Res.string.browse_wikis_title),
                         style = MaterialTheme.typography.titleMedium,
@@ -314,10 +376,17 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
             }
             item {
                 Row(
-                    modifier = Modifier.fillMaxWidth().clickable { showNewFolderDialog = true }.padding(horizontal = 20.dp, vertical = 16.dp),
+                    modifier = Modifier.fillMaxWidth().clickable { showNewFolderDialog = true }.padding(
+                        horizontal = 20.dp,
+                        vertical = 16.dp
+                    ),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(Icons.Filled.CreateNewFolder, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Icon(
+                        Icons.Filled.CreateNewFolder,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
                     Text(
                         stringResource(Res.string.wiki_picker_new_folder),
                         style = MaterialTheme.typography.titleMedium,
@@ -364,7 +433,10 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
             initialName = "",
             confirmLabel = stringResource(Res.string.common_create),
             onDismiss = { showNewFolderDialog = false },
-            onConfirm = { name -> repository.createFolder(name); showNewFolderDialog = false },
+            onConfirm = { name ->
+                repository.createFolder(name);
+                showNewFolderDialog = false
+            },
         )
     }
 
@@ -374,7 +446,10 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
             initialName = folder.name,
             confirmLabel = stringResource(Res.string.common_save),
             onDismiss = { renamingFolder = null },
-            onConfirm = { name -> repository.renameFolder(folder.id, name); renamingFolder = null },
+            onConfirm = { name ->
+                repository.renameFolder(folder.id, name);
+                renamingFolder = null
+            },
         )
     }
 
@@ -384,9 +459,18 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
             title = { Text(stringResource(Res.string.wiki_picker_delete_folder_title, folder.name)) },
             text = { Text(stringResource(Res.string.wiki_picker_delete_folder_body)) },
             confirmButton = {
-                TextButton(onClick = { repository.deleteFolder(folder.id); deletingFolder = null }) { Text(stringResource(Res.string.common_delete)) }
+                TextButton(
+                    onClick = {
+                        repository.deleteFolder(folder.id);
+                        deletingFolder = null
+                    }
+                ) { Text(stringResource(Res.string.common_delete)) }
             },
-            dismissButton = { TextButton(onClick = { deletingFolder = null }) { Text(stringResource(Res.string.common_cancel)) } },
+            dismissButton = {
+                TextButton(
+                onClick = { deletingFolder = null }
+            ) { Text(stringResource(Res.string.common_cancel)) }
+            },
         )
     }
 }

@@ -66,8 +66,15 @@ fun WikiPortalTheme(
         ThemeMode.DARK -> true
     }
     SideEffect { onDarkThemeResolved(useDark) }
-    val dynamicScheme = if (useDynamicColor && dynamicColorSchemeAvailable()) platformDynamicColorScheme(useDark) else null
+    val dynamicScheme = if (useDynamicColor && dynamicColorSchemeAvailable()) platformDynamicColorScheme(
+            useDark
+        ) else null
     val colorScheme = dynamicScheme ?: if (useDark) DarkColors else LightColors
 
-    MaterialTheme(colorScheme = colorScheme, typography = WikiPortalTypography, shapes = WikiPortalShapes, content = content)
+    MaterialTheme(
+        colorScheme = colorScheme,
+        typography = WikiPortalTypography,
+        shapes = WikiPortalShapes,
+        content = content
+    )
 }

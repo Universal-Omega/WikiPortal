@@ -44,7 +44,8 @@ class WikimediaPageviewsApi(
 
     private suspend fun fetchForDate(
         project: String,
-        date: String, limit: Int,
+        date: String,
+        limit: Int,
     ): Result<List<WikimediaPageviewsArticle>> {
         val url = "https://wikimedia.org/api/rest_v1/metrics/pageviews/top/$project/all-access/$date"
         return restApi.get<WikimediaPageviewsResponse>(url).map { response ->

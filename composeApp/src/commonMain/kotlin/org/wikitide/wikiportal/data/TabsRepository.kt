@@ -65,7 +65,8 @@ class TabsRepository(
             // its disk read afterward.
             if (_tabs.value.isEmpty()) {
                 _tabs.value = restoredTabs
-                _activeTabId.value = restoredTabs.firstOrNull { it.id == restoredActiveId }?.id ?: restoredTabs.lastOrNull()?.id
+                _activeTabId.value =
+                    restoredTabs.firstOrNull { it.id == restoredActiveId }?.id ?: restoredTabs.lastOrNull()?.id
             }
         }
     }
@@ -139,7 +140,14 @@ class TabsRepository(
 
     fun openTab(site: WikiSite, title: String, openedFromOffline: Boolean = false): String {
         val id = "tab-${nowEpochMillis()}-${Random.nextInt(10_000)}"
-        val tab = ArticleTab(id, site.id, site.name, title, createdAtEpochMillis = nowEpochMillis(), openedFromOffline = openedFromOffline)
+        val tab = ArticleTab(
+            id,
+            site.id,
+            site.name,
+            title,
+            createdAtEpochMillis = nowEpochMillis(),
+            openedFromOffline = openedFromOffline
+        )
         insertNewTab(tab)
         return id
     }
@@ -156,7 +164,14 @@ class TabsRepository(
      */
     fun openTabForUrl(site: WikiSite?, url: String, title: String): String {
         val id = "tab-${nowEpochMillis()}-${Random.nextInt(10_000)}"
-        val tab = ArticleTab(id, site?.id.orEmpty(), site?.name.orEmpty(), title, createdAtEpochMillis = nowEpochMillis(), currentUrl = url)
+        val tab = ArticleTab(
+            id,
+            site?.id.orEmpty(),
+            site?.name.orEmpty(),
+            title,
+            createdAtEpochMillis = nowEpochMillis(),
+            currentUrl = url
+        )
         insertNewTab(tab)
         return id
     }
@@ -276,5 +291,7 @@ class TabsRepository(
      * whatever tab already existed.
      */
     fun findOpenTab(wikiId: String, title: String, openedFromOffline: Boolean): ArticleTab? =
-        _tabs.value.firstOrNull { it.wikiId == wikiId && it.title == title && it.openedFromOffline == openedFromOffline }
+        _tabs.value.firstOrNull {
+            it.wikiId == wikiId && it.title == title && it.openedFromOffline == openedFromOffline
+        }
 }

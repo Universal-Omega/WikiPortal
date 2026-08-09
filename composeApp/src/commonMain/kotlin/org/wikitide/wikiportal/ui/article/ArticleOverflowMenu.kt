@@ -90,7 +90,13 @@ fun ArticleOverflowMenu(
         )
 
         DropdownMenuItem(
-            text = { Text(if (isOfflineSaved) stringResource(Res.string.article_overflow_remove_offline_copy) else stringResource(Res.string.article_overflow_save_offline)) },
+            text = {
+                Text(
+                if (isOfflineSaved) stringResource(
+                        Res.string.article_overflow_remove_offline_copy
+                    ) else stringResource(Res.string.article_overflow_save_offline)
+            )
+            },
             leadingIcon = {
                 if (isSavingOffline) {
                     CircularProgressIndicator(

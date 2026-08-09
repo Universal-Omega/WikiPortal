@@ -70,6 +70,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.wikitide.wikiportal.data.TabsRepository
@@ -78,11 +79,6 @@ import org.wikitide.wikiportal.network.PageSummaryDto
 import org.wikitide.wikiportal.network.RecentChangeEntry
 import org.wikitide.wikiportal.network.TrendDirection
 import org.wikitide.wikiportal.network.TrendingArticle
-import org.wikitide.wikiportal.ui.components.ArticleCard
-import org.wikitide.wikiportal.ui.components.CompactArticleChip
-import org.wikitide.wikiportal.ui.components.OpenTabIndicator
-import org.wikitide.wikiportal.ui.components.WikiSwitcherChip
-import org.jetbrains.compose.resources.stringResource
 import org.wikitide.wikiportal.resources.Res
 import org.wikitide.wikiportal.resources.article_top_bar_close_search
 import org.wikitide.wikiportal.resources.category_browse_title
@@ -113,6 +109,10 @@ import org.wikitide.wikiportal.resources.dashboard_tab_relevant
 import org.wikitide.wikiportal.resources.dashboard_title
 import org.wikitide.wikiportal.resources.dashboard_trending_on
 import org.wikitide.wikiportal.resources.dashboard_views_count
+import org.wikitide.wikiportal.ui.components.ArticleCard
+import org.wikitide.wikiportal.ui.components.CompactArticleChip
+import org.wikitide.wikiportal.ui.components.OpenTabIndicator
+import org.wikitide.wikiportal.ui.components.WikiSwitcherChip
 
 /** Index of the "Feed" tab in [DashboardScreen]'s [SecondaryTabRow]. */
 private const val TAB_FEED = 0
@@ -180,7 +180,10 @@ fun DashboardScreen(
                         ) {
                             if (isCompactHeight && !showSearchBar) {
                                 IconButton(onClick = { isFullScreenSearchOpen = true }) {
-                                    Icon(imageVector = Icons.Filled.Search, contentDescription = stringResource(Res.string.common_search))
+                                    Icon(
+                                        imageVector = Icons.Filled.Search,
+                                        contentDescription = stringResource(Res.string.common_search)
+                                    )
                                 }
                             }
                             // Jumps straight to the wiki's own main page. The
@@ -196,7 +199,10 @@ fun DashboardScreen(
                                 },
                                 enabled = feedState.wiki != null && feedState.mainPageTitle != null,
                             ) {
-                                Icon(imageVector = Icons.Filled.Home, contentDescription = stringResource(Res.string.dashboard_go_to_main_page))
+                                Icon(
+                                    imageVector = Icons.Filled.Home,
+                                    contentDescription = stringResource(Res.string.dashboard_go_to_main_page)
+                                )
                             }
                             WikiSwitcherChip(
                                 wikiName = feedState.wiki?.name.orEmpty(),
@@ -212,13 +218,20 @@ fun DashboardScreen(
                                 value = searchState.query,
                                 onValueChange = searchViewModel::onQueryChange,
                                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                                placeholder = { Text(stringResource(Res.string.dashboard_search_wiki, searchState.wikiName)) },
+                                placeholder = {
+                                    Text(
+                                    stringResource(Res.string.dashboard_search_wiki, searchState.wikiName)
+                                )
+                                },
                                 singleLine = true,
                                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                                 trailingIcon = {
                                     if (searchState.query.isNotEmpty()) {
                                         IconButton(onClick = { searchViewModel.onQueryChange("") }) {
-                                            Icon(Icons.Filled.Close, contentDescription = stringResource(Res.string.common_clear))
+                                            Icon(
+                                                Icons.Filled.Close,
+                                                contentDescription = stringResource(Res.string.common_clear)
+                                            )
                                         }
                                     }
                                 },
@@ -241,8 +254,16 @@ fun DashboardScreen(
                 SearchResultsContent(searchState, onArticleClick, onSearchFor = searchViewModel::searchFor)
             } else {
                 SecondaryTabRow(selectedTabIndex = tabIndex) {
-                    Tab(selected = tabIndex == TAB_FEED, onClick = { tabIndex = TAB_FEED }, text = { Text(stringResource(Res.string.dashboard_tab_feed)) })
-                    Tab(selected = tabIndex == TAB_RELEVANT, onClick = { tabIndex = TAB_RELEVANT }, text = { Text(stringResource(Res.string.dashboard_tab_relevant)) })
+                    Tab(
+                        selected = tabIndex == TAB_FEED,
+                        onClick = { tabIndex = TAB_FEED },
+                        text = { Text(stringResource(Res.string.dashboard_tab_feed)) }
+                    )
+                    Tab(
+                        selected = tabIndex == TAB_RELEVANT,
+                        onClick = { tabIndex = TAB_RELEVANT },
+                        text = { Text(stringResource(Res.string.dashboard_tab_relevant)) }
+                    )
                 }
                 when (tabIndex) {
                     TAB_FEED -> FeedTabContent(
@@ -286,7 +307,10 @@ private fun SearchResultsContent(
             state.isSearching -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
-            state.results.isEmpty() && state.hasSearched -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            state.results.isEmpty() && state.hasSearched -> Box(
+                Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         stringResource(Res.string.dashboard_no_search_results, state.query),
@@ -360,7 +384,10 @@ private fun FullScreenSearchOverlay(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = onClose) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.article_top_bar_close_search))
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = stringResource(Res.string.article_top_bar_close_search)
+                )
             }
             OutlinedTextField(
                 value = searchState.query,
@@ -411,7 +438,10 @@ private fun FeedTabContent(
             }
             fullyFailed -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(stringResource(Res.string.dashboard_could_not_load_wiki), style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        stringResource(Res.string.dashboard_could_not_load_wiki),
+                        style = MaterialTheme.typography.titleMedium
+                    )
                     state.errorMessage.let {
                         Text(
                             it,
@@ -422,7 +452,9 @@ private fun FeedTabContent(
                     }
                     Row {
                         TextButton(onClick = onRefresh) { Text(stringResource(Res.string.common_retry)) }
-                        TextButton(onClick = onOpenWikiPicker) { Text(stringResource(Res.string.dashboard_switch_wiki)) }
+                        TextButton(
+                            onClick = onOpenWikiPicker
+                        ) { Text(stringResource(Res.string.dashboard_switch_wiki)) }
                     }
                 }
             }
@@ -555,8 +587,16 @@ private fun CategoryBrowseEntry(onClick: () -> Unit) {
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(end = 12.dp),
             )
-            Text(stringResource(Res.string.category_browse_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-            Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                stringResource(Res.string.category_browse_title),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                Icons.Filled.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -619,7 +659,12 @@ private fun RecentChangeRow(
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
-            Text(change.title, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(
+                change.title,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
             if (!change.user.isNullOrBlank()) {
                 Spacer(Modifier.size(2.dp))
                 Text(
@@ -676,7 +721,10 @@ private fun TrendingCard(
                 TrendingRow(rank = index + 1, trending = article) { onArticleClick(article.title) }
             }
             if (expandable) {
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 14.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant
+                )
                 TextButton(onClick = onOpenTrending, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(Res.string.dashboard_more_trending))
                     Icon(Icons.Filled.ChevronRight, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -769,7 +817,10 @@ private fun RelevantLinksTabContent(
 ) {
     PullToRefreshBox(isRefreshing = state.isLoading, onRefresh = onRefresh, modifier = Modifier.fillMaxSize()) {
         when {
-            state.isLoading && state.titles.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            state.isLoading && state.titles.isEmpty() -> Box(
+                Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
                 CircularProgressIndicator()
             }
             state.titles.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -785,7 +836,10 @@ private fun RelevantLinksTabContent(
             ) {
                 item {
                     Text(
-                        text = state.label ?: stringResource(Res.string.dashboard_relevant_default_label, state.wikiName),
+                        text = state.label ?: stringResource(
+                            Res.string.dashboard_relevant_default_label,
+                            state.wikiName
+                        ),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(bottom = 4.dp),

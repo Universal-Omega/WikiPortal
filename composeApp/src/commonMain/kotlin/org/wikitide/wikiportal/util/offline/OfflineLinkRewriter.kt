@@ -41,7 +41,9 @@ const val OFFLINE_DEAD_LINK_CSS =
  * whatever dispatcher its caller happened to be on, which for the
  * LaunchedEffect that actually calls this is Compose's UI dispatcher.
  */
-suspend fun rewriteOfflineLinks(html: String, site: WikiSite, offlineTitlesForSite: Set<String>): String = withContext(Dispatchers.Default) {
+suspend fun rewriteOfflineLinks(html: String, site: WikiSite, offlineTitlesForSite: Set<String>): String = withContext(
+    Dispatchers.Default
+) {
     val openingTag = Regex("""<a\b([^>]*)>""")
     val hrefAttr = Regex("""\shref="([^"]*)"""")
     val classAttr = Regex("""\sclass="([^"]*)"""")
@@ -57,7 +59,10 @@ suspend fun rewriteOfflineLinks(html: String, site: WikiSite, offlineTitlesForSi
         val withoutHref = attrs.removeRange(hrefMatch.range)
         val classMatch = classAttr.find(withoutHref)
         val withDeadClass = if (classMatch != null) {
-            withoutHref.replaceRange(classMatch.range, " class=\"${classMatch.groupValues[1]} $OFFLINE_DEAD_LINK_CLASS\"")
+            withoutHref.replaceRange(
+                classMatch.range,
+                " class=\"${classMatch.groupValues[1]} $OFFLINE_DEAD_LINK_CLASS\""
+            )
         } else {
             "$withoutHref class=\"$OFFLINE_DEAD_LINK_CLASS\""
         }

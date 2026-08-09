@@ -43,8 +43,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import org.koin.compose.viewmodel.koinViewModel
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.viewmodel.koinViewModel
 import org.wikitide.wikiportal.resources.Res
 import org.wikitide.wikiportal.resources.add_wiki_browse_indie
 import org.wikitide.wikiportal.resources.add_wiki_checking
@@ -75,7 +75,16 @@ fun AddWikiScreen(onDone: () -> Unit, onBrowseWikis: () -> Unit, viewModel: AddW
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(Res.string.add_wiki_title)) },
-                navigationIcon = { IconButton(onClick = onDone) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.common_back)) } },
+                navigationIcon = {
+                    IconButton(
+                    onClick = onDone
+                ) {
+                    Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = stringResource(Res.string.common_back)
+                )
+                }
+                },
                 windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
             )
         },
@@ -124,7 +133,11 @@ fun AddWikiScreen(onDone: () -> Unit, onBrowseWikis: () -> Unit, viewModel: AddW
                 if (state.isChecking) {
                     CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp).size(18.dp), strokeWidth = 2.dp)
                 }
-                Text(if (state.isChecking) stringResource(Res.string.add_wiki_checking) else stringResource(Res.string.add_wiki_submit))
+                Text(
+                    if (state.isChecking) stringResource(
+                            Res.string.add_wiki_checking
+                        ) else stringResource(Res.string.add_wiki_submit)
+                )
             }
 
             Row(
@@ -172,14 +185,22 @@ private fun IndieWikiSuggestionCard(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
         ) {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Filled.TravelExplore, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                Icon(
+                    Icons.Filled.TravelExplore,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                )
                 Text(
                     stringResource(Res.string.add_wiki_indie_found_title),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                 )
                 Text(
-                    stringResource(Res.string.add_wiki_indie_found_body, suggestion.destinationName, suggestion.destinationBaseUrl),
+                    stringResource(
+                        Res.string.add_wiki_indie_found_body,
+                        suggestion.destinationName,
+                        suggestion.destinationBaseUrl
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                     overflow = TextOverflow.Ellipsis,

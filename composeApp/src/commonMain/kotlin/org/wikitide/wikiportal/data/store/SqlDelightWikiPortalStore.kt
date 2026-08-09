@@ -156,7 +156,13 @@ class SqlDelightWikiPortalStore(
             queries.deleteSavedPage(page.wikiId, page.title)
         } else {
             queries.upsertSavedPage(
-                page.wikiId, page.wikiName, page.title, page.extract, page.thumbnailUrl, page.timestampEpochMillis, page.url,
+                page.wikiId,
+                page.wikiName,
+                page.title,
+                page.extract,
+                page.thumbnailUrl,
+                page.timestampEpochMillis,
+                page.url,
             )
         }
     }
@@ -178,7 +184,15 @@ class SqlDelightWikiPortalStore(
 
     override suspend fun recordVisit(page: SavedPage) {
         ensureSchema()
-        queries.upsertHistoryEntry(page.wikiId, page.wikiName, page.title, page.extract, page.thumbnailUrl, page.timestampEpochMillis, page.url)
+        queries.upsertHistoryEntry(
+            page.wikiId,
+            page.wikiName,
+            page.title,
+            page.extract,
+            page.thumbnailUrl,
+            page.timestampEpochMillis,
+            page.url
+        )
     }
 
     override suspend fun removeHistoryEntry(wikiId: String, title: String) {

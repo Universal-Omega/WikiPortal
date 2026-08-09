@@ -62,7 +62,11 @@ class SearchViewModel(
 
     val state: StateFlow<SearchUiState> = combine(
         combine(
-            _query, _results, _suggestion, _rewrittenQuery, _isSearching,
+            _query,
+            _results,
+            _suggestion,
+            _rewrittenQuery,
+            _isSearching,
         ) { query, results, suggestion, rewrittenQuery, isSearching ->
             SearchQueryState(query, results, suggestion, rewrittenQuery, isSearching)
         },

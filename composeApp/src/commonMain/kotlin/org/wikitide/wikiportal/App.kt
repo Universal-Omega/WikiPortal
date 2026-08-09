@@ -55,6 +55,8 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.modules.subclassesOfSealed
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.navigation3.koinEntryProvider
 import org.koin.core.annotation.KoinExperimentalAPI
@@ -68,17 +70,20 @@ import org.wikitide.wikiportal.navigation.SavedRoute
 import org.wikitide.wikiportal.navigation.SettingsRoute
 import org.wikitide.wikiportal.navigation.SystemBackInterceptor
 import org.wikitide.wikiportal.navigation.TabsRoute
-import org.wikitide.wikiportal.ui.theme.WikiPortalTheme
-import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.stringResource
 import org.wikitide.wikiportal.resources.Res
 import org.wikitide.wikiportal.resources.dashboard_saved
 import org.wikitide.wikiportal.resources.dashboard_title
 import org.wikitide.wikiportal.resources.settings_title
 import org.wikitide.wikiportal.resources.tabs_title
+import org.wikitide.wikiportal.ui.theme.WikiPortalTheme
 
 @Immutable
-private data class BottomDestination(val route: Route, val labelRes: StringResource, val selected: ImageVector, val unselected: ImageVector)
+private data class BottomDestination(
+    val route: Route,
+    val labelRes: StringResource,
+    val selected: ImageVector,
+    val unselected: ImageVector,
+)
 
 private val bottomDestinations = listOf(
     BottomDestination(DashboardRoute, Res.string.dashboard_title, Icons.Filled.Dashboard, Icons.Outlined.Dashboard),
@@ -206,7 +211,9 @@ fun WikiPortalApp(onDarkThemeResolved: (Boolean) -> Unit = {}) {
                             // Scaffold also claimed the Start inset, the
                             // side without a cutout would still get
                             // padded for no reason.
-                            modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Start)),
+                            modifier = Modifier.windowInsetsPadding(
+                                WindowInsets.safeDrawing.only(WindowInsetsSides.Start)
+                            ),
                         ) {
                             // NavigationRail does not center its items by
                             // default. Left alone, they stack from the top
@@ -257,7 +264,9 @@ fun WikiPortalApp(onDarkThemeResolved: (Boolean) -> Unit = {}) {
             } else {
                 Scaffold(
                     containerColor = MaterialTheme.colorScheme.background,
-                    contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal),
+                    contentWindowInsets = WindowInsets.safeDrawing.only(
+                        WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal
+                    ),
                     bottomBar = {
                         if (showNav) {
                             NavigationBar {

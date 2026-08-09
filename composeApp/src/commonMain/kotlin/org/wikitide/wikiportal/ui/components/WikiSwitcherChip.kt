@@ -27,7 +27,12 @@ fun WikiSwitcherChip(wikiName: String, onClick: () -> Unit, modifier: Modifier =
                 modifier = Modifier.basicMarquee(),
             )
         },
-        trailingIcon = { Icon(Icons.Filled.UnfoldMore, contentDescription = stringResource(Res.string.wiki_switcher_chip_switch_wiki)) },
+        trailingIcon = {
+            Icon(
+            Icons.Filled.UnfoldMore,
+            contentDescription = stringResource(Res.string.wiki_switcher_chip_switch_wiki)
+        )
+        },
         modifier = modifier.padding(end = 12.dp),
     )
 }

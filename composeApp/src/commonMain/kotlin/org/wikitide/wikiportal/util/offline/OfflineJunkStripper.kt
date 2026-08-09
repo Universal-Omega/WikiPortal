@@ -17,7 +17,9 @@ fun stripKnownJunkElements(html: String): String {
 private fun idOpenTagPattern(id: String) = Regex("""<([a-zA-Z0-9]+)\b[^>]*\bid="$id"[^>]*>""")
 
 /** \b on both sides of $className, so a class list like "foo mw-cookiewarning-container bar" matches on the whole class name, not some other class that merely contains it as a substring. */
-private fun classOpenTagPattern(className: String) = Regex("""<([a-zA-Z0-9]+)\b[^>]*\bclass="[^"]*\b$className\b[^"]*"[^>]*>""")
+private fun classOpenTagPattern(className: String) = Regex(
+    """<([a-zA-Z0-9]+)\b[^>]*\bclass="[^"]*\b$className\b[^"]*"[^>]*>"""
+)
 
 /**
  * Removes the first element matching [openTagPattern], and everything

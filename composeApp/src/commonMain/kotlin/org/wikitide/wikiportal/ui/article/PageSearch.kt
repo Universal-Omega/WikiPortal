@@ -253,7 +253,11 @@ private fun jsStringLiteral(value: String): String {
 }
 
 /** Highlights every match of [query] in the current page and jumps to the first one. */
-suspend fun runPageSearch(navigator: WebViewNavigator, query: String, scrollToActive: Boolean = true): PageSearchResult =
+suspend fun runPageSearch(
+    navigator: WebViewNavigator,
+    query: String,
+    scrollToActive: Boolean = true,
+): PageSearchResult =
     parseSearchResult(
         navigator.evalForResult(SEARCH_RUNTIME_SCRIPT + "window.__wpRun(${jsStringLiteral(query)}, $scrollToActive);"),
     )

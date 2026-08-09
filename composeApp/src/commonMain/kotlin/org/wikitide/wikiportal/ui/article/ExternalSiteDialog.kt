@@ -31,7 +31,15 @@ fun ExternalSiteDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.external_site_dialog_title, currentWikiName)) },
-        text = { Text(stringResource(Res.string.external_site_dialog_body, host ?: stringResource(Res.string.external_site_dialog_outside_site), currentWikiName)) },
+        text = {
+            Text(
+            stringResource(
+                Res.string.external_site_dialog_body,
+                host ?: stringResource(Res.string.external_site_dialog_outside_site),
+                currentWikiName
+            )
+        )
+        },
         confirmButton = {
             TextButton(onClick = onContinue) { Text(stringResource(Res.string.external_site_dialog_continue)) }
         },

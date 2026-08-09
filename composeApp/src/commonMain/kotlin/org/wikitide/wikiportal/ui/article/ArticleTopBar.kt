@@ -94,11 +94,17 @@ fun PageSearchTopBar(
             }
 
             IconButton(enabled = matchCount > 0, onClick = onPreviousMatch) {
-                Icon(Icons.Filled.KeyboardArrowUp, contentDescription = stringResource(Res.string.article_top_bar_previous_match))
+                Icon(
+                    Icons.Filled.KeyboardArrowUp,
+                    contentDescription = stringResource(Res.string.article_top_bar_previous_match)
+                )
             }
 
             IconButton(enabled = matchCount > 0, onClick = onNextMatch) {
-                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = stringResource(Res.string.article_top_bar_next_match))
+                Icon(
+                    Icons.Filled.KeyboardArrowDown,
+                    contentDescription = stringResource(Res.string.article_top_bar_next_match)
+                )
             }
         },
         windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
@@ -145,7 +151,9 @@ fun ArticleTopBar(
             IconButton(onClick = onToggleSaved) {
                 Icon(
                     imageVector = if (isSaved) Icons.Filled.Bookmark else Icons.Filled.BookmarkBorder,
-                    contentDescription = if (isSaved) stringResource(Res.string.article_top_bar_unsave) else stringResource(Res.string.article_top_bar_save_for_later),
+                    contentDescription = if (isSaved) stringResource(
+                            Res.string.article_top_bar_unsave
+                        ) else stringResource(Res.string.article_top_bar_save_for_later),
                     tint = if (isSaved) MaterialTheme.colorScheme.primary else LocalContentColor.current,
                 )
             }

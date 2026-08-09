@@ -53,7 +53,9 @@ fun CompactArticleChip(
                 AsyncImage(
                     model = thumbnailUrl,
                     contentDescription = null,
-                    modifier = Modifier.fillMaxWidth().height(THUMBNAIL_HEIGHT).clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+                    modifier = Modifier.fillMaxWidth().height(
+                        THUMBNAIL_HEIGHT
+                    ).clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
                     contentScale = ContentScale.Crop,
                 )
             } else {

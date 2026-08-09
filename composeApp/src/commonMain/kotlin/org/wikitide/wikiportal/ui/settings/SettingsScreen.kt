@@ -43,11 +43,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.model.ThemeMode
-import org.wikitide.wikiportal.util.AppVersionProvider
-import org.jetbrains.compose.resources.stringResource
 import org.wikitide.wikiportal.resources.Res
 import org.wikitide.wikiportal.resources.app_name
 import org.wikitide.wikiportal.resources.logs_title
@@ -81,7 +80,7 @@ import org.wikitide.wikiportal.resources.settings_suggest_indie_title
 import org.wikitide.wikiportal.resources.settings_text_size
 import org.wikitide.wikiportal.resources.settings_theme
 import org.wikitide.wikiportal.resources.settings_title
-import org.wikitide.wikiportal.resources.theme_mode_system
+import org.wikitide.wikiportal.util.AppVersionProvider
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -106,14 +105,26 @@ fun SettingsScreen(
 
     Column(Modifier.fillMaxSize()) {
         TopAppBar(
-            title = { Text(stringResource(Res.string.settings_title), style = MaterialTheme.typography.headlineMedium) },
+            title = {
+                Text(
+                stringResource(Res.string.settings_title),
+                style = MaterialTheme.typography.headlineMedium
+            )
+            },
             windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
             colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
         )
 
         LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
             item { SectionLabel(stringResource(Res.string.settings_section_wiki)) }
-            item { SettingsRow(icon = Icons.Filled.Public, title = stringResource(Res.string.settings_current_wiki), subtitle = activeWiki.name, onClick = onOpenWikiPicker) }
+            item {
+                SettingsRow(
+                icon = Icons.Filled.Public,
+                title = stringResource(Res.string.settings_current_wiki),
+                subtitle = activeWiki.name,
+                onClick = onOpenWikiPicker
+            )
+            }
             item {
                 SwitchRow(
                     icon = Icons.Filled.TravelExplore,
@@ -131,7 +142,11 @@ fun SettingsScreen(
                     RowLabel(icon = Icons.Filled.DarkMode, text = stringResource(Res.string.settings_theme))
                     ThemeMode.entries.forEach { mode ->
                         Row(
-                            modifier = Modifier.fillMaxWidth().clickable { repository.setThemeMode(mode) }.padding(vertical = 6.dp),
+                            modifier = Modifier.fillMaxWidth().clickable {
+                                repository.setThemeMode(
+                                mode
+                            )
+                            }.padding(vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             RadioButton(selected = themeMode == mode, onClick = { repository.setThemeMode(mode) })
@@ -281,7 +296,12 @@ private fun SectionLabel(text: String) {
 @Composable
 private fun RowLabel(icon: ImageVector, text: String) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 4.dp)) {
-        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp)
+        )
         Text(text, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(start = 12.dp))
     }
 }
@@ -292,26 +312,54 @@ private fun SettingsRow(icon: ImageVector, title: String, subtitle: String, onCl
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(24.dp))
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(24.dp)
+        )
         Column(Modifier.padding(start = 16.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
-            Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
 
 @Composable
-private fun SwitchRow(icon: ImageVector, title: String, subtitle: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+private fun SwitchRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
     Row(
-        modifier = Modifier.fillMaxWidth().clickable { onCheckedChange(!checked) }.padding(horizontal = 20.dp, vertical = 10.dp),
+        modifier = Modifier.fillMaxWidth().clickable {
+            onCheckedChange(
+            !checked
+        )
+        }.padding(horizontal = 20.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(24.dp))
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp)
+            )
             Column(Modifier.padding(start = 16.dp, end = 12.dp)) {
                 Text(title, style = MaterialTheme.typography.titleMedium)
-                Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
         Switch(checked = checked, onCheckedChange = onCheckedChange)

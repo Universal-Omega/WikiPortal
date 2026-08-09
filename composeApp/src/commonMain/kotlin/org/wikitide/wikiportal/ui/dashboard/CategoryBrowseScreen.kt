@@ -33,8 +33,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import org.koin.compose.viewmodel.koinViewModel
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.viewmodel.koinViewModel
 import org.wikitide.wikiportal.resources.Res
 import org.wikitide.wikiportal.resources.category_browse_empty
 import org.wikitide.wikiportal.resources.category_browse_no_results
@@ -57,10 +57,17 @@ fun CategoryBrowseScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(selectedCategory?.removePrefix("Category:") ?: stringResource(Res.string.category_browse_title)) },
+                title = {
+                    Text(
+                    selectedCategory?.removePrefix("Category:") ?: stringResource(Res.string.category_browse_title)
+                )
+                },
                 navigationIcon = {
                     IconButton(onClick = { if (selectedCategory != null) viewModel.clearSelection() else onBack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.common_back))
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(Res.string.common_back)
+                        )
                     }
                 },
                 windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
@@ -69,7 +76,11 @@ fun CategoryBrowseScreen(
     ) { innerPadding ->
         Box(Modifier.padding(innerPadding).fillMaxSize()) {
             if (selectedCategory == null) {
-                CategorySearchContent(state, onQueryChange = viewModel::onQueryChange, onSelect = viewModel::selectCategory)
+                CategorySearchContent(
+                    state,
+                    onQueryChange = viewModel::onQueryChange,
+                    onSelect = viewModel::selectCategory
+                )
             } else {
                 CategoryMembersContent(state, onArticleClick = onArticleClick)
             }
@@ -101,10 +112,16 @@ private fun CategorySearchContent(
             shape = MaterialTheme.shapes.large,
         )
         when {
-            state.isSearching && state.matches.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            state.isSearching && state.matches.isEmpty() -> Box(
+                Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
                 CircularProgressIndicator()
             }
-            state.query.isNotBlank() && state.matches.isEmpty() && !state.isSearching -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            state.query.isNotBlank() && state.matches.isEmpty() && !state.isSearching -> Box(
+                Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
                 Text(
                     stringResource(Res.string.category_browse_no_results, state.query),
                     style = MaterialTheme.typography.titleMedium,
@@ -121,7 +138,13 @@ private fun CategorySearchContent(
             else -> LazyColumn {
                 items(state.matches, key = { it }) { category ->
                     ListItem(
-                        headlineContent = { Text(category.removePrefix("Category:"), maxLines = 2, overflow = TextOverflow.Ellipsis) },
+                        headlineContent = {
+                            Text(
+                            category.removePrefix("Category:"),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        },
                         leadingContent = { Icon(Icons.Filled.Category, contentDescription = null) },
                         modifier = Modifier.clickable { onSelect(category) },
                     )

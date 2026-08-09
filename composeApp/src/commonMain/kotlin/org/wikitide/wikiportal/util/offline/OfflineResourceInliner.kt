@@ -1,12 +1,12 @@
 package org.wikitide.wikiportal.util.offline
 
-import kotlin.io.encoding.Base64
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import org.wikitide.wikiportal.network.MediaWikiApi
+import kotlin.io.encoding.Base64
 
 /**
  * Rewrites every statically referenced link href, script src, img src,
@@ -51,7 +51,10 @@ private const val MAX_CONCURRENT_FETCHES = 8
  */
 private suspend fun inlineLinkTags(html: String, baseUrl: String, api: MediaWikiApi): String =
     inlineMatches(
-        html, LINK_TAG, baseUrl, api,
+        html,
+        LINK_TAG,
+        baseUrl,
+        api,
         extractUrl = { match -> HREF_ATTR.find(match.value)?.groupValues?.get(1) },
         buildReplacement = { match, dataUri ->
             val tag = match.value
@@ -76,7 +79,10 @@ private suspend fun inlineLinkTags(html: String, baseUrl: String, api: MediaWiki
 
 private suspend fun inlineScriptTags(html: String, baseUrl: String, api: MediaWikiApi): String =
     inlineMatches(
-        html, SCRIPT_OPEN_TAG, baseUrl, api,
+        html,
+        SCRIPT_OPEN_TAG,
+        baseUrl,
+        api,
         extractUrl = { match -> SRC_ATTR.find(match.value)?.groupValues?.get(1) },
         buildReplacement = { match, dataUri ->
             var newTag = match.value.replaceRange(SRC_ATTR.find(match.value)!!.range, " src=\"$dataUri\"")
@@ -88,9 +94,17 @@ private suspend fun inlineScriptTags(html: String, baseUrl: String, api: MediaWi
 
 private suspend fun inlineImgTags(html: String, baseUrl: String, api: MediaWikiApi): String =
     inlineMatches(
-        html, IMG_TAG, baseUrl, api,
+        html,
+        IMG_TAG,
+        baseUrl,
+        api,
         extractUrl = { match -> SRC_ATTR.find(match.value)?.groupValues?.get(1) },
-        buildReplacement = { match, dataUri -> match.value.replaceRange(SRC_ATTR.find(match.value)!!.range, " src=\"$dataUri\"") },
+        buildReplacement = { match, dataUri ->
+            match.value.replaceRange(
+            SRC_ATTR.find(match.value)!!.range,
+            " src=\"$dataUri\""
+        )
+        },
     )
 
 /**
@@ -105,7 +119,10 @@ private val CSS_IMPORT = Regex("""@import\s+(?:url\()?["']?([^"')]+)["']?\)?\s*;
 
 private suspend fun inlineCssImports(html: String, baseUrl: String, api: MediaWikiApi): String =
     inlineMatches(
-        html, CSS_IMPORT, baseUrl, api,
+        html,
+        CSS_IMPORT,
+        baseUrl,
+        api,
         extractUrl = { match -> match.groupValues[1] },
         buildReplacement = { _, dataUri -> "@import url(\"$dataUri\");" },
     )

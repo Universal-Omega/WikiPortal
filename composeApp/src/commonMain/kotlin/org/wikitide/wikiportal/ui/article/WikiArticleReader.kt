@@ -2,8 +2,8 @@ package org.wikitide.wikiportal.ui.article
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -167,7 +167,9 @@ fun WikiArticleReader(
     // progress, and url update right away, so the progress bar stays
     // responsive, but the title fields are left untouched.
     val lastKnown = remember {
-        mutableStateOf(WikiPageState(title = title, canonicalTitle = title, displaySiteName = site.name, url = initialUrl))
+        mutableStateOf(
+            WikiPageState(title = title, canonicalTitle = title, displaySiteName = site.name, url = initialUrl)
+        )
     }
 
     // A shared-login host, see AuthDomains, is not a wiki this app has
@@ -333,7 +335,9 @@ fun extractCanonicalTitle(url: String?, site: WikiSite): String? {
 
 fun looksLikeArticleRequest(url: String, site: WikiSite): Boolean {
     val withoutQuery = url.substringBefore("?")
-    return withoutQuery.startsWith(site.indexUrl) || url.startsWith(site.cleanUrlPrefix()) || isRootMainPageUrl(url, site)
+    return withoutQuery.startsWith(
+        site.indexUrl
+    ) || url.startsWith(site.cleanUrlPrefix()) || isRootMainPageUrl(url, site)
 }
 
 private fun isRootMainPageUrl(url: String, site: WikiSite): Boolean {
@@ -345,7 +349,11 @@ private fun isRootMainPageUrl(url: String, site: WikiSite): Boolean {
 /** Query param a page's target="_blank" links and window.open calls get tagged with, see [NEW_TAB_SCRIPT]. */
 private const val NEW_TAB_PARAM = "wikiportalNewTab"
 
-fun requestsNewTab(url: String): Boolean = runCatching { URLBuilder(url).parameters.contains(NEW_TAB_PARAM) }.getOrDefault(false)
+fun requestsNewTab(url: String): Boolean = runCatching {
+    URLBuilder(
+    url
+).parameters.contains(NEW_TAB_PARAM)
+}.getOrDefault(false)
 
 fun withoutNewTabMarker(url: String): String = runCatching {
     val builder = URLBuilder(url)

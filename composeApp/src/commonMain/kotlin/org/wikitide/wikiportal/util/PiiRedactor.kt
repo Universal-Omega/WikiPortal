@@ -47,7 +47,9 @@ fun redactPii(text: String): String {
     // uses, see MediaWikiApi.configureMediaWikiClient, but this still
     // catches them if that ever changes or a header shows up some
     // other way.
-    result = result.replace(Regex("""(?im)^(authorization|cookie|set-cookie):.*$""")) { match -> "${match.groupValues[1]}: [REDACTED]" }
+    result = result.replace(
+        Regex("""(?im)^(authorization|cookie|set-cookie):.*$""")
+    ) { match -> "${match.groupValues[1]}: [REDACTED]" }
 
     // A bearer token wherever one shows up, not just in a header line.
     result = result.replace(Regex("""(?i)\bBearer\s+[A-Za-z0-9\-._~+/]+=*"""), "Bearer [REDACTED]")
@@ -63,7 +65,9 @@ fun redactPii(text: String): String {
 
     // IPv6, compressed form using "::".
     result = result.replace(
-        Regex("""(?<![0-9a-fA-F:.])(?:(?:[0-9a-fA-F]{1,4}:){1,7}:(?:[0-9a-fA-F]{1,4}:)*[0-9a-fA-F]{0,4}|::(?:[0-9a-fA-F]{1,4}:)*[0-9a-fA-F]{1,4})(?![0-9a-fA-F:.])"""),
+        Regex(
+            """(?<![0-9a-fA-F:.])(?:(?:[0-9a-fA-F]{1,4}:){1,7}:(?:[0-9a-fA-F]{1,4}:)*[0-9a-fA-F]{0,4}|::(?:[0-9a-fA-F]{1,4}:)*[0-9a-fA-F]{1,4})(?![0-9a-fA-F:.])"""
+        ),
         "[REDACTED IP]",
     )
 

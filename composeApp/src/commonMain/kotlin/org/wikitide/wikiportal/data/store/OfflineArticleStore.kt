@@ -13,7 +13,13 @@ class OfflineArticleStore(
         val fileName = offlineArticleFileName(page.wikiId, page.title)
         files.write(fileName, html)
         queries.upsertOfflineArticle(
-            page.wikiId, page.wikiName, page.title, page.thumbnailUrl, fileName, page.timestampEpochMillis, page.extract,
+            page.wikiId,
+            page.wikiName,
+            page.title,
+            page.thumbnailUrl,
+            fileName,
+            page.timestampEpochMillis,
+            page.extract,
         )
     }
 

@@ -191,10 +191,14 @@ class AppRepository(
             store.getSetting(SettingKeys.TEXT_SCALE)?.let { it.toFloatOrNull()?.let { f -> _textScale.value = f } }
             store.getSetting(SettingKeys.SHOW_IMAGES)?.let { _showImages.value = it.toBoolean() }
             store.getSetting(SettingKeys.OPEN_LINKS_EXTERNALLY)?.let { _openLinksExternally.value = it.toBoolean() }
-            store.getSetting(SettingKeys.CONFIRM_EXTERNAL_NAVIGATION)?.let { _confirmExternalNavigation.value = it.toBoolean() }
+            store.getSetting(
+                SettingKeys.CONFIRM_EXTERNAL_NAVIGATION
+            )?.let { _confirmExternalNavigation.value = it.toBoolean() }
             store.getSetting(SettingKeys.DISABLE_SAFE_MODE)?.let { _disableSafeMode.value = it.toBoolean() }
             store.getSetting(SettingKeys.OPEN_BLANK_IN_NEW_TAB)?.let { _openBlankInNewTab.value = it.toBoolean() }
-            store.getSetting(SettingKeys.INDIE_WIKI_SUGGESTIONS_ENABLED)?.let { _indieWikiSuggestionsEnabled.value = it.toBoolean() }
+            store.getSetting(
+                SettingKeys.INDIE_WIKI_SUGGESTIONS_ENABLED
+            )?.let { _indieWikiSuggestionsEnabled.value = it.toBoolean() }
 
             _savedPages.value = store.savedPages()
             _history.value = store.history()
@@ -205,7 +209,10 @@ class AppRepository(
 
     private suspend fun repairDuplicateRootRanks() {
         val seenRanks = mutableSetOf<String>()
-        val rootRows = (_customWikis.value.filter { it.folderId == null }.map { it.id to it.rank } + _customFolders.value.map { it.id to it.rank })
+        val rootRows = (
+            _customWikis.value.filter { it.folderId == null }.map { it.id to it.rank } +
+            _customFolders.value.map { it.id to it.rank }
+        )
             .sortedBy { it.second }
         var repairedAny = false
         for ((id, rank) in rootRows) {
@@ -453,7 +460,12 @@ class AppRepository(
     fun createFolder(name: String): WikiFolder {
         val slug = name.lowercase().map { if (it.isLetterOrDigit()) it else '-' }.joinToString("")
         val rank = Rank(RankUtil.between(highestRootRank(), null))
-        val folder = WikiFolder(id = "folder-custom-$slug-${Random.nextInt(100000, 999999)}", name = name, isCustom = true, rank = rank)
+        val folder = WikiFolder(
+            id = "folder-custom-$slug-${Random.nextInt(100000, 999999)}",
+            name = name,
+            isCustom = true,
+            rank = rank
+        )
         _customFolders.update { it + folder }
         appScope.launch { store.upsertFolder(folder) }
         return folder
@@ -502,7 +514,14 @@ class AppRepository(
     }
 
     /** Updates [flow] right away and writes [key] to [value]'s string form in the background. */
-    private fun <T> persistSetting(flow: MutableStateFlow<T>, key: String, value: T, encode: (T) -> String = { it.toString() }) {
+    private fun <T> persistSetting(
+        flow: MutableStateFlow<T>,
+        key: String,
+        value: T,
+        encode: (T) -> String = {
+        it.toString()
+    },
+    ) {
         flow.value = value
         appScope.launch { store.setSetting(key, encode(value)) }
     }
@@ -511,10 +530,22 @@ class AppRepository(
     fun setDynamicColor(enabled: Boolean) = persistSetting(_dynamicColor, SettingKeys.DYNAMIC_COLOR, enabled)
     fun setTextScale(scale: Float) = persistSetting(_textScale, SettingKeys.TEXT_SCALE, scale)
     fun setShowImages(enabled: Boolean) = persistSetting(_showImages, SettingKeys.SHOW_IMAGES, enabled)
-    fun setOpenLinksExternally(enabled: Boolean) = persistSetting(_openLinksExternally, SettingKeys.OPEN_LINKS_EXTERNALLY, enabled)
-    fun setConfirmExternalNavigation(enabled: Boolean) = persistSetting(_confirmExternalNavigation, SettingKeys.CONFIRM_EXTERNAL_NAVIGATION, enabled)
+    fun setOpenLinksExternally(enabled: Boolean) = persistSetting(
+        _openLinksExternally,
+        SettingKeys.OPEN_LINKS_EXTERNALLY,
+        enabled
+    )
+    fun setConfirmExternalNavigation(enabled: Boolean) = persistSetting(
+        _confirmExternalNavigation,
+        SettingKeys.CONFIRM_EXTERNAL_NAVIGATION,
+        enabled
+    )
     fun setDisableSafeMode(enabled: Boolean) = persistSetting(_disableSafeMode, SettingKeys.DISABLE_SAFE_MODE, enabled)
-    fun setOpenBlankInNewTab(enabled: Boolean) = persistSetting(_openBlankInNewTab, SettingKeys.OPEN_BLANK_IN_NEW_TAB, enabled)
+    fun setOpenBlankInNewTab(enabled: Boolean) = persistSetting(
+        _openBlankInNewTab,
+        SettingKeys.OPEN_BLANK_IN_NEW_TAB,
+        enabled
+    )
     fun setIndieWikiSuggestionsEnabled(enabled: Boolean) =
         persistSetting(_indieWikiSuggestionsEnabled, SettingKeys.INDIE_WIKI_SUGGESTIONS_ENABLED, enabled)
 
@@ -559,7 +590,11 @@ class AppRepository(
      */
     fun saveOfflineArticle(page: SavedPage, html: String) {
         _offlineKeys.update { it + "${page.wikiId}|${page.title}" }
-        _offlineArticles.update { list -> listOf(page) + list.filterNot { it.wikiId == page.wikiId && it.title == page.title } }
+        _offlineArticles.update { list ->
+            listOf(
+            page
+        ) + list.filterNot { it.wikiId == page.wikiId && it.title == page.title }
+        }
         appScope.launch { store.saveOfflineArticle(page, html) }
     }
 

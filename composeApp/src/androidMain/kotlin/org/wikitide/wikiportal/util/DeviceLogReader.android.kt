@@ -19,7 +19,9 @@ private const val TAG = "DeviceLogReader"
  * up here as its own disconnected entry. See mergeContinuations below,
  * which uses that repeated key to put them back together.
  */
-private val threadTimeLine = Regex("""^(\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\.\d{3})\s+(\d+)\s+(\d+)\s+([VDIWEF])\s+([^:]*):\s?(.*)$""")
+private val threadTimeLine = Regex(
+    """^(\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\.\d{3})\s+(\d+)\s+(\d+)\s+([VDIWEF])\s+([^:]*):\s?(.*)$"""
+)
 
 /**
  * Recovers the real tag AppLog was called with, see platformLog's

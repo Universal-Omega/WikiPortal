@@ -49,6 +49,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
 import org.jetbrains.compose.resources.stringResource
+import org.wikitide.wikiportal.data.AppRepository
+import org.wikitide.wikiportal.data.model.WikiFolder
+import org.wikitide.wikiportal.data.model.WikiSite
 import org.wikitide.wikiportal.resources.Res
 import org.wikitide.wikiportal.resources.common_delete
 import org.wikitide.wikiportal.resources.common_remove
@@ -65,9 +68,6 @@ import org.wikitide.wikiportal.resources.wiki_picker_n_wikis
 import org.wikitide.wikiportal.resources.wiki_picker_one_wiki
 import org.wikitide.wikiportal.resources.wiki_picker_options_for
 import org.wikitide.wikiportal.resources.wiki_picker_rename
-import org.wikitide.wikiportal.data.AppRepository
-import org.wikitide.wikiportal.data.model.WikiFolder
-import org.wikitide.wikiportal.data.model.WikiSite
 import org.wikitide.wikiportal.ui.components.DragReorderState
 import org.wikitide.wikiportal.ui.components.rememberDragReorderState
 import org.wikitide.wikiportal.ui.components.trackDragPosition
@@ -139,7 +139,8 @@ internal fun FolderSectionContent(
             } else {
                 wikis.forEach { wiki ->
                     WikiRow(
-                        wiki, wiki.id == activeWikiId,
+                        wiki,
+                        wiki.id == activeWikiId,
                         onClick = { onClickWiki(wiki) },
                         onRemove = onRemoveWiki?.let { { it(wiki) } },
                         onEditSkin = { onEditSkin(wiki) },
@@ -210,8 +211,14 @@ private fun FolderHeaderRow(
                 } else {
                     it.pointerInput(folder.id) {
                         detectDragGesturesAfterLongPress(
-                            onDragStart = { onEnterReorderMode?.invoke(); dragState.onDragStart(folder.id) },
-                            onDrag = { change, delta -> change.consume(); dragState.onDrag(folder.id, delta.y) },
+                            onDragStart = {
+                                onEnterReorderMode?.invoke();
+                                dragState.onDragStart(folder.id)
+                            },
+                            onDrag = { change, delta ->
+                                change.consume();
+                                dragState.onDrag(folder.id, delta.y)
+                            },
                             onDragEnd = { dragState.onDragEnd() },
                             onDragCancel = { dragState.onDragEnd() },
                         )
@@ -234,7 +241,9 @@ private fun FolderHeaderRow(
         // instead of reading as two small bare icons crowded together.
         Box(
             modifier = Modifier.size(40.dp).clip(CircleShape)
-                .background(if (isDropTarget) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondaryContainer),
+                .background(
+                    if (isDropTarget) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondaryContainer
+                ),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -244,29 +253,53 @@ private fun FolderHeaderRow(
             )
         }
         Column(Modifier.weight(1f)) {
-            Text(folder.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
-                if (count == 1) stringResource(Res.string.wiki_picker_one_wiki) else stringResource(Res.string.wiki_picker_n_wikis, count),
+                folder.name,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                if (count == 1) stringResource(
+                        Res.string.wiki_picker_one_wiki
+                    ) else stringResource(Res.string.wiki_picker_n_wikis, count),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         Icon(
             if (expanded) Icons.Filled.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = if (expanded) stringResource(Res.string.wiki_picker_collapse) else stringResource(Res.string.wiki_picker_expand),
+            contentDescription = if (expanded) stringResource(
+                    Res.string.wiki_picker_collapse
+                ) else stringResource(Res.string.wiki_picker_expand),
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         if (onRename != null || onDelete != null) {
             Box {
                 IconButton(onClick = { showMenu = true }) {
-                    Icon(Icons.Filled.MoreVert, contentDescription = stringResource(Res.string.wiki_picker_folder_options, folder.name))
+                    Icon(
+                        Icons.Filled.MoreVert,
+                        contentDescription = stringResource(Res.string.wiki_picker_folder_options, folder.name)
+                    )
                 }
                 DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                     if (onRename != null) {
-                        DropdownMenuItem(text = { Text(stringResource(Res.string.wiki_picker_rename)) }, onClick = { showMenu = false; onRename() })
+                        DropdownMenuItem(
+                            text = { Text(stringResource(Res.string.wiki_picker_rename)) },
+                            onClick = {
+                                showMenu = false;
+                                onRename()
+                            }
+                        )
                     }
                     if (onDelete != null) {
-                        DropdownMenuItem(text = { Text(stringResource(Res.string.common_delete)) }, onClick = { showMenu = false; onDelete() })
+                        DropdownMenuItem(
+                            text = { Text(stringResource(Res.string.common_delete)) },
+                            onClick = {
+                                showMenu = false;
+                                onDelete()
+                            }
+                        )
                     }
                 }
             }
@@ -342,8 +375,14 @@ internal fun WikiRow(
                 } else {
                     it.pointerInput(wiki.id) {
                         detectDragGesturesAfterLongPress(
-                            onDragStart = { onEnterReorderMode?.invoke(); dragState.onDragStart(wiki.id) },
-                            onDrag = { change, delta -> change.consume(); dragState.onDrag(wiki.id, delta.y) },
+                            onDragStart = {
+                                onEnterReorderMode?.invoke();
+                                dragState.onDragStart(wiki.id)
+                            },
+                            onDrag = { change, delta ->
+                                change.consume();
+                                dragState.onDrag(wiki.id, delta.y)
+                            },
                             onDragEnd = { dragState.onDragEnd() },
                             onDragCancel = { dragState.onDragEnd() },
                         )
@@ -382,23 +421,39 @@ internal fun WikiRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        if (selected) Icon(Icons.Filled.Check, contentDescription = stringResource(Res.string.common_selected), tint = MaterialTheme.colorScheme.primary)
+        if (selected) Icon(
+                Icons.Filled.Check,
+                contentDescription = stringResource(Res.string.common_selected),
+                tint = MaterialTheme.colorScheme.primary
+            )
         // Every wiki has at least "Change skin" and "Disable safe mode"
         // to offer here, custom or preset, so this always goes behind
         // one overflow menu rather than ever falling back to a single
         // bare icon.
         Box {
             IconButton(onClick = { showMenu = true }) {
-                Icon(Icons.Filled.MoreVert, contentDescription = stringResource(Res.string.wiki_picker_options_for, wiki.name))
+                Icon(
+                    Icons.Filled.MoreVert,
+                    contentDescription = stringResource(Res.string.wiki_picker_options_for, wiki.name)
+                )
             }
             DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                 DropdownMenuItem(
                     text = { Text(stringResource(Res.string.wiki_picker_change_skin)) },
                     leadingIcon = { Icon(Icons.Filled.Palette, contentDescription = null) },
-                    onClick = { showMenu = false; onEditSkin() },
+                    onClick = {
+                        showMenu = false;
+                        onEditSkin()
+                    },
                 )
                 DropdownMenuItem(
-                    text = { Text(if (wiki.disableSafeMode) stringResource(Res.string.wiki_picker_enable_safe_mode) else stringResource(Res.string.settings_disable_safe_mode_title)) },
+                    text = {
+                        Text(
+                        if (wiki.disableSafeMode) stringResource(
+                                Res.string.wiki_picker_enable_safe_mode
+                            ) else stringResource(Res.string.settings_disable_safe_mode_title)
+                    )
+                    },
                     leadingIcon = { Icon(Icons.Filled.Shield, contentDescription = null) },
                     onClick = {
                         showMenu = false
@@ -409,14 +464,20 @@ internal fun WikiRow(
                     DropdownMenuItem(
                         text = { Text(stringResource(Res.string.wiki_picker_move_to_folder)) },
                         leadingIcon = { Icon(Icons.AutoMirrored.Filled.DriveFileMove, contentDescription = null) },
-                        onClick = { showMenu = false; onMoveToFolder() },
+                        onClick = {
+                            showMenu = false;
+                            onMoveToFolder()
+                        },
                     )
                 }
                 if (onRemove != null) {
                     DropdownMenuItem(
                         text = { Text(stringResource(Res.string.common_remove)) },
                         leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null) },
-                        onClick = { showMenu = false; onRemove() },
+                        onClick = {
+                            showMenu = false;
+                            onRemove()
+                        },
                     )
                 }
             }

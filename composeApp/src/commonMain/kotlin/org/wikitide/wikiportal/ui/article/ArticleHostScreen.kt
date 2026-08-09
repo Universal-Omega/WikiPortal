@@ -36,6 +36,9 @@ import com.multiplatform.webview.web.NativeWebView
 import com.multiplatform.webview.web.WebViewNavigator
 import com.multiplatform.webview.web.rememberWebViewNavigator
 import io.ktor.http.Url
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.TabsRepository
@@ -45,20 +48,17 @@ import org.wikitide.wikiportal.data.model.SavedPage
 import org.wikitide.wikiportal.data.model.effectiveDisableSafeMode
 import org.wikitide.wikiportal.network.MediaWikiApi
 import org.wikitide.wikiportal.network.PageSummaryDto
+import org.wikitide.wikiportal.resources.Res
+import org.wikitide.wikiportal.resources.article_host_link_copied
+import org.wikitide.wikiportal.resources.article_host_share_failed
 import org.wikitide.wikiportal.ui.tabs.TabsScreen
 import org.wikitide.wikiportal.util.ShareOutcome
-import org.wikitide.wikiportal.util.rememberPageSharer
 import org.wikitide.wikiportal.util.nowEpochMillis
 import org.wikitide.wikiportal.util.offline.captureArticleForOffline
 import org.wikitide.wikiportal.util.offline.offlineLoadIdentityUrl
 import org.wikitide.wikiportal.util.offline.offlineTitlesForWiki
 import org.wikitide.wikiportal.util.offline.rewriteOfflineLinks
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.stringResource
-import org.wikitide.wikiportal.resources.Res
-import org.wikitide.wikiportal.resources.article_host_link_copied
-import org.wikitide.wikiportal.resources.article_host_share_failed
+import org.wikitide.wikiportal.util.rememberPageSharer
 
 @Composable
 fun ArticleHostScreen(
@@ -128,7 +128,10 @@ private fun SingleArticleTab(
     // this tab instead of being frozen out by a remember() taken before
     // it existed.
     val allWikis = remember(presetWikis, customWikis) { presetWikis + customWikis }
-    val site = remember(tab.wikiId, allWikis) { allWikis.firstOrNull { it.id == tab.wikiId } ?: repository.activeWiki.value }
+    val site = remember(
+        tab.wikiId,
+        allWikis
+    ) { allWikis.firstOrNull { it.id == tab.wikiId } ?: repository.activeWiki.value }
     val initialTitle = remember(tab.id) { tab.title }
     val openOfflineFromStart = tab.openedFromOffline
     val textScale by repository.textScale.collectAsState()
@@ -159,7 +162,11 @@ private fun SingleArticleTab(
     // until the next navigation proves otherwise.
     var isOnExternalSite by remember(tab.id) {
         mutableStateOf(
-            tab.currentUrl?.let { url -> !AuthDomains.matches(url) && allWikis.none { url.startsWith(it.baseUrl) } } ?: false,
+            tab.currentUrl?.let { url ->
+                !AuthDomains.matches(
+                url
+            ) && allWikis.none { url.startsWith(it.baseUrl) }
+            } ?: false,
         )
     }
 
@@ -190,7 +197,12 @@ private fun SingleArticleTab(
 
     var pageState by remember(tab.id) {
         mutableStateOf(
-            WikiPageState(title = initialTitle, canonicalTitle = initialTitle, displaySiteName = site.name, url = tab.currentUrl.orEmpty()),
+            WikiPageState(
+                title = initialTitle,
+                canonicalTitle = initialTitle,
+                displaySiteName = site.name,
+                url = tab.currentUrl.orEmpty()
+            ),
         )
     }
 
@@ -264,7 +276,11 @@ private fun SingleArticleTab(
                         // should already have turned into plain text
                         // before this point.
                         val targetTitle = extractCanonicalTitle(url, site)
-                        if (targetTitle != null && targetTitle in offlineTitlesForWiki(offlineKeysState.value, site.id)) {
+                        if (targetTitle != null && targetTitle in offlineTitlesForWiki(
+                                offlineKeysState.value,
+                                site.id
+                            )
+                        ) {
                             navigateWithinOfflineTab(targetTitle)
                         }
                         return WebRequestInterceptResult.Reject
@@ -310,8 +326,15 @@ private fun SingleArticleTab(
                     // where skipping it would risk rewriting API calls
                     // and static assets that have no business carrying a
                     // skin param.
-                    if (!isAuthRequest && !looksLikeArticleRequest(url, targetSite)) return WebRequestInterceptResult.Allow
-                    val rewritten = targetSite.withSkinParams(url, safeMode = !targetSite.effectiveDisableSafeMode(disableSafeModeState.value)) ?: return WebRequestInterceptResult.Allow
+                    if (!isAuthRequest && !looksLikeArticleRequest(
+                            url,
+                            targetSite
+                        )
+                    ) return WebRequestInterceptResult.Allow
+                    val rewritten = targetSite.withSkinParams(
+                        url,
+                        safeMode = !targetSite.effectiveDisableSafeMode(disableSafeModeState.value)
+                    ) ?: return WebRequestInterceptResult.Allow
                     scope.launch { navigator.loadUrl(rewritten) }
                     return WebRequestInterceptResult.Reject
                 }
@@ -354,7 +377,9 @@ private fun SingleArticleTab(
     // one, but only while this tab is actually the active one.
     LaunchedEffect(isActive, navigator.canGoBack, offlineBackStack, isShowingOfflineSnapshot) {
         if (isActive) {
-            tabsRepository.setActiveTabCanGoBack(if (isShowingOfflineSnapshot) offlineBackStack.isNotEmpty() else navigator.canGoBack)
+            tabsRepository.setActiveTabCanGoBack(
+                if (isShowingOfflineSnapshot) offlineBackStack.isNotEmpty() else navigator.canGoBack
+            )
         }
     }
 
@@ -493,12 +518,20 @@ private fun SingleArticleTab(
         // the actual address to return to, rather than reconstructing
         // one from title and wikiId that would 404 on a page that was
         // never really an article here.
-        val freshSummary = if (isOffSiteContent || isShowingOfflineSnapshot) null else api.getPageSummary(site, currentTitle).getOrNull()
+        val freshSummary = if (isOffSiteContent || isShowingOfflineSnapshot) null else api.getPageSummary(
+                site,
+                currentTitle
+            ).getOrNull()
         summarizedTitle = currentTitle
         pageSummary = freshSummary
         tabsRepository.updateTab(
-            tab.id, currentTitle, freshSummary?.thumbnail?.source, pageState.displaySiteName.orEmpty(), freshSummary?.extract,
-            pageState.url, clearSummary = isOffSiteContent,
+            tab.id,
+            currentTitle,
+            freshSummary?.thumbnail?.source,
+            pageState.displaySiteName.orEmpty(),
+            freshSummary?.extract,
+            pageState.url,
+            clearSummary = isOffSiteContent,
         )
         // Attributed to whichever wiki the page actually is right now,
         // not necessarily this tab's own site. A page has genuinely
@@ -575,7 +608,14 @@ private fun SingleArticleTab(
                             scope.launch { clearPageSearch(navigator) }
                         },
                         onSearchSubmit = { scope.launch { searchResult = stepPageSearch(navigator, forward = true) } },
-                        onPreviousMatch = { scope.launch { searchResult = stepPageSearch(navigator, forward = false) } },
+                        onPreviousMatch = {
+                            scope.launch {
+                                searchResult = stepPageSearch(
+                            navigator,
+                            forward = false
+                        )
+                            }
+                        },
                         onNextMatch = { scope.launch { searchResult = stepPageSearch(navigator, forward = true) } },
                     )
                 } else {

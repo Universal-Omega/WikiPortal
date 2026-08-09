@@ -27,7 +27,11 @@ data class CategoryBrowseUiState(
 )
 
 private data class SearchState(val query: String, val matches: List<String>, val isSearching: Boolean)
-private data class SelectionState(val selectedCategory: String?, val members: List<String>, val isLoadingMembers: Boolean)
+private data class SelectionState(
+    val selectedCategory: String?,
+    val members: List<String>,
+    val isLoadingMembers: Boolean,
+)
 
 class CategoryBrowseViewModel(
     private val repository: AppRepository,
@@ -42,8 +46,16 @@ class CategoryBrowseViewModel(
     private val _isLoadingMembers = MutableStateFlow(false)
 
     val state: StateFlow<CategoryBrowseUiState> = combine(
-        combine(_query, _matches, _isSearching) { query, matches, isSearching -> SearchState(query, matches, isSearching) },
-        combine(_selectedCategory, _members, _isLoadingMembers) { selected, members, loading -> SelectionState(selected, members, loading) },
+        combine(
+            _query,
+            _matches,
+            _isSearching
+        ) { query, matches, isSearching -> SearchState(query, matches, isSearching) },
+        combine(
+            _selectedCategory,
+            _members,
+            _isLoadingMembers
+        ) { selected, members, loading -> SelectionState(selected, members, loading) },
         repository.activeWiki,
     ) { search, selection, wiki ->
         CategoryBrowseUiState(

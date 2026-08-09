@@ -27,7 +27,12 @@ class IosOfflineArticleFileStore : OfflineArticleFileStore {
             .firstOrNull() as? String
             ?: NSTemporaryDirectory()
         val dir = "$documentsDir/offline-articles"
-        NSFileManager.defaultManager.createDirectoryAtPath(dir, withIntermediateDirectories = true, attributes = null, error = null)
+        NSFileManager.defaultManager.createDirectoryAtPath(
+            dir,
+            withIntermediateDirectories = true,
+            attributes = null,
+            error = null
+        )
         dir
     }
 
@@ -35,7 +40,9 @@ class IosOfflineArticleFileStore : OfflineArticleFileStore {
 
     @OptIn(BetaInteropApi::class)
     override suspend fun write(fileName: String, content: String) {
-        NSString.create(string = content).writeToFile(path(fileName), atomically = true, encoding = NSUTF8StringEncoding, error = null)
+        NSString.create(
+            string = content
+        ).writeToFile(path(fileName), atomically = true, encoding = NSUTF8StringEncoding, error = null)
     }
 
     override suspend fun read(fileName: String): String? =

@@ -23,7 +23,10 @@ fun DestructiveConfirmDialog(
         title = { Text(title) },
         text = { Text(text) },
         confirmButton = {
-            TextButton(onClick = { onDismiss(); onConfirm() }) {
+            TextButton(onClick = {
+                onDismiss();
+                onConfirm()
+            }) {
                 Text(confirmLabel, color = MaterialTheme.colorScheme.error)
             }
         },

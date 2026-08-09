@@ -105,7 +105,9 @@ class DragReorderState<T> internal constructor(
 
         if (onDropIntoContainer != null && !isContainer(draggedItem)) {
             val hovered = order.firstOrNull { candidate ->
-                id(candidate) != itemId && isContainer(candidate) && positions[id(candidate)]?.contains(draggedCenter) == true
+                id(
+                    candidate
+                ) != itemId && isContainer(candidate) && positions[id(candidate)]?.contains(draggedCenter) == true
             }
             val hoveredId = hovered?.let(id)
             if (hoveredId != hoverContainerId) {
@@ -121,7 +123,9 @@ class DragReorderState<T> internal constructor(
             else -> return
         }
         val neighborCenter = positions[id(order[neighborIndex])]?.center ?: return
-        val crossedNeighbor = if (neighborIndex > currentIndex) draggedCenter > neighborCenter else draggedCenter < neighborCenter
+        val crossedNeighbor = if (neighborIndex >
+            currentIndex
+        ) draggedCenter > neighborCenter else draggedCenter < neighborCenter
         if (crossedNeighbor) {
             val reordered = order.toMutableList()
             val moved = reordered.removeAt(currentIndex)
@@ -165,4 +169,10 @@ fun <T> rememberDragReorderState(
 }
 
 fun Modifier.trackDragPosition(state: DragReorderState<*>, itemId: String): Modifier =
-    onGloballyPositioned { coordinates -> state.recordPosition(itemId, coordinates.positionInRoot().y, coordinates.size.height.toFloat()) }
+    onGloballyPositioned { coordinates ->
+        state.recordPosition(
+        itemId,
+        coordinates.positionInRoot().y,
+        coordinates.size.height.toFloat()
+    )
+    }

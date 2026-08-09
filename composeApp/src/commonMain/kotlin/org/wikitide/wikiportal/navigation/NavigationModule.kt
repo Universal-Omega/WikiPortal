@@ -79,7 +79,13 @@ val navigationModule = module {
         EntryBackground {
             SavedScreen(
                 onArticleClick = { wikiId, title -> navigator.openArticle(wikiId, title) },
-                onOfflineArticleClick = { wikiId, title -> navigator.openArticle(wikiId, title, openedFromOffline = true) },
+                onOfflineArticleClick = { wikiId, title ->
+                    navigator.openArticle(
+                    wikiId,
+                    title,
+                    openedFromOffline = true
+                )
+                },
             )
         }
     }

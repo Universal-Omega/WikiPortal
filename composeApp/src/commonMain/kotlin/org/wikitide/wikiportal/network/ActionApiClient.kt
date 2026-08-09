@@ -68,4 +68,6 @@ class ActionApiClient(
  * generic Exception with a formatted message, so callers that care can
  * pattern-match on it instead of parsing the message string.
  */
-class ActionApiException(val apiError: ApiErrorDto) : Exception("MediaWiki API error [${apiError.code}]: ${apiError.info}")
+class ActionApiException(val apiError: ApiErrorDto) : Exception(
+    "MediaWiki API error [${apiError.code}]: ${apiError.info}"
+)

@@ -75,7 +75,11 @@ class FeedViewModel(
 
     val uiState: StateFlow<FeedUiState> = combine(
         combine(
-            repository.activeWiki, _recentChanges, repository.showImages, _isLoading, _errorMessage,
+            repository.activeWiki,
+            _recentChanges,
+            repository.showImages,
+            _isLoading,
+            _errorMessage,
         ) { wiki, recentChanges, showImages, isLoading, errorMessage ->
             FeedCoreState(wiki, recentChanges, showImages, isLoading, errorMessage)
         },

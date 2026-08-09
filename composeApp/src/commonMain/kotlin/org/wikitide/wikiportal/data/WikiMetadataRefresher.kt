@@ -112,7 +112,10 @@ class WikiMetadataRefresher(private val api: MediaWikiApi) {
         // not site's old ones, in case either just changed. See
         // MediaWikiApi.getMobileDefaultSkin.
         val detectedMobileSkinCode = if (site.skinIsUnset && isMobilePlatform()) {
-            val siteForMobileCheck = site.copy(scriptPath = workingScriptPath, articlePathPrefix = resolvedArticlePathPrefix)
+            val siteForMobileCheck = site.copy(
+                scriptPath = workingScriptPath,
+                articlePathPrefix = resolvedArticlePathPrefix
+            )
             api.getMobileDefaultSkin(siteForMobileCheck, resolvedMainPageTitle).getOrNull()
         } else {
             null
@@ -136,7 +139,13 @@ class WikiMetadataRefresher(private val api: MediaWikiApi) {
             // case except when nobody has ever chosen one. See its
             // own comment for the different ways it can still change
             // in that case.
-            skin = resolveDefaultSkin(site, deriveWikiDefaultSkin(resolvedQuery.skins), uncuratedDefault, curatedSkins, detectedMobileSkin),
+            skin = resolveDefaultSkin(
+                site,
+                deriveWikiDefaultSkin(resolvedQuery.skins),
+                uncuratedDefault,
+                curatedSkins,
+                detectedMobileSkin
+            ),
             mainPageTitle = resolvedMainPageTitle,
             mainPageIsDomainRoot = resolved.mainpageisdomainroot,
         )

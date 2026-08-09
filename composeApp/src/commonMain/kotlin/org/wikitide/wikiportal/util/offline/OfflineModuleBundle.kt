@@ -14,7 +14,9 @@ import org.wikitide.wikiportal.network.MediaWikiApi
  * unchanged, for a very long time, and a real JS parser is a lot of
  * dependency weight for two known, stable call shapes.
  */
-private val MODULE_LIST_ASSIGNMENT_OR_CALL = Regex("""(?:RLPAGEMODULES\s*=|mw\.loader\.(?:load|using)\()\s*\[([^]]*)]""")
+private val MODULE_LIST_ASSIGNMENT_OR_CALL = Regex(
+    """(?:RLPAGEMODULES\s*=|mw\.loader\.(?:load|using)\()\s*\[([^]]*)]"""
+)
 private val QUOTED_STRING = Regex("""['"]([^'"]+)['"]""")
 
 /**

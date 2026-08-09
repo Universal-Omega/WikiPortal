@@ -61,17 +61,8 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import org.koin.compose.koinInject
-import org.wikitide.wikiportal.ui.components.DestructiveConfirmDialog
-import org.wikitide.wikiportal.util.AppLog
-import org.wikitide.wikiportal.util.LogEntry
-import org.wikitide.wikiportal.util.LogExporter
-import org.wikitide.wikiportal.util.LogLevel
-import org.wikitide.wikiportal.util.clearDeviceLogs
-import org.wikitide.wikiportal.util.copyPlainText
-import org.wikitide.wikiportal.util.nowEpochMillis
-import org.wikitide.wikiportal.util.readDeviceLogs
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.koinInject
 import org.wikitide.wikiportal.resources.Res
 import org.wikitide.wikiportal.resources.browse_wikis_clear_search
 import org.wikitide.wikiportal.resources.common_back
@@ -97,6 +88,15 @@ import org.wikitide.wikiportal.resources.logs_select
 import org.wikitide.wikiportal.resources.logs_title
 import org.wikitide.wikiportal.resources.saved_cancel_selection
 import org.wikitide.wikiportal.resources.saved_n_selected
+import org.wikitide.wikiportal.ui.components.DestructiveConfirmDialog
+import org.wikitide.wikiportal.util.AppLog
+import org.wikitide.wikiportal.util.LogEntry
+import org.wikitide.wikiportal.util.LogExporter
+import org.wikitide.wikiportal.util.LogLevel
+import org.wikitide.wikiportal.util.clearDeviceLogs
+import org.wikitide.wikiportal.util.copyPlainText
+import org.wikitide.wikiportal.util.nowEpochMillis
+import org.wikitide.wikiportal.util.readDeviceLogs
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -150,13 +150,24 @@ fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
         source.asReversed().filter { entry ->
             (!appOnly || entry.isAppSource) &&
                 entry.level in visibleLevels &&
-                (searchQuery.isBlank() || entry.tag.contains(searchQuery, ignoreCase = true) || entry.message.contains(searchQuery, ignoreCase = true))
+                (
+                    searchQuery.isBlank() || entry.tag.contains(
+                    searchQuery,
+                    ignoreCase = true
+                ) || entry.message.contains(searchQuery, ignoreCase = true)
+                )
         }
     }
     LaunchedEffect(appOnly, visibleLevels, searchQuery) { exitSelection() }
 
     fun formatted(list: List<LogEntry>): String =
-        list.joinToString("\n") { entry -> "${entry.displayTime ?: formatLogTime(entry.timestampEpochMillis)}  ${entry.level.name}  ${entry.tag}: ${entry.message}" }
+        list.joinToString(
+            "\n"
+        ) { entry ->
+            "${entry.displayTime ?: formatLogTime(
+            entry.timestampEpochMillis
+        )}  ${entry.level.name}  ${entry.tag}: ${entry.message}"
+        }
 
     fun copyToClipboard(text: String) {
         scope.launch {
@@ -170,12 +181,21 @@ fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
         topBar = {
             Column {
                 TopAppBar(
-                    title = { Text(if (selectionMode) stringResource(Res.string.saved_n_selected, selectedIndices.size) else stringResource(Res.string.logs_title)) },
+                    title = {
+                        Text(
+                        if (selectionMode) stringResource(
+                                Res.string.saved_n_selected,
+                                selectedIndices.size
+                            ) else stringResource(Res.string.logs_title)
+                    )
+                    },
                     navigationIcon = {
                         IconButton(onClick = { if (selectionMode) exitSelection() else onBack() }) {
                             Icon(
                                 imageVector = if (selectionMode) Icons.Filled.Close else Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = if (selectionMode) stringResource(Res.string.saved_cancel_selection) else stringResource(Res.string.common_back),
+                                contentDescription = if (selectionMode) stringResource(
+                                        Res.string.saved_cancel_selection
+                                    ) else stringResource(Res.string.common_back),
                             )
                         }
                     },
@@ -188,19 +208,31 @@ fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
                                 },
                                 enabled = selectedIndices.isNotEmpty(),
                             ) {
-                                Icon(Icons.Filled.ContentCopy, contentDescription = stringResource(Res.string.logs_copy_selected))
+                                Icon(
+                                    Icons.Filled.ContentCopy,
+                                    contentDescription = stringResource(Res.string.logs_copy_selected)
+                                )
                             }
                         } else {
                             IconButton(onClick = { scope.launch { load() } }) {
-                                Icon(Icons.Filled.Refresh, contentDescription = stringResource(Res.string.common_refresh))
+                                Icon(
+                                    Icons.Filled.Refresh,
+                                    contentDescription = stringResource(Res.string.common_refresh)
+                                )
                             }
                             IconButton(onClick = { menuOpen = true }) {
-                                Icon(Icons.Filled.MoreVert, contentDescription = stringResource(Res.string.common_more_options))
+                                Icon(
+                                    Icons.Filled.MoreVert,
+                                    contentDescription = stringResource(Res.string.common_more_options)
+                                )
                             }
                             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                                 DropdownMenuItem(
                                     text = { Text(stringResource(Res.string.logs_select)) },
-                                    onClick = { menuOpen = false; selectionMode = true },
+                                    onClick = {
+                                        menuOpen = false;
+                                        selectionMode = true
+                                    },
                                 )
                                 DropdownMenuItem(
                                     text = { Text(stringResource(Res.string.logs_copy_all)) },
@@ -253,11 +285,17 @@ fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
             }
             displayed.isEmpty() -> Box(Modifier.fillMaxSize().padding(innerPadding).padding(20.dp)) {
                 val message = when {
-                    (if (appOnly) appEntries else deviceEntries).isEmpty() -> stringResource(Res.string.logs_empty_session)
+                    (if (appOnly) appEntries else deviceEntries).isEmpty() -> stringResource(
+                            Res.string.logs_empty_session
+                        )
                     searchQuery.isNotBlank() -> stringResource(Res.string.logs_no_match, searchQuery)
                     else -> stringResource(Res.string.logs_no_filter_match)
                 }
-                Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
             else -> LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
@@ -271,7 +309,8 @@ fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
                         selected = index in selectedIndices,
                         onClick = {
                             if (selectionMode) {
-                                selectedIndices = if (index in selectedIndices) selectedIndices - index else selectedIndices + index
+                                selectedIndices =
+                                    if (index in selectedIndices) selectedIndices - index else selectedIndices + index
                             }
                         },
                         onLongClick = {
@@ -289,7 +328,12 @@ fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
             title = stringResource(Res.string.logs_clear_title),
             text = stringResource(Res.string.logs_clear_body),
             confirmLabel = stringResource(Res.string.common_clear_action),
-            onConfirm = { scope.launch { clearDeviceLogs(); load() } },
+            onConfirm = {
+                scope.launch {
+                clearDeviceLogs();
+                load()
+            }
+            },
             onDismiss = { showClearConfirm = false },
         )
     }
@@ -323,13 +367,19 @@ private fun FilterRow(
     onToggleLevel: (LogLevel) -> Unit,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 8.dp),
+        modifier = Modifier.fillMaxWidth().horizontalScroll(
+            rememberScrollState()
+        ).padding(horizontal = 12.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         FilterChip(
             selected = appOnly,
             onClick = { onAppOnlyChange(!appOnly) },
-            label = { Text(if (appOnly) stringResource(Res.string.logs_app_only) else stringResource(Res.string.logs_all)) },
+            label = {
+                Text(
+                if (appOnly) stringResource(Res.string.logs_app_only) else stringResource(Res.string.logs_all)
+            )
+            },
         )
         LogLevel.entries.forEach { level ->
             FilterChip(
@@ -343,12 +393,21 @@ private fun FilterRow(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun LogRow(entry: LogEntry, searchQuery: String, selectionMode: Boolean, selected: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) {
+private fun LogRow(
+    entry: LogEntry,
+    searchQuery: String,
+    selectionMode: Boolean,
+    selected: Boolean,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .background(if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.background)
+            .background(
+                if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.background
+            )
             .padding(horizontal = 20.dp, vertical = 8.dp),
         verticalAlignment = Alignment.Top,
     ) {
@@ -357,12 +416,18 @@ private fun LogRow(entry: LogEntry, searchQuery: String, selectionMode: Boolean,
         }
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
-                text = "${entry.displayTime ?: formatLogTime(entry.timestampEpochMillis)}  ${entry.level.name}  ${entry.tag}",
+                text = "${entry.displayTime ?: formatLogTime(
+                    entry.timestampEpochMillis
+                )}  ${entry.level.name}  ${entry.tag}",
                 style = MaterialTheme.typography.labelSmall,
                 color = levelColor(entry.level),
                 fontFamily = FontFamily.Monospace,
             )
-            Text(text = highlightedMessage(entry.message, searchQuery), style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
+            Text(
+                text = highlightedMessage(entry.message, searchQuery),
+                style = MaterialTheme.typography.bodySmall,
+                fontFamily = FontFamily.Monospace
+            )
         }
     }
 }

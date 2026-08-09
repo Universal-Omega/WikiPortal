@@ -83,7 +83,14 @@ fun deriveAvailableSkins(skins: List<SkinInfoDto>): List<SkinOption>? {
     // This iterates WikiSkins.options, not `skins`, so the picker's
     // ordering stays stable and curated rather than following whatever
     // order this particular wiki's siteinfo happens to list skins in.
-    return WikiSkins.options.mapNotNull { code -> usableByCode[code]?.let { SkinOption(code, it.name.ifBlank { code }) } }
+    return WikiSkins.options.mapNotNull { code ->
+        usableByCode[code]?.let {
+            SkinOption(
+        code,
+        it.name.ifBlank { code }
+    )
+        }
+    }
 }
 
 /**

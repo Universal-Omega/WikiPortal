@@ -30,11 +30,10 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import kotlin.math.roundToInt
+import org.jetbrains.compose.resources.stringResource
 import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.model.WikiFolder
 import org.wikitide.wikiportal.data.model.WikiSite
-import org.jetbrains.compose.resources.stringResource
 import org.wikitide.wikiportal.resources.Res
 import org.wikitide.wikiportal.resources.common_back
 import org.wikitide.wikiportal.resources.common_cancel
@@ -46,6 +45,7 @@ import org.wikitide.wikiportal.resources.wiki_picker_new_folder
 import org.wikitide.wikiportal.resources.wiki_picker_no_folder
 import org.wikitide.wikiportal.resources.wiki_picker_no_skins
 import org.wikitide.wikiportal.resources.wiki_picker_skin_title
+import kotlin.math.roundToInt
 
 /**
  * Lets the person file a custom wiki into one of their own folders,
@@ -85,36 +85,60 @@ internal fun MoveToFolderDialog(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         RadioButton(selected = wiki.folderId == null, onClick = { onSelectFolder(null) })
-                        Text(stringResource(Res.string.wiki_picker_no_folder), modifier = Modifier.padding(start = 4.dp))
+                        Text(
+                            stringResource(Res.string.wiki_picker_no_folder),
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
                     }
                     folders.forEach { folder ->
                         Row(
-                            modifier = Modifier.fillMaxWidth().clickable { onSelectFolder(folder.id) }.padding(vertical = 10.dp),
+                            modifier = Modifier.fillMaxWidth().clickable {
+                                onSelectFolder(
+                                folder.id
+                            )
+                            }.padding(vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             RadioButton(selected = wiki.folderId == folder.id, onClick = { onSelectFolder(folder.id) })
-                            Text(folder.name, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 4.dp))
+                            Text(
+                                folder.name,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(start = 4.dp)
+                            )
                         }
                     }
                     Row(
                         modifier = Modifier.fillMaxWidth().clickable { creatingNew = true }.padding(vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(Icons.Filled.CreateNewFolder, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Text(stringResource(Res.string.wiki_picker_new_folder), color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 12.dp))
+                        Icon(
+                            Icons.Filled.CreateNewFolder,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            stringResource(Res.string.wiki_picker_new_folder),
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(start = 12.dp)
+                        )
                     }
                 }
             }
         },
         confirmButton = {
             if (creatingNew) {
-                TextButton(onClick = { if (newFolderName.isNotBlank()) onCreateFolder(newFolderName.trim()) }) { Text(stringResource(Res.string.common_create)) }
+                TextButton(
+                    onClick = { if (newFolderName.isNotBlank()) onCreateFolder(newFolderName.trim()) }
+                ) { Text(stringResource(Res.string.common_create)) }
             } else {
                 TextButton(onClick = onDismiss) { Text(stringResource(Res.string.common_close)) }
             }
         },
         dismissButton = {
-            if (creatingNew) TextButton(onClick = { creatingNew = false }) { Text(stringResource(Res.string.common_back)) }
+            if (creatingNew) TextButton(
+                    onClick = { creatingNew = false }
+                ) { Text(stringResource(Res.string.common_back)) }
         },
     )
 }

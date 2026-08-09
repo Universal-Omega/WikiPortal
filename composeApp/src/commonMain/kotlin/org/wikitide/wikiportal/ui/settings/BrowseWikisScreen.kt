@@ -57,11 +57,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.wikitide.wikiportal.data.model.IndieWikiLanguages
 import org.wikitide.wikiportal.data.model.IndieWikiSite
 import org.wikitide.wikiportal.network.iwbFaviconUrl
-import org.jetbrains.compose.resources.stringResource
 import org.wikitide.wikiportal.resources.Res
 import org.wikitide.wikiportal.resources.browse_wikis_all_languages
 import org.wikitide.wikiportal.resources.browse_wikis_alternative_to
@@ -137,13 +137,28 @@ fun BrowseWikisScreen(
             Column {
                 TopAppBar(
                     title = { Text(stringResource(Res.string.browse_wikis_title)) },
-                    navigationIcon = { IconButton(onClick = onDone) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.common_back)) } },
+                    navigationIcon = {
+                        IconButton(
+                        onClick = onDone
+                    ) {
+                        Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(Res.string.common_back)
+                    )
+                    }
+                    },
                     actions = {
                         if (isRefreshing) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp).padding(end = 12.dp), strokeWidth = 2.dp)
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp).padding(end = 12.dp),
+                                strokeWidth = 2.dp
+                            )
                         } else {
                             IconButton(onClick = browseViewModel::refresh) {
-                                Icon(Icons.Filled.Refresh, contentDescription = stringResource(Res.string.browse_wikis_refresh_list))
+                                Icon(
+                                    Icons.Filled.Refresh,
+                                    contentDescription = stringResource(Res.string.browse_wikis_refresh_list)
+                                )
                             }
                         }
                     },
@@ -158,7 +173,10 @@ fun BrowseWikisScreen(
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
                             IconButton(onClick = { browseViewModel.setSearchQuery("") }) {
-                                Icon(Icons.Filled.Close, contentDescription = stringResource(Res.string.browse_wikis_clear_search))
+                                Icon(
+                                    Icons.Filled.Close,
+                                    contentDescription = stringResource(Res.string.browse_wikis_clear_search)
+                                )
                             }
                         }
                     },
@@ -187,18 +205,28 @@ fun BrowseWikisScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                 ) {
-                    Icon(Icons.Filled.TravelExplore, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(
+                        Icons.Filled.TravelExplore,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     Text(
                         stringResource(Res.string.browse_wikis_load_failed),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 8.dp),
                     )
-                    TextButton(onClick = browseViewModel::refresh, modifier = Modifier.padding(top = 8.dp)) { Text(stringResource(Res.string.common_retry)) }
+                    TextButton(
+                        onClick = browseViewModel::refresh,
+                        modifier = Modifier.padding(top = 8.dp)
+                    ) { Text(stringResource(Res.string.common_retry)) }
                 }
             }
             filtered.isEmpty() -> {
-                Box(Modifier.fillMaxSize().padding(innerPadding).padding(24.dp), contentAlignment = Alignment.TopCenter) {
+                Box(
+                    Modifier.fillMaxSize().padding(innerPadding).padding(24.dp),
+                    contentAlignment = Alignment.TopCenter
+                ) {
                     Text(
                         stringResource(Res.string.browse_wikis_no_matches),
                         style = MaterialTheme.typography.bodyMedium,
@@ -216,7 +244,12 @@ fun BrowseWikisScreen(
                             site = site,
                             enabled = !addState.isChecking,
                             onClick = {
-                                scope.launch { addWikiViewModel.submit("https://${site.destinationBaseUrl}", skipIndieWikiCheck = true) }
+                                scope.launch {
+                                    addWikiViewModel.submit(
+                                    "https://${site.destinationBaseUrl}",
+                                    skipIndieWikiCheck = true
+                                )
+                                }
                             },
                         )
                     }
@@ -235,7 +268,9 @@ private fun BrowseFilterRow(
     onLanguageSelected: (String?) -> Unit,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 8.dp),
+        modifier = Modifier.fillMaxWidth().horizontalScroll(
+            rememberScrollState()
+        ).padding(horizontal = 12.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         FilterChip(
@@ -287,7 +322,12 @@ private fun IndieWikiRow(site: IndieWikiSite, enabled: Boolean, onClick: () -> U
             )
         }
         Column(Modifier.weight(1f)) {
-            Text(site.destinationName, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                site.destinationName,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 LanguageBadge(site.language)
                 if (site.isOfficial) OfficialBadge()

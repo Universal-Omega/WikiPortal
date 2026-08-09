@@ -74,13 +74,20 @@ fun ArticleCard(
             if (selectionModeActive) {
                 Icon(
                     imageVector = if (selected) Icons.Filled.CheckCircle else Icons.Outlined.RadioButtonUnchecked,
-                    contentDescription = if (selected) stringResource(Res.string.common_selected) else stringResource(Res.string.article_card_not_selected),
+                    contentDescription = if (selected) stringResource(
+                            Res.string.common_selected
+                        ) else stringResource(Res.string.article_card_not_selected),
                     tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(22.dp).padding(top = 2.dp),
                 )
             }
             Column(modifier = Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
                 if (!wikiLabel.isNullOrBlank()) {
                     Spacer(Modifier.size(2.dp))
                     Text(

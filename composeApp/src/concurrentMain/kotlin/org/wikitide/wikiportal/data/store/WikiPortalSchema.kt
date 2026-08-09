@@ -11,7 +11,12 @@ import org.wikitide.wikiportal.util.RankUtil
 private val synchronousSchema: SqlSchema<QueryResult.Value<Unit>> = WikiPortalDatabase.Schema.synchronous()
 
 object WikiPortalSchema : SqlSchema<QueryResult.Value<Unit>> by synchronousSchema {
-    override fun migrate(driver: SqlDriver, oldVersion: Long, newVersion: Long, vararg callbacks: AfterVersion): QueryResult.Value<Unit> =
+    override fun migrate(
+        driver: SqlDriver,
+        oldVersion: Long,
+        newVersion: Long,
+        vararg callbacks: AfterVersion,
+    ): QueryResult.Value<Unit> =
         synchronousSchema.migrate(driver, oldVersion, newVersion, *SchemaMigrationCallbacks.all, *callbacks)
 }
 
