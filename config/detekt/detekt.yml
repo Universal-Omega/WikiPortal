@@ -46,6 +46,8 @@ ktlint:
   SpacingBetweenDeclarationsWithComments:
     active: false
     severity: info
+  Wrapping:
+    active: false
 
 style:
   ForbiddenComment:
