@@ -51,6 +51,9 @@ def sort_to_source_order(file_path, order):
         root.remove(c)
     for c in new_order:
         root.append(c)
+    root.text = "\n    "
+    for i, c in enumerate(new_order):
+        c.tail = "\n" if i == len(new_order) - 1 else "\n    "
     with open(file_path, 'wb') as fp:
         fp.write(b'<?xml version="1.0" encoding="utf-8"?>\n')
         tree.write(fp, encoding="utf-8", method="xml", pretty_print=True, xml_declaration=False)
