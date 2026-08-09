@@ -156,6 +156,7 @@ kotlin {
 detekt {
     buildUponDefaultConfig = true
     config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
+    source.setFrom("src")
 }
 
 dependencies {
