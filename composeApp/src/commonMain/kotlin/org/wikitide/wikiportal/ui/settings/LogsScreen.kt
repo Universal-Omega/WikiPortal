@@ -60,6 +60,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import kotlinx.collections.immutable.ImmutableSet
+import kotlinx.collections.immutable.PersistentSet
+import kotlinx.collections.immutable.toPersistentSet
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
@@ -100,7 +103,7 @@ import org.wikitide.wikiportal.util.readDeviceLogs
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
+fun LogsScreen(onBack: () -> Unit, modifier: Modifier = Modifier, logExporter: LogExporter = koinInject()) {
     val appEntries by AppLog.entries.collectAsState()
     var deviceEntries by remember { mutableStateOf<List<LogEntry>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -108,7 +111,7 @@ fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
     var selectedIndices by remember { mutableStateOf(setOf<Int>()) }
     var menuOpen by remember { mutableStateOf(false) }
     var appOnly by remember { mutableStateOf(true) }
-    var visibleLevels by remember { mutableStateOf(LogLevel.entries.toSet()) }
+    var visibleLevels by remember { mutableStateOf(LogLevel.entries.toSet().toPersistentSet()) }
     var searchQuery by remember { mutableStateOf("") }
     var showClearConfirm by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -166,85 +169,39 @@ fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
     }
 
     Scaffold(
+        modifier = modifier,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            Column {
-                TopAppBar(
-                    title = { Text(if (selectionMode) stringResource(Res.string.saved_n_selected, selectedIndices.size) else stringResource(Res.string.logs_title)) },
-                    navigationIcon = {
-                        IconButton(onClick = { if (selectionMode) exitSelection() else onBack() }) {
-                            Icon(
-                                imageVector = if (selectionMode) Icons.Filled.Close else Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = if (selectionMode) stringResource(Res.string.saved_cancel_selection) else stringResource(Res.string.common_back),
-                            )
-                        }
-                    },
-                    actions = {
-                        if (selectionMode) {
-                            IconButton(
-                                onClick = {
-                                    copyToClipboard(formatted(selectedIndices.sorted().map { displayed[it] }))
-                                    exitSelection()
-                                },
-                                enabled = selectedIndices.isNotEmpty(),
-                            ) {
-                                Icon(Icons.Filled.ContentCopy, contentDescription = stringResource(Res.string.logs_copy_selected))
-                            }
-                        } else {
-                            IconButton(onClick = { scope.launch { load() } }) {
-                                Icon(Icons.Filled.Refresh, contentDescription = stringResource(Res.string.common_refresh))
-                            }
-                            IconButton(onClick = { menuOpen = true }) {
-                                Icon(Icons.Filled.MoreVert, contentDescription = stringResource(Res.string.common_more_options))
-                            }
-                            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(Res.string.logs_select)) },
-                                    onClick = { menuOpen = false; selectionMode = true },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(Res.string.logs_copy_all)) },
-                                    onClick = {
-                                        menuOpen = false
-                                        copyToClipboard(formatted(displayed))
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(Res.string.logs_export)) },
-                                    onClick = {
-                                        menuOpen = false
-                                        scope.launch {
-                                            val fileName = "wikiportal-logs-${nowEpochMillis()}.txt"
-                                            val result = logExporter.export(fileName, formatted(displayed))
-                                            snackbarHostState.showSnackbar(result.getOrElse { exportFailedMessage })
-                                        }
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(Res.string.logs_clear)) },
-                                    leadingIcon = { Icon(Icons.Filled.DeleteSweep, contentDescription = null) },
-                                    onClick = {
-                                        menuOpen = false
-                                        showClearConfirm = true
-                                    },
-                                )
-                            }
-                        }
-                    },
-                    windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
-                )
-                if (!selectionMode) {
-                    SearchField(query = searchQuery, onQueryChange = { searchQuery = it })
-                    FilterRow(
-                        appOnly = appOnly,
-                        onAppOnlyChange = { appOnly = it },
-                        visibleLevels = visibleLevels,
-                        onToggleLevel = { level ->
-                            visibleLevels = if (level in visibleLevels) visibleLevels - level else visibleLevels + level
-                        },
-                    )
-                }
-            }
+            LogsTopBar(
+                selectionMode = selectionMode,
+                selectedCount = selectedIndices.size,
+                menuOpen = menuOpen,
+                onMenuOpenChange = { menuOpen = it },
+                appOnly = appOnly,
+                onAppOnlyChange = { appOnly = it },
+                visibleLevels = visibleLevels,
+                onToggleLevel = { level ->
+                    visibleLevels = if (level in visibleLevels) visibleLevels - level else visibleLevels + level
+                },
+                searchQuery = searchQuery,
+                onQueryChange = { searchQuery = it },
+                onBack = { if (selectionMode) exitSelection() else onBack() },
+                onCopySelected = {
+                    copyToClipboard(formatted(selectedIndices.sorted().map { displayed[it] }))
+                    exitSelection()
+                },
+                onRefresh = { scope.launch { load() } },
+                onSelect = { selectionMode = true },
+                onCopyAll = { copyToClipboard(formatted(displayed)) },
+                onExport = {
+                    scope.launch {
+                        val fileName = "wikiportal-logs-${nowEpochMillis()}.txt"
+                        val result = logExporter.export(fileName, formatted(displayed))
+                        snackbarHostState.showSnackbar(result.getOrElse { exportFailedMessage })
+                    }
+                },
+                onClear = { showClearConfirm = true },
+            )
         },
     ) { innerPadding ->
         when {
@@ -295,6 +252,113 @@ fun LogsScreen(onBack: () -> Unit, logExporter: LogExporter = koinInject()) {
     }
 }
 
+/**
+ * The Logs screen's whole top bar area: the TopAppBar itself, plus,
+ * outside of selection mode, the search field and filter chip row
+ * beneath it.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LogsTopBar(
+    selectionMode: Boolean,
+    selectedCount: Int,
+    menuOpen: Boolean,
+    onMenuOpenChange: (Boolean) -> Unit,
+    appOnly: Boolean,
+    onAppOnlyChange: (Boolean) -> Unit,
+    visibleLevels: ImmutableSet<LogLevel>,
+    onToggleLevel: (LogLevel) -> Unit,
+    searchQuery: String,
+    onQueryChange: (String) -> Unit,
+    onBack: () -> Unit,
+    onCopySelected: () -> Unit,
+    onRefresh: () -> Unit,
+    onSelect: () -> Unit,
+    onCopyAll: () -> Unit,
+    onExport: () -> Unit,
+    onClear: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier) {
+        TopAppBar(
+            title = { Text(if (selectionMode) stringResource(Res.string.saved_n_selected, selectedCount) else stringResource(Res.string.logs_title)) },
+            navigationIcon = {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = if (selectionMode) Icons.Filled.Close else Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = if (selectionMode) stringResource(Res.string.saved_cancel_selection) else stringResource(Res.string.common_back),
+                    )
+                }
+            },
+            actions = {
+                if (selectionMode) {
+                    IconButton(onClick = onCopySelected, enabled = selectedCount > 0) {
+                        Icon(Icons.Filled.ContentCopy, contentDescription = stringResource(Res.string.logs_copy_selected))
+                    }
+                } else {
+                    LogsOverflowActions(
+                        menuOpen = menuOpen,
+                        onMenuOpenChange = onMenuOpenChange,
+                        onRefresh = onRefresh,
+                        onSelect = onSelect,
+                        onCopyAll = onCopyAll,
+                        onExport = onExport,
+                        onClear = onClear,
+                    )
+                }
+            },
+            windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
+        )
+        if (!selectionMode) {
+            SearchField(query = searchQuery, onQueryChange = onQueryChange)
+            FilterRow(
+                appOnly = appOnly,
+                onAppOnlyChange = onAppOnlyChange,
+                visibleLevels = visibleLevels,
+                onToggleLevel = onToggleLevel,
+            )
+        }
+    }
+}
+
+/** The refresh button and overflow menu shown in [LogsTopBar]'s actions slot outside of selection mode. */
+@Composable
+private fun LogsOverflowActions(
+    menuOpen: Boolean,
+    onMenuOpenChange: (Boolean) -> Unit,
+    onRefresh: () -> Unit,
+    onSelect: () -> Unit,
+    onCopyAll: () -> Unit,
+    onExport: () -> Unit,
+    onClear: () -> Unit,
+) {
+    IconButton(onClick = onRefresh) {
+        Icon(Icons.Filled.Refresh, contentDescription = stringResource(Res.string.common_refresh))
+    }
+    IconButton(onClick = { onMenuOpenChange(true) }) {
+        Icon(Icons.Filled.MoreVert, contentDescription = stringResource(Res.string.common_more_options))
+    }
+    DropdownMenu(expanded = menuOpen, onDismissRequest = { onMenuOpenChange(false) }) {
+        DropdownMenuItem(
+            text = { Text(stringResource(Res.string.logs_select)) },
+            onClick = { onMenuOpenChange(false); onSelect() },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(Res.string.logs_copy_all)) },
+            onClick = { onMenuOpenChange(false); onCopyAll() },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(Res.string.logs_export)) },
+            onClick = { onMenuOpenChange(false); onExport() },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(Res.string.logs_clear)) },
+            leadingIcon = { Icon(Icons.Filled.DeleteSweep, contentDescription = null) },
+            onClick = { onMenuOpenChange(false); onClear() },
+        )
+    }
+}
+
 @Composable
 private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
     OutlinedTextField(
@@ -319,7 +383,7 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
 private fun FilterRow(
     appOnly: Boolean,
     onAppOnlyChange: (Boolean) -> Unit,
-    visibleLevels: Set<LogLevel>,
+    visibleLevels: ImmutableSet<LogLevel>,
     onToggleLevel: (LogLevel) -> Unit,
 ) {
     Row(
