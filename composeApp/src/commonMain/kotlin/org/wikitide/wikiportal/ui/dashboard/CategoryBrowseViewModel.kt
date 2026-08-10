@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.network.MediaWikiApi
+import org.wikitide.wikiportal.util.refreshOnWikiChange
 
 @Immutable
 data class CategoryBrowseUiState(
@@ -22,12 +23,20 @@ data class CategoryBrowseUiState(
     val selectedCategory: String? = null,
     val members: List<String> = emptyList(),
     val isLoadingMembers: Boolean = false,
+    val suggestedCategories: List<String> = emptyList(),
+    val isLoadingSuggestions: Boolean = false,
     val wikiId: String = "",
     val wikiName: String = "",
 )
 
+@Immutable
 private data class SearchState(val query: String, val matches: List<String>, val isSearching: Boolean)
+
+@Immutable
 private data class SelectionState(val selectedCategory: String?, val members: List<String>, val isLoadingMembers: Boolean)
+
+@Immutable
+private data class SuggestionState(val suggestedCategories: List<String>, val isLoadingSuggestions: Boolean)
 
 class CategoryBrowseViewModel(
     private val repository: AppRepository,
@@ -40,12 +49,15 @@ class CategoryBrowseViewModel(
     private val _selectedCategory = MutableStateFlow<String?>(null)
     private val _members = MutableStateFlow<List<String>>(emptyList())
     private val _isLoadingMembers = MutableStateFlow(false)
+    private val _suggestedCategories = MutableStateFlow<List<String>>(emptyList())
+    private val _isLoadingSuggestions = MutableStateFlow(false)
 
     val state: StateFlow<CategoryBrowseUiState> = combine(
         combine(_query, _matches, _isSearching) { query, matches, isSearching -> SearchState(query, matches, isSearching) },
         combine(_selectedCategory, _members, _isLoadingMembers) { selected, members, loading -> SelectionState(selected, members, loading) },
+        combine(_suggestedCategories, _isLoadingSuggestions) { suggested, loading -> SuggestionState(suggested, loading) },
         repository.activeWiki,
-    ) { search, selection, wiki ->
+    ) { search, selection, suggestion, wiki ->
         CategoryBrowseUiState(
             query = search.query,
             matches = search.matches,
@@ -53,12 +65,32 @@ class CategoryBrowseViewModel(
             selectedCategory = selection.selectedCategory,
             members = selection.members,
             isLoadingMembers = selection.isLoadingMembers,
+            suggestedCategories = suggestion.suggestedCategories,
+            isLoadingSuggestions = suggestion.isLoadingSuggestions,
             wikiId = wiki.id,
             wikiName = wiki.name,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CategoryBrowseUiState())
 
     private var searchJob: Job? = null
+    private var suggestionsLoadedForWikiId: String? = null
+
+    // Seeds the browse screen with something to show before the person
+    // has typed anything. Reloads if they switch wikis while this
+    // screen is still open.
+    init {
+        viewModelScope.refreshOnWikiChange(repository.activeWiki, { suggestionsLoadedForWikiId }, ::loadSuggestedCategories)
+    }
+
+    private fun loadSuggestedCategories() {
+        val wiki = repository.activeWiki.value
+        suggestionsLoadedForWikiId = wiki.id
+        viewModelScope.launch {
+            _isLoadingSuggestions.value = true
+            _suggestedCategories.value = api.getPopularCategories(wiki).getOrElse { emptyList() }
+            _isLoadingSuggestions.value = false
+        }
+    }
 
     fun onQueryChange(query: String) {
         _query.value = query
