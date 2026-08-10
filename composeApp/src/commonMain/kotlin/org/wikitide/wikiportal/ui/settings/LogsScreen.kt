@@ -43,6 +43,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -432,6 +433,7 @@ private fun LogRow(entry: LogEntry, searchQuery: String, selectionMode: Boolean,
 }
 
 @Composable
+@ReadOnlyComposable
 private fun levelColor(level: LogLevel) = when (level) {
     LogLevel.ERROR -> MaterialTheme.colorScheme.error
     LogLevel.WARN -> MaterialTheme.colorScheme.tertiary
