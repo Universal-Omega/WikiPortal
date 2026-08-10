@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -37,7 +38,7 @@ class DragReorderState<T> internal constructor(
         private set
     var draggingId: String? by mutableStateOf(null)
         private set
-    var dragOffsetY: Float by mutableStateOf(0f)
+    var dragOffsetY: Float by mutableFloatStateOf(0f)
         private set
 
     var hoverContainerId: String? by mutableStateOf(null)
