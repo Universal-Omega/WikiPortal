@@ -32,7 +32,11 @@ fun deriveArticlePathPrefix(baseUrl: String, articlepath: String?): String? {
     if (!trimmed.contains("\$1")) return null
     val prefix = trimmed.substringBefore("\$1")
     if (prefix.contains("://")) return prefix
-    return if (prefix.startsWith("/")) "$baseUrl$prefix" else "$baseUrl/$prefix"
+    if (!prefix.startsWith("/")) return "$baseUrl/$prefix"
+
+    val root = domainRootOf(baseUrl)
+    val baseUrlPath = baseUrl.removePrefix(root)
+    return if (baseUrlPath.isNotEmpty() && prefix.startsWith("$baseUrlPath/")) "$root$prefix" else "$baseUrl$prefix"
 }
 
 fun resolveFaviconUrl(favicon: String?, baseUrl: String): String? {
