@@ -456,40 +456,52 @@ private fun FullScreenSearchOverlay(
     onArticleClick: (wikiId: String, title: String) -> Unit,
     onClose: () -> Unit,
 ) {
-    val keyboardController = LocalSoftwareKeyboardController.current
     Column(
         Modifier.fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top)),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(onClick = onClose) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.article_top_bar_close_search))
-            }
-            OutlinedTextField(
-                value = searchState.query,
-                onValueChange = onQueryChange,
-                modifier = Modifier.weight(1f).padding(end = 8.dp),
-                placeholder = { Text(stringResource(Res.string.dashboard_search_wiki, searchState.wikiName)) },
-                singleLine = true,
-                trailingIcon = {
-                    if (searchState.query.isNotEmpty()) {
-                        IconButton(onClick = { onQueryChange("") }) {
-                            Icon(Icons.Filled.Close, contentDescription = stringResource(Res.string.common_clear))
-                        }
-                    }
-                },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { keyboardController?.hide() }),
-                shape = MaterialTheme.shapes.large,
-            )
-        }
+        FullScreenSearchField(
+            query = searchState.query,
+            wikiName = searchState.wikiName,
+            onQueryChange = onQueryChange,
+            onClose = onClose,
+        )
+
         Box(Modifier.weight(1f).imePadding()) {
             SearchResultsContent(searchState, onArticleClick, onSearchFor = onSearchFor)
         }
+    }
+}
+
+/** The back button and search field row at the top of [FullScreenSearchOverlay]. */
+@Composable
+private fun FullScreenSearchField(query: String, wikiName: String, onQueryChange: (String) -> Unit, onClose: () -> Unit, modifier: Modifier = Modifier) {
+    val keyboardController = LocalSoftwareKeyboardController.current
+    Row(
+        modifier = modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = onClose) {
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.article_top_bar_close_search))
+        }
+        OutlinedTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            modifier = Modifier.weight(1f).padding(end = 8.dp),
+            placeholder = { Text(stringResource(Res.string.dashboard_search_wiki, wikiName)) },
+            singleLine = true,
+            trailingIcon = {
+                if (query.isNotEmpty()) {
+                    IconButton(onClick = { onQueryChange("") }) {
+                        Icon(Icons.Filled.Close, contentDescription = stringResource(Res.string.common_clear))
+                    }
+                }
+            },
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = { keyboardController?.hide() }),
+            shape = MaterialTheme.shapes.large,
+        )
     }
 }
 
@@ -540,18 +552,24 @@ private fun FeedTabContent(
 @Composable
 private fun FeedErrorContent(errorMessage: String, onRefresh: () -> Unit, onOpenWikiPicker: () -> Unit, modifier: Modifier = Modifier) {
     Box(modifier, contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(stringResource(Res.string.dashboard_could_not_load_wiki), style = MaterialTheme.typography.titleMedium)
-            Text(
-                errorMessage,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
-            )
-            Row {
-                TextButton(onClick = onRefresh) { Text(stringResource(Res.string.common_retry)) }
-                TextButton(onClick = onOpenWikiPicker) { Text(stringResource(Res.string.dashboard_switch_wiki)) }
-            }
+        FeedErrorContentBody(errorMessage = errorMessage, onRefresh = onRefresh, onOpenWikiPicker = onOpenWikiPicker)
+    }
+}
+
+/** The text and retry/switch-wiki buttons inside [FeedErrorContent], split out to keep that function's own nesting shallow. */
+@Composable
+private fun FeedErrorContentBody(errorMessage: String, onRefresh: () -> Unit, onOpenWikiPicker: () -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(stringResource(Res.string.dashboard_could_not_load_wiki), style = MaterialTheme.typography.titleMedium)
+        Text(
+            errorMessage,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
+        )
+        Row {
+            TextButton(onClick = onRefresh) { Text(stringResource(Res.string.common_retry)) }
+            TextButton(onClick = onOpenWikiPicker) { Text(stringResource(Res.string.dashboard_switch_wiki)) }
         }
     }
 }
