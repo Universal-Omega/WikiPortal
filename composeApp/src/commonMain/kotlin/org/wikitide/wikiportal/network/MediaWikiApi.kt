@@ -236,6 +236,23 @@ class MediaWikiApi(
         }
 
     /**
+     * Category titles with the most member pages on [site], newest
+     * cached run of Special:MostLinkedCategories. Used to seed Category
+     * Browse with something to show before the person has typed
+     * anything, see CategoryBrowseViewModel.
+     */
+    suspend fun getPopularCategories(site: WikiSite, limit: Int = 20): Result<List<String>> =
+        actionApi.get<PopularCategoriesResponse>(
+            site.apiUrl,
+            mapOf(
+                "action" to "query",
+                "list" to "querypage",
+                "qppage" to "Mostlinkedcategories",
+                "qplimit" to limit,
+            ),
+        ).map { it.query?.querypage?.results?.map { result -> result.title }.orEmpty() }
+
+    /**
      * Category titles, like "Category:Geography", matching [query] by
      * name. Used to look a category up by name before browsing its
      * members with getCategoryMembers. This intentionally uses the
