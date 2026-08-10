@@ -43,7 +43,7 @@ class MainActivity : ComponentActivity() {
         }
         setContent {
             WikiPortalApp(
-                onDarkThemeResolved = { useDark ->
+                onDarkThemeResolve = { useDark ->
                     val controller = WindowCompat.getInsetsController(window, window.decorView)
                     controller.isAppearanceLightStatusBars = !useDark
                     controller.isAppearanceLightNavigationBars = !useDark
