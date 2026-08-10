@@ -4,6 +4,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import io.ktor.http.Url
 import org.jetbrains.compose.resources.stringResource
 import org.wikitide.wikiportal.resources.Res
@@ -26,9 +27,11 @@ fun ExternalSiteDialog(
     currentWikiName: String,
     onDismiss: () -> Unit,
     onContinue: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val host = runCatching { Url(url).host }.getOrNull()?.ifBlank { null }
     AlertDialog(
+        modifier = modifier,
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.external_site_dialog_title, currentWikiName)) },
         text = { Text(stringResource(Res.string.external_site_dialog_body, host ?: stringResource(Res.string.external_site_dialog_outside_site), currentWikiName)) },
