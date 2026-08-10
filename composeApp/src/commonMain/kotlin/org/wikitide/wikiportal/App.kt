@@ -19,9 +19,9 @@ import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tab
+import androidx.compose.material.icons.filled.TabUnselected
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.Tab
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
@@ -82,7 +82,7 @@ private data class BottomDestination(val route: Route, val labelRes: StringResou
 
 private val bottomDestinations = listOf(
     BottomDestination(DashboardRoute, Res.string.dashboard_title, Icons.Filled.Dashboard, Icons.Outlined.Dashboard),
-    BottomDestination(TabsRoute, Res.string.tabs_title, Icons.Default.Tab, Icons.Outlined.Tab),
+    BottomDestination(TabsRoute, Res.string.tabs_title, Icons.Filled.Tab, Icons.Filled.TabUnselected),
     BottomDestination(SavedRoute, Res.string.dashboard_saved, Icons.Filled.Bookmark, Icons.Filled.BookmarkBorder),
     BottomDestination(SettingsRoute, Res.string.settings_title, Icons.Filled.Settings, Icons.Outlined.Settings),
 )
