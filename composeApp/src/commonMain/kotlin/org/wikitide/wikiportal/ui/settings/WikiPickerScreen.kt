@@ -1,6 +1,7 @@
 package org.wikitide.wikiportal.ui.settings
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -40,7 +41,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.collections.immutable.toImmutableMap
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.wikitide.wikiportal.data.AppRepository
@@ -135,7 +138,7 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
     val presetsByFolder = remember(presetWikis) { presetWikis.groupBy { it.folderId } }
     val ungroupedPresetWikis = presetsByFolder[null] ?: emptyList()
     val listState = rememberLazyListState()
-    val customByFolder = remember(customWikis) { customWikis.groupBy { it.folderId } }
+    val customByFolder = remember(customWikis) { customWikis.groupBy { it.folderId }.toImmutableMap() }
     val ungroupedCustomWikis = customByFolder[null] ?: emptyList()
 
     val rootItems = remember(customFolders, ungroupedCustomWikis) {
@@ -236,16 +239,7 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
 
             if (customWikis.isNotEmpty() || customFolders.isNotEmpty()) {
                 item {
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(end = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        GroupLabel(stringResource(Res.string.wiki_picker_your_wikis), modifier = Modifier.weight(1f))
-                        TextButton(onClick = { reorderMode = !reorderMode }) {
-                            Text(if (reorderMode) stringResource(Res.string.common_done) else stringResource(Res.string.wiki_picker_reorder))
-                        }
-                    }
+                    YourWikisHeader(reorderMode = reorderMode, onToggleReorderMode = { reorderMode = !reorderMode })
                 }
                 items(rootDragState.items, key = { item -> if (item is RootItem.FolderRoot) "folder-${item.id}" else "wiki-${item.id}" }) { item ->
                     RootItemContent(
@@ -375,6 +369,26 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
 }
 
 /**
+ * The divider and "Your wikis" / reorder-toggle row shown above the
+ * custom wikis section.
+ */
+@Composable
+private fun YourWikisHeader(reorderMode: Boolean, onToggleReorderMode: () -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier) {
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(end = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            GroupLabel(stringResource(Res.string.wiki_picker_your_wikis), modifier = Modifier.weight(1f))
+            TextButton(onClick = onToggleReorderMode) {
+                Text(if (reorderMode) stringResource(Res.string.common_done) else stringResource(Res.string.wiki_picker_reorder))
+            }
+        }
+    }
+}
+
+/**
  * One row of the "your wikis" reorderable section, either a top-level
  * custom wiki or a whole folder section.
  */
@@ -382,7 +396,7 @@ fun WikiPickerScreen(onBack: () -> Unit, onAddCustomWiki: () -> Unit, onBrowseWi
 private fun RootItemContent(
     item: RootItem,
     activeWikiId: String,
-    customByFolder: Map<String?, List<WikiSite>>,
+    customByFolder: ImmutableMap<String?, List<WikiSite>>,
     repository: AppRepository,
     rootDragState: DragReorderState<RootItem>,
     reorderMode: Boolean,
