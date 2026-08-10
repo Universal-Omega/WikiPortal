@@ -133,6 +133,7 @@ class MediaWikiApi(
         val requestedPath = Url(url).encodedPath.trimEnd('/')
         val resolvedPath = finalUrl.encodedPath
         val path = if (requestedHost == resolvedHost) Url(url).encodedPath.trimEnd('/') else ""
+        "${finalUrl.protocol.name}://$resolvedHost$path"
     }
 
     suspend fun getRandomArticles(site: WikiSite, count: Int = 15): Result<List<PageSummaryDto>> =
