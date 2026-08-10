@@ -5,6 +5,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import org.jetbrains.compose.resources.stringResource
 import org.wikitide.wikiportal.resources.Res
 import org.wikitide.wikiportal.resources.common_cancel
@@ -17,8 +18,10 @@ fun DestructiveConfirmDialog(
     confirmLabel: String,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     AlertDialog(
+        modifier = modifier,
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = { Text(text) },
