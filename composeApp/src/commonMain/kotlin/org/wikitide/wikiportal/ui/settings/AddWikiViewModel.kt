@@ -50,6 +50,20 @@ data class AddWikiUiState(
     val indieWikiSuggestion: IndieWikiSuggestion? = null,
 )
 
+/** Everything resolveAndAdd needs out of a successful getSiteInfo probe, bundled since tryResolve tries several candidate paths and only the winning one's details matter. */
+private data class ResolvedWikiInfo(
+    val site: WikiSite,
+    val sitename: String,
+    val lang: String?,
+    val articlePathPrefix: String?,
+    val mainPageTitle: String?,
+    val faviconUrl: String?,
+    val availableSkins: List<SkinOption>?,
+    val uncuratedDefaultSkin: SkinOption?,
+    val wikiDefaultSkin: SkinOption?,
+    val mainPageIsDomainRoot: Boolean,
+)
+
 class AddWikiViewModel(
     private val repository: AppRepository,
     private val api: MediaWikiApi,
@@ -60,14 +74,20 @@ class AddWikiViewModel(
     val state: StateFlow<AddWikiUiState> = _state
 
     /**
-     * The host component of a base URL, lowercased, with no scheme or
-     * trailing path. Used both for duplicate detection and as the
-     * basis for a new custom wiki's id, so "http://AllTheTropes.org"
-     * and "https://allthetropes.org/" are recognized as the exact same
-     * wiki.
+     * The host and any meaningful path of a base URL, lowercased, with
+     * no scheme or trailing slash. Used both for duplicate detection
+     * and as the basis for a new custom wiki's id, so
+     * "http://AllTheTropes.org" and "https://allthetropes.org/" are
+     * recognized as the exact same wiki..
      */
     private fun hostOf(baseUrl: String): String =
         baseUrl.removePrefix("https://").removePrefix("http://").trimEnd('/').lowercase()
+
+    private fun stripPathFromBaseUrl(baseUrl: String): String {
+        val hostStart = baseUrl.indexOf("://").let { if (it == -1) 0 else it + 3 }
+        val pathStart = baseUrl.indexOf('/', hostStart)
+        return if (pathStart == -1) baseUrl else baseUrl.substring(0, pathStart)
+    }
 
     /**
      * [skipIndieWikiCheck] is true for the two follow-up calls after a
@@ -114,6 +134,43 @@ class AddWikiViewModel(
         submit(suggestion.originalUrl, skipIndieWikiCheck = true)
     }
 
+    /**
+     * Tries every path in [candidatePaths] appended to [baseUrl] as a
+     * script path, stopping at the first one whose getSiteInfo actually
+     * comes back with a sitename. A failure on one path, for example a
+     * 404 from a wrong /w/api.php, which throws a JSON parse exception,
+     * says nothing about whether a different path would work, so this
+     * doesn't short circuit on exceptions, only on success. Returns
+     * whichever ran last if every path fails, so resolveAndAdd's own
+     * error message reflects the most recent attempt either way.
+     */
+    private suspend fun tryResolve(host: String, baseUrl: String, candidatePaths: List<String>): Pair<ResolvedWikiInfo?, Throwable?> {
+        var lastError: Throwable? = null
+        for (path in candidatePaths) {
+            val candidate = WikiSite(id = host, name = baseUrl, baseUrl = baseUrl, scriptPath = path, isCustom = true)
+            val result = api.getSiteInfo(candidate)
+            val info = result.getOrNull()?.general
+            if (info?.sitename != null) {
+                val skinsReported = result.getOrNull()?.skins.orEmpty()
+                val resolved = ResolvedWikiInfo(
+                    site = candidate,
+                    sitename = info.sitename,
+                    lang = info.lang,
+                    articlePathPrefix = deriveArticlePathPrefix(candidate.baseUrl, info.articlepath),
+                    mainPageTitle = deriveMainPageTitle(info.mainpage),
+                    faviconUrl = resolveFaviconUrl(info.favicon, candidate.baseUrl) ?: api.getFaviconUrlFromHtml(candidate).getOrNull(),
+                    availableSkins = deriveAvailableSkins(skinsReported),
+                    uncuratedDefaultSkin = deriveUncuratedDefaultSkin(skinsReported),
+                    wikiDefaultSkin = deriveWikiDefaultSkin(skinsReported),
+                    mainPageIsDomainRoot = info.mainpageisdomainroot,
+                )
+                return resolved to null
+            }
+            result.exceptionOrNull()?.let { lastError = it }
+        }
+        return null to lastError
+    }
+
     private suspend fun resolveAndAdd(normalizedInput: String, customScriptPath: String) {
         // Resolves wherever this URL actually, genuinely leads,
         // following both a wrong scheme or case correcting itself
@@ -139,53 +196,18 @@ class AddWikiViewModel(
             COMMON_SCRIPT_PATHS
         }
 
-        var resolvedSite: WikiSite? = null
-        var sitename: String? = null
-        var lang: String? = null
-        var articlePathPrefix: String? = null
-        var mainPageTitle: String? = null
-        var faviconUrl: String? = null
-        var availableSkins: List<SkinOption>? = null
-        var uncuratedDefaultSkin: SkinOption? = null
-        var wikiDefaultSkin: SkinOption? = null
-        var mainPageIsDomainRoot = false
-        var lastError: Throwable? = null
-
-        // This always tries every candidate path. A failure on one
-        // path, for example a 404 from a wrong /w/api.php, which
-        // throws a JSON parse exception, says nothing about whether
-        // a different path would work, so this doesn't short
-        // circuit on exceptions here. It only stops early on
-        // success.
-        for (path in candidatePaths) {
-            val candidate = WikiSite(
-                id = host,
-                name = resolvedBaseUrl,
-                baseUrl = resolvedBaseUrl,
-                scriptPath = path,
-                isCustom = true,
-            )
-            val result = api.getSiteInfo(candidate)
-            val info = result.getOrNull()?.general
-            if (info?.sitename != null) {
-                resolvedSite = candidate
-                sitename = info.sitename
-                lang = info.lang
-                articlePathPrefix = deriveArticlePathPrefix(candidate.baseUrl, info.articlepath)
-                mainPageTitle = deriveMainPageTitle(info.mainpage)
-                mainPageIsDomainRoot = info.mainpageisdomainroot
-                faviconUrl = resolveFaviconUrl(info.favicon, candidate.baseUrl)
-                    ?: api.getFaviconUrlFromHtml(candidate).getOrNull()
-                val skinsReported = result.getOrNull()?.skins.orEmpty()
-                availableSkins = deriveAvailableSkins(skinsReported)
-                uncuratedDefaultSkin = deriveUncuratedDefaultSkin(skinsReported)
-                wikiDefaultSkin = deriveWikiDefaultSkin(skinsReported)
-                break
+        var (resolved, lastError) = tryResolve(host, resolvedBaseUrl, candidatePaths)
+        val rootBaseUrl = stripPathFromBaseUrl(resolvedBaseUrl)
+        if (resolved == null && rootBaseUrl != resolvedBaseUrl) {
+            val (rootResolved, rootError) = tryResolve(hostOf(rootBaseUrl), rootBaseUrl, candidatePaths)
+            if (rootResolved != null) {
+                resolved = rootResolved
+            } else {
+                rootError?.let { lastError = it }
             }
-            result.exceptionOrNull()?.let { lastError = it }
         }
 
-        if (resolvedSite == null || sitename == null) {
+        if (resolved == null) {
             lastError?.let { AppLog.e(TAG, "Couldn't resolve a MediaWiki API at $resolvedBaseUrl", it) }
             val message = buildString {
                 append(getString(Res.string.add_wiki_error_no_api))
@@ -198,31 +220,32 @@ class AddWikiViewModel(
             }
             _state.value = AddWikiUiState(errorMessage = message, showScriptPathField = true)
         } else {
+            val resolvedSite = resolved.site
             // resolvedSite always still has the unset skin defaults
             // here, since this only runs once, the first time this
             // wiki is added. articlePathPrefix isn't on resolvedSite
-            // itself yet, only in the local var above, hence the copy
-            // here rather than passing resolvedSite as is. Also only
-            // worth doing on a phone or tablet in the first place, see
+            // itself yet, only on resolved above, hence the copy here
+            // rather than passing resolvedSite as is. Also only worth
+            // doing on a phone or tablet in the first place, see
             // isMobilePlatform. See MediaWikiApi.getMobileDefaultSkin.
             val detectedMobileSkinCode = if (resolvedSite.skinIsUnset && isMobilePlatform()) {
-                val siteForMobileCheck = resolvedSite.copy(articlePathPrefix = articlePathPrefix)
-                api.getMobileDefaultSkin(siteForMobileCheck, mainPageTitle).getOrNull()
+                val siteForMobileCheck = resolvedSite.copy(articlePathPrefix = resolved.articlePathPrefix)
+                api.getMobileDefaultSkin(siteForMobileCheck, resolved.mainPageTitle).getOrNull()
             } else {
                 null
             }
-            val detectedMobileSkin = matchCuratedSkin(detectedMobileSkinCode, availableSkins)
+            val detectedMobileSkin = matchCuratedSkin(detectedMobileSkinCode, resolved.availableSkins)
             repository.addFreshCustomWiki(
                 resolvedSite.copy(
-                    id = "${resolvedSite.id}-${lang.orEmpty()}",
-                    name = sitename,
-                    articlePathPrefix = articlePathPrefix,
-                    mainPageTitle = mainPageTitle,
-                    discoveredFaviconUrl = faviconUrl,
-                    availableSkins = availableSkins,
-                    uncuratedDefaultSkin = uncuratedDefaultSkin,
-                    skin = resolveDefaultSkin(resolvedSite, wikiDefaultSkin, uncuratedDefaultSkin, availableSkins, detectedMobileSkin),
-                    mainPageIsDomainRoot = mainPageIsDomainRoot,
+                    id = "${resolvedSite.id}-${resolved.lang.orEmpty()}",
+                    name = resolved.sitename,
+                    articlePathPrefix = resolved.articlePathPrefix,
+                    mainPageTitle = resolved.mainPageTitle,
+                    discoveredFaviconUrl = resolved.faviconUrl,
+                    availableSkins = resolved.availableSkins,
+                    uncuratedDefaultSkin = resolved.uncuratedDefaultSkin,
+                    skin = resolveDefaultSkin(resolvedSite, resolved.wikiDefaultSkin, resolved.uncuratedDefaultSkin, resolved.availableSkins, detectedMobileSkin),
+                    mainPageIsDomainRoot = resolved.mainPageIsDomainRoot,
                 ),
             )
             _state.value = AddWikiUiState(done = true)
