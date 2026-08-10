@@ -62,7 +62,6 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import kotlinx.collections.immutable.ImmutableSet
-import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.toPersistentSet
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
