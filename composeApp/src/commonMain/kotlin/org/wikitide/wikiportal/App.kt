@@ -1,7 +1,5 @@
 package org.wikitide.wikiportal
 
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -17,10 +15,10 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tab
-import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Tab
@@ -84,13 +82,10 @@ private data class BottomDestination(val route: Route, val labelRes: StringResou
 
 private val bottomDestinations = listOf(
     BottomDestination(DashboardRoute, Res.string.dashboard_title, Icons.Filled.Dashboard, Icons.Outlined.Dashboard),
-    BottomDestination(TabsRoute, Res.string.tabs_title, Icons.Filled.Tab, Icons.Outlined.Tab),
-    BottomDestination(SavedRoute, Res.string.dashboard_saved, Icons.Filled.Bookmark, Icons.Outlined.Bookmark),
+    BottomDestination(TabsRoute, Res.string.tabs_title, Icons.Default.Tab, Icons.Outlined.Tab),
+    BottomDestination(SavedRoute, Res.string.dashboard_saved, Icons.Filled.Bookmark, Icons.Filled.BookmarkBorder),
     BottomDestination(SettingsRoute, Res.string.settings_title, Icons.Filled.Settings, Icons.Outlined.Settings),
 )
-
-/** How long the outlined-to-filled crossfade in [DestinationIcon] takes. */
-private const val ICON_CROSSFADE_MILLIS = 180
 
 /**
  * Shared by the portrait NavigationBar and the landscape NavigationRail
@@ -105,12 +100,10 @@ private const val ICON_CROSSFADE_MILLIS = 180
 @Composable
 private fun DestinationIcon(destination: BottomDestination, isSelected: Boolean, openTabsCount: Int) {
     val icon = @Composable {
-        Crossfade(targetState = isSelected, animationSpec = tween(ICON_CROSSFADE_MILLIS), label = "destinationIcon") { selected ->
-            Icon(
-                imageVector = if (selected) destination.selected else destination.unselected,
-                contentDescription = stringResource(destination.labelRes),
-            )
-        }
+        Icon(
+            imageVector = if (isSelected) destination.selected else destination.unselected,
+            contentDescription = stringResource(destination.labelRes),
+        )
     }
     // Only the Tabs icon shows a count. This is just a small detail in
     // how it renders. Clicking and selecting still work the same way
