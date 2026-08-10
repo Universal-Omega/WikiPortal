@@ -1,9 +1,11 @@
 package org.wikitide.wikiportal.ui.components
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -14,9 +16,11 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalHapticFeedback
+import kotlinx.collections.immutable.ImmutableList
 import org.wikitide.wikiportal.data.model.Rank
 import org.wikitide.wikiportal.util.RankUtil
 
+@Immutable
 private data class RowBounds(val top: Float, val height: Float) {
     val center: Float get() = top + height / 2f
     operator fun contains(y: Float): Boolean = y in top..(top + height)
@@ -37,7 +41,7 @@ class DragReorderState<T> internal constructor(
         private set
     var draggingId: String? by mutableStateOf(null)
         private set
-    var dragOffsetY: Float by mutableStateOf(0f)
+    var dragOffsetY: Float by mutableFloatStateOf(0f)
         private set
 
     var hoverContainerId: String? by mutableStateOf(null)
@@ -135,12 +139,12 @@ class DragReorderState<T> internal constructor(
 
 @Composable
 fun <T> rememberDragReorderState(
-    items: List<T>,
+    items: ImmutableList<T>,
     id: (T) -> String,
     rank: (T) -> Rank,
     key: Any?,
-    isContainer: (T) -> Boolean = { false },
     onMove: (id: String, newRank: Rank) -> Unit,
+    isContainer: (T) -> Boolean = { false },
     onDropIntoContainer: ((id: String, containerId: String) -> Unit)? = null,
     onExitBounds: ((id: String, direction: Int) -> Unit)? = null,
 ): DragReorderState<T> {
