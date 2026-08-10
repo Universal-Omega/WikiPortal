@@ -98,6 +98,7 @@ kotlin {
             implementation(libs.jetbrains.navigation3.ui)
 
             implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.collections.immutable)
             implementation(libs.kotlinx.serialization.json)
 
             implementation(libs.ktor.client.contentnegotiation)
