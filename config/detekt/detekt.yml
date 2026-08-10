@@ -118,7 +118,7 @@ Compose:
   ComposableNaming:
     active: true
   ComposableNestingDepth:
-    active: false
+    active: true
   ComposableParamOrder:
     active: true
   CompositionLocalAllowlist:
@@ -151,7 +151,7 @@ Compose:
   ModifierComposed:
     active: true
   ModifierMissing:
-    active: false
+    active: true
   ModifierNaming:
     active: true
   ModifierNotUsedAtRoot:
@@ -169,7 +169,7 @@ Compose:
   MutableStateParam:
     active: true
   ParameterNaming:
-    active: false
+    active: true
   PreviewAnnotationNaming:
     active: true
   PreviewNaming:
