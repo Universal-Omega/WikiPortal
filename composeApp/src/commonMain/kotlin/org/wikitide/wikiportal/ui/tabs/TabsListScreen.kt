@@ -138,7 +138,7 @@ fun TabsListScreen(
                         previewBitmap = previews[tab.id],
                         selectionActive = selectionActive,
                         onOpenTab = onOpenTab,
-                        onToggleSelected = { id -> selectedIds = if (id in selectedIds) selectedIds - id else selectedIds + id },
+                        onToggleSelect = { id -> selectedIds = if (id in selectedIds) selectedIds - id else selectedIds + id },
                     )
                 }
             }
@@ -185,7 +185,7 @@ private fun TabCard(
     previewBitmap: ImageBitmap?,
     selectionActive: Boolean,
     onOpenTab: (wikiId: String, title: String) -> Unit,
-    onToggleSelected: (String) -> Unit,
+    onToggleSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     ArticleCard(
@@ -194,7 +194,7 @@ private fun TabCard(
         thumbnailUrl = tab.thumbnailUrl,
         showImages = showImages,
         onClick = {
-            if (selectionActive) onToggleSelected(tab.id) else onOpenTab(tab.wikiId, tab.title)
+            if (selectionActive) onToggleSelect(tab.id) else onOpenTab(tab.wikiId, tab.title)
         },
         modifier = if (isActive) {
             modifier.border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary), RoundedCornerShape(12.dp))
@@ -205,7 +205,7 @@ private fun TabCard(
         wikiLabel = tab.wikiName.takeIf { it.isNotBlank() },
         selectionModeActive = selectionActive,
         selected = isSelected,
-        onLongClick = { onToggleSelected(tab.id) },
+        onLongClick = { onToggleSelect(tab.id) },
         trailingContent = if (isActive) { { LastViewedLabel() } } else null,
     )
 }
