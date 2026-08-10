@@ -221,7 +221,7 @@ fun WikiPortalApp(modifier: Modifier = Modifier, onDarkThemeResolve: (Boolean) -
  */
 @Composable
 private fun LandscapeAppLayout(
-    current: Route?,
+    current: NavKey?,
     showNav: Boolean,
     openTabsCount: Int,
     navigator: Navigator,
@@ -296,7 +296,7 @@ private fun LandscapeAppLayout(
  */
 @Composable
 private fun PortraitAppLayout(
-    current: Route?,
+    current: NavKey?,
     showNav: Boolean,
     openTabsCount: Int,
     navigator: Navigator,
