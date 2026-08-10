@@ -187,13 +187,14 @@ fun WikiPortalApp(modifier: Modifier = Modifier, onDarkThemeResolve: (Boolean) -
         // also gives a sensible result for a wide desktop window or a
         // tablet or foldable, not just a rotated phone, which a strict
         // orientation check would miss.
-        BoxWithConstraints(modifier.fillMaxSize()) {
-            if (maxWidth > maxHeight) {
-                LandscapeAppLayout(current, showNav, openTabs.size, navigator, navDisplayContent)
-            } else {
-                PortraitAppLayout(current, showNav, openTabs.size, navigator, navDisplayContent)
-            }
-        }
+        AppNavigationLayout(
+            current = current,
+            showNav = showNav,
+            openTabsCount = openTabs.size,
+            navigator = navigator,
+            navDisplayContent = navDisplayContent,
+            modifier = modifier,
+        )
 
         // This is registered after Scaffold and NavDisplay above. See
         // SystemBackInterceptor's own comment for why. That way, on
@@ -212,6 +213,36 @@ fun WikiPortalApp(modifier: Modifier = Modifier, onDarkThemeResolve: (Boolean) -
             enabled = backStack.lastOrNull() == ArticleRoute && (isSwitcherOpen || activeTabCanGoBack),
             onBack = { navigator.handleBack() },
         )
+    }
+}
+
+/**
+ * Picks between [LandscapeAppLayout] and [PortraitAppLayout] based on
+ * the available size, and owns the incoming modifier so WikiPortalApp
+ * itself only ever references it once, passed straight through here,
+ * rather than applying it directly to whichever of the two branches
+ * happens to be active. Comparing width to height instead of using a
+ * platform orientation API. There isn't one available in commonMain
+ * that works the same way across Android, IOS, Desktop, and WasmJs.
+ * This also gives a sensible result for a wide desktop window or a
+ * tablet or foldable, not just a rotated phone, which a strict
+ * orientation check would miss.
+ */
+@Composable
+private fun AppNavigationLayout(
+    current: NavKey?,
+    showNav: Boolean,
+    openTabsCount: Int,
+    navigator: Navigator,
+    navDisplayContent: @Composable (Modifier) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        if (maxWidth > maxHeight) {
+            LandscapeAppLayout(current, showNav, openTabsCount, navigator, navDisplayContent)
+        } else {
+            PortraitAppLayout(current, showNav, openTabsCount, navigator, navDisplayContent)
+        }
     }
 }
 
@@ -245,27 +276,7 @@ private fun LandscapeAppLayout(
                 // no reason.
                 modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Start)),
             ) {
-                // NavigationRail does not center its items by default.
-                // Left alone, they stack from the top and leave the rest
-                // of the rail's height as empty space below them. This
-                // Column is what centers the group within the rail's
-                // full height. Using spacedBy also gives the items some
-                // breathing room, since Center alone would pack them
-                // edge to edge with no gap.
-                Column(
-                    modifier = Modifier.fillMaxHeight(),
-                    verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterVertically),
-                ) {
-                    bottomDestinations.forEach { destination ->
-                        val isSelected = destination.route == current
-                        NavigationRailItem(
-                            selected = isSelected,
-                            onClick = { navigator.switchTab(destination.route) },
-                            icon = { DestinationIcon(destination, isSelected, openTabsCount) },
-                            label = { Text(stringResource(destination.labelRes)) },
-                        )
-                    }
-                }
+                NavigationRailItems(current = current, openTabsCount = openTabsCount, navigator = navigator)
             }
         }
         // Bottom and End are always this Scaffold's job. Start is too,
@@ -286,6 +297,32 @@ private fun LandscapeAppLayout(
             contentWindowInsets = WindowInsets.safeDrawing.only(scaffoldInsetSides),
         ) { innerPadding ->
             navDisplayContent(Modifier.padding(innerPadding))
+        }
+    }
+}
+
+/**
+ * The rail's own list of destinations. NavigationRail does not
+ * center its items by default. Left alone, they stack from the top and
+ * leave the rest of the rail's height as empty space below them. This
+ * Column is what centers the group within the rail's full height.
+ * Using spacedBy also gives the items some breathing room, since
+ * Center alone would pack them edge to edge with no gap.
+ */
+@Composable
+private fun NavigationRailItems(current: NavKey?, openTabsCount: Int, navigator: Navigator, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier.fillMaxHeight(),
+        verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterVertically),
+    ) {
+        bottomDestinations.forEach { destination ->
+            val isSelected = destination.route == current
+            NavigationRailItem(
+                selected = isSelected,
+                onClick = { navigator.switchTab(destination.route) },
+                icon = { DestinationIcon(destination, isSelected, openTabsCount) },
+                label = { Text(stringResource(destination.labelRes)) },
+            )
         }
     }
 }
