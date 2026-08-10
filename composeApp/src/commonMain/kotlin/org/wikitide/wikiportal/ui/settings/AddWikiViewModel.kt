@@ -83,10 +83,17 @@ class AddWikiViewModel(
     private fun hostOf(baseUrl: String): String =
         baseUrl.removePrefix("https://").removePrefix("http://").trimEnd('/').lowercase()
 
-    private fun stripPathFromBaseUrl(baseUrl: String): String {
+    private fun baseUrlPrefixes(baseUrl: String): List<String> {
         val hostStart = baseUrl.indexOf("://").let { if (it == -1) 0 else it + 3 }
-        val pathStart = baseUrl.indexOf('/', hostStart)
-        return if (pathStart == -1) baseUrl else baseUrl.substring(0, pathStart)
+        val prefixes = mutableListOf(baseUrl)
+        var current = baseUrl
+        while (true) {
+            val lastSlash = current.lastIndexOf('/')
+            if (lastSlash < hostStart) break
+            current = current.substring(0, lastSlash)
+            prefixes += current
+        }
+        return prefixes
     }
 
     /**
@@ -196,15 +203,15 @@ class AddWikiViewModel(
             COMMON_SCRIPT_PATHS
         }
 
-        var (resolved, lastError) = tryResolve(host, resolvedBaseUrl, candidatePaths)
-        val rootBaseUrl = stripPathFromBaseUrl(resolvedBaseUrl)
-        if (resolved == null && rootBaseUrl != resolvedBaseUrl) {
-            val (rootResolved, rootError) = tryResolve(hostOf(rootBaseUrl), rootBaseUrl, candidatePaths)
-            if (rootResolved != null) {
-                resolved = rootResolved
-            } else {
-                rootError?.let { lastError = it }
+        var resolved: ResolvedWikiInfo? = null
+        var lastError: Throwable? = null
+        for (candidateBaseUrl in baseUrlPrefixes(resolvedBaseUrl)) {
+            val (candidateResolved, candidateError) = tryResolve(hostOf(candidateBaseUrl), candidateBaseUrl, candidatePaths)
+            if (candidateResolved != null) {
+                resolved = candidateResolved
+                break
             }
+            candidateError?.let { lastError = it }
         }
 
         if (resolved == null) {
