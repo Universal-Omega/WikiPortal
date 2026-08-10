@@ -58,11 +58,19 @@ private val HREF_REGEX = Regex("""href\s*=\s*["']([^"']+)["']""", RegexOption.IG
 /**
  * Shared by [resolveFaviconUrl] and [parseFaviconFromHtml]. Both need
  * to turn a possibly root-relative or scheme-relative path into an
- * absolute URL against the wiki's own base.
+ * absolute URL.
  */
 private fun resolveMaybeRelativeUrl(path: String, baseUrl: String): String {
+    if (path.startsWith("//")) return "${baseUrl.substringBefore("://")}:$path"
     if (path.contains("://")) return path
-    return if (path.startsWith("/")) "$baseUrl$path" else "$baseUrl/$path"
+    if (path.startsWith("/")) return "${domainRootOf(baseUrl)}$path"
+    return "$baseUrl/$path"
+}
+
+private fun domainRootOf(baseUrl: String): String {
+    val hostStart = baseUrl.indexOf("://").let { if (it == -1) 0 else it + 3 }
+    val pathStart = baseUrl.indexOf('/', hostStart)
+    return if (pathStart == -1) baseUrl else baseUrl.substring(0, pathStart)
 }
 
 /**
