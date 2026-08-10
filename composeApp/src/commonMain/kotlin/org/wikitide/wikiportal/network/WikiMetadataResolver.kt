@@ -46,6 +46,7 @@ fun parseFaviconFromHtml(html: String, baseUrl: String): String? {
         .map { it.value }
         .firstOrNull { REL_ICON_REGEX.containsMatchIn(it) }
         ?.let { HREF_REGEX.find(it)?.groupValues?.get(1) }
+        ?.let { decodeHtmlEntities(it) }
         ?: return null
     if (href.contains("\$wg")) return null
     return resolveMaybeRelativeUrl(href, baseUrl)
@@ -54,6 +55,15 @@ fun parseFaviconFromHtml(html: String, baseUrl: String): String? {
 private val LINK_TAG_REGEX = Regex("""<link\b[^>]*>""", RegexOption.IGNORE_CASE)
 private val REL_ICON_REGEX = Regex("""rel\s*=\s*["'](?:shortcut icon|icon)["']""", RegexOption.IGNORE_CASE)
 private val HREF_REGEX = Regex("""href\s*=\s*["']([^"']+)["']""", RegexOption.IGNORE_CASE)
+
+private fun decodeHtmlEntities(text: String): String =
+    text
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", "\"")
+        .replace("&#39;", "'")
+        .replace("&apos;", "'")
+        .replace("&amp;", "&")
 
 /**
  * Shared by [resolveFaviconUrl] and [parseFaviconFromHtml]. Both need
