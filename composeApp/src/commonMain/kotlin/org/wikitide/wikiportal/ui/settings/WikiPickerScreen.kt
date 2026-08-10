@@ -65,6 +65,7 @@ import org.wikitide.wikiportal.resources.wiki_picker_new_folder
 import org.wikitide.wikiportal.resources.wiki_picker_rename_folder
 import org.wikitide.wikiportal.resources.wiki_picker_reorder
 import org.wikitide.wikiportal.resources.wiki_picker_your_wikis
+import org.wikitide.wikiportal.ui.components.DragReorderState
 import org.wikitide.wikiportal.ui.components.rememberDragReorderState
 import org.wikitide.wikiportal.util.RankUtil
 
