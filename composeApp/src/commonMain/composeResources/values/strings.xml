@@ -44,6 +44,7 @@
     <string name="browse_wikis_title">Browse wikis</string>
     <string name="category_browse_empty">This category is empty</string>
     <string name="category_browse_no_results">No categories found for \"%1$s\"</string>
+    <string name="category_browse_popular">Popular categories</string>
     <string name="category_browse_search_placeholder">Search categories on %1$s</string>
     <string name="category_browse_title">Browse by category</string>
     <string name="category_browse_type_to_search">Type a topic to find its category</string>
@@ -55,6 +56,7 @@
     <string name="common_close">Close</string>
     <string name="common_create">Create</string>
     <string name="common_delete">Delete</string>
+    <string name="common_deselect_all">Deselect all</string>
     <string name="common_done">Done</string>
     <string name="common_loading">Loading...</string>
     <string name="common_more_options">More options</string>
@@ -63,6 +65,7 @@
     <string name="common_retry">Retry</string>
     <string name="common_save">Save</string>
     <string name="common_search">Search</string>
+    <string name="common_select_all">Select all</string>
     <string name="common_selected">Selected</string>
     <string name="dashboard_continue_reading">Continue reading</string>
     <string name="dashboard_could_not_load_wiki">Couldn\'t load this wiki</string>
@@ -109,6 +112,12 @@
     <string name="feedback_send">Send</string>
     <string name="feedback_thanks_sent">Thanks, that\'s been sent.</string>
     <string name="feedback_title">Beta feedback</string>
+    <string name="history_days_ago">%1$dd ago</string>
+    <string name="history_hours_ago">%1$dh ago</string>
+    <string name="history_just_now">Just now</string>
+    <string name="history_minutes_ago">%1$dm ago</string>
+    <string name="history_today">Today</string>
+    <string name="history_yesterday">Yesterday</string>
     <string name="logs_all">All</string>
     <string name="logs_app_only">App only</string>
     <string name="logs_clear">Clear logs</string>
@@ -152,7 +161,7 @@
     <string name="settings_current_wiki">Current wiki</string>
     <string name="settings_disable_safe_mode_subtitle">Load pages without MediaWiki\'s safemode restrictions on gadgets and scripts. Can also be set per wiki from its options menu.</string>
     <string name="settings_disable_safe_mode_title">Disable safe mode</string>
-    <string name="settings_dynamic_color_subtitle">Match app colors to your device wallpaper (Android 12+)</string>
+    <string name="settings_dynamic_color_subtitle">Match app colors to your device wallpaper</string>
     <string name="settings_dynamic_color_title">Dynamic color</string>
     <string name="settings_github_subtitle">View the source, file an issue, or see what\'s changed</string>
     <string name="settings_github_title">GitHub repository</string>
