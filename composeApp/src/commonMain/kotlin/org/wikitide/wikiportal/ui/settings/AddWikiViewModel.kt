@@ -221,6 +221,12 @@ class AddWikiViewModel(
             _state.value = AddWikiUiState(errorMessage = message, showScriptPathField = true)
         } else {
             val resolvedSite = resolved.site
+            val resolvedHost = hostOf(resolvedSite.baseUrl)
+            val lateDuplicate = repository.allWikisNow().firstOrNull { hostOf(it.baseUrl) == resolvedHost }
+            if (lateDuplicate != null) {
+                _state.value = AddWikiUiState(errorMessage = getString(Res.string.add_wiki_error_duplicate, lateDuplicate.name))
+                return
+            }
             // resolvedSite always still has the unset skin defaults
             // here, since this only runs once, the first time this
             // wiki is added. articlePathPrefix isn't on resolvedSite
