@@ -138,7 +138,7 @@ fun BrowseWikisScreen(
                     IndieWikiLanguages.displayName(it.language).contains(query, ignoreCase = true)
             }
             .sortedWith(compareBy({ it.destinationName.lowercase() }, { it.language }))
-            .toList()
+            .toImmutableList()
     }
 
     Scaffold(
@@ -161,7 +161,7 @@ fun BrowseWikisScreen(
         },
     ) { innerPadding ->
         BrowseWikisContent(
-            sites = sites,
+            sites = sites.toImmutableList(),
             isRefreshing = isRefreshing,
             filtered = filtered,
             addState = addState,
@@ -238,9 +238,9 @@ private fun BrowseWikisTopBar(
  */
 @Composable
 private fun BrowseWikisContent(
-    sites: List<IndieWikiSite>,
+    sites: ImmutableList<IndieWikiSite>,
     isRefreshing: Boolean,
-    filtered: List<IndieWikiSite>,
+    filtered: ImmutableList<IndieWikiSite>,
     addState: AddWikiUiState,
     onRetry: () -> Unit,
     onSelectSite: (IndieWikiSite) -> Unit,
