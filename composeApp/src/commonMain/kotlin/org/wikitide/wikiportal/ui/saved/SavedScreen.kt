@@ -77,6 +77,7 @@ private const val TAB_HISTORY = 2
 fun SavedScreen(
     onArticleClick: (wikiId: String, title: String) -> Unit,
     onOfflineArticleClick: (wikiId: String, title: String) -> Unit,
+    modifier: Modifier = Modifier,
     repository: AppRepository = koinInject(),
     tabsRepository: TabsRepository = koinInject(),
 ) {
@@ -97,7 +98,7 @@ fun SavedScreen(
 
     fun keyOf(page: SavedPage) = page.wikiId + "|" + page.title + page.timestampEpochMillis
 
-    Column(Modifier.fillMaxSize()) {
+    Column(modifier.fillMaxSize()) {
         TopAppBar(
             title = {
                 Text(
