@@ -5,7 +5,7 @@
     <string name="add_wiki_continue_original">Add the original site anyway</string>
     <string name="add_wiki_error_duplicate">%1$s is already in your wiki list.</string>
     <string name="add_wiki_error_invalid_url">Enter a valid wiki URL, e.g. https://mywiki.example.com</string>
-    <string name="add_wiki_error_no_api">Couldn\'t find a MediaWiki API at that address.</string>
+    <string name="add_wiki_error_no_api">Couldn't find a MediaWiki API at that address.</string>
     <string name="add_wiki_error_tried_paths">Tried: %1$s.</string>
     <string name="add_wiki_error_try_different_path">If your wiki uses a different path, enter it above.</string>
     <string name="add_wiki_indie_found_body">%1$s (%2$s) is a fan-run replacement not tied to a for-profit host, and is likely more up to date.</string>
