@@ -1,5 +1,7 @@
 package org.wikitide.wikiportal
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -87,6 +89,9 @@ private val bottomDestinations = listOf(
     BottomDestination(SettingsRoute, Res.string.settings_title, Icons.Filled.Settings, Icons.Outlined.Settings),
 )
 
+/** How long the outlined-to-filled crossfade in [DestinationIcon] takes. */
+private const val ICON_CROSSFADE_MILLIS = 180
+
 /**
  * Shared by the portrait NavigationBar and the landscape NavigationRail
  * below. Only the icon itself is shared here, not the NavigationBarItem
@@ -100,10 +105,12 @@ private val bottomDestinations = listOf(
 @Composable
 private fun DestinationIcon(destination: BottomDestination, isSelected: Boolean, openTabsCount: Int) {
     val icon = @Composable {
-        Icon(
-            imageVector = if (isSelected) destination.selected else destination.unselected,
-            contentDescription = stringResource(destination.labelRes),
-        )
+        Crossfade(targetState = isSelected, animationSpec = tween(ICON_CROSSFADE_MILLIS), label = "destinationIcon") { selected ->
+            Icon(
+                imageVector = if (selected) destination.selected else destination.unselected,
+                contentDescription = stringResource(destination.labelRes),
+            )
+        }
     }
     // Only the Tabs icon shows a count. This is just a small detail in
     // how it renders. Clicking and selecting still work the same way
