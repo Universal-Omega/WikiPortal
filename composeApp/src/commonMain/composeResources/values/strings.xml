@@ -201,7 +201,7 @@
     <string name="tabs_viewing">Viewing</string>
     <string name="theme_mode_dark">Dark</string>
     <string name="theme_mode_light">Light</string>
-    <string name="theme_mode_system">System default</string>
+    <string name="theme_mode_system">System</string>
     <string name="trending_nothing_trending">Nothing trending right now</string>
     <string name="trending_top_read_on">Top read on %1$s</string>
     <string name="wiki_picker_add_by_url">Add a wiki by URL</string>
