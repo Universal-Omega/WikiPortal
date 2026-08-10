@@ -128,8 +128,8 @@ class MediaWikiApi(
     suspend fun resolveFinalBaseUrl(url: String): Result<String> = runCatchingCancellable {
         val response = httpClient.get(url)
         val finalUrl = response.request.url
-        val path = finalUrl.encodedPath.trimEnd('/')
-        "${finalUrl.protocol.name}://${finalUrl.host.lowercase()}$path"
+        val requestedPath = Url(url).encodedPath.trimEnd('/')
+        "${finalUrl.protocol.name}://${finalUrl.host.lowercase()}$requestedPath"
     }
 
     suspend fun getRandomArticles(site: WikiSite, count: Int = 15): Result<List<PageSummaryDto>> =
