@@ -62,6 +62,8 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import kotlinx.collections.immutable.ImmutableSet
+import kotlinx.collections.immutable.minus
+import kotlinx.collections.immutable.plus
 import kotlinx.collections.immutable.toPersistentSet
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -181,12 +183,12 @@ fun LogsScreen(onBack: () -> Unit, modifier: Modifier = Modifier, logExporter: L
                 onAppOnlyChange = { appOnly = it },
                 visibleLevels = visibleLevels,
                 onToggleLevel = { level ->
-                    visibleLevels = (if (level in visibleLevels) visibleLevels - level else visibleLevels + level).toPersistentSet()
+                    visibleLevels = if (level in visibleLevels) visibleLevels - level else visibleLevels + level
                 },
                 searchQuery = searchQuery,
                 onQueryChange = { searchQuery = it },
                 onBack = { if (selectionMode) exitSelection() else onBack() },
-                onCopySelected = {
+                onCopySelection = {
                     copyToClipboard(formatted(selectedIndices.sorted().map { displayed[it] }))
                     exitSelection()
                 },
@@ -271,7 +273,7 @@ private fun LogsTopBar(
     searchQuery: String,
     onQueryChange: (String) -> Unit,
     onBack: () -> Unit,
-    onCopySelected: () -> Unit,
+    onCopySelection: () -> Unit,
     onRefresh: () -> Unit,
     onSelect: () -> Unit,
     onCopyAll: () -> Unit,
@@ -292,7 +294,7 @@ private fun LogsTopBar(
             },
             actions = {
                 if (selectionMode) {
-                    IconButton(onClick = onCopySelected, enabled = selectedCount > 0) {
+                    IconButton(onClick = onCopySelection, enabled = selectedCount > 0) {
                         Icon(Icons.Filled.ContentCopy, contentDescription = stringResource(Res.string.logs_copy_selected))
                     }
                 } else {
@@ -332,30 +334,32 @@ private fun LogsOverflowActions(
     onExport: () -> Unit,
     onClear: () -> Unit,
 ) {
-    IconButton(onClick = onRefresh) {
-        Icon(Icons.Filled.Refresh, contentDescription = stringResource(Res.string.common_refresh))
-    }
-    IconButton(onClick = { onMenuOpenChange(true) }) {
-        Icon(Icons.Filled.MoreVert, contentDescription = stringResource(Res.string.common_more_options))
-    }
-    DropdownMenu(expanded = menuOpen, onDismissRequest = { onMenuOpenChange(false) }) {
-        DropdownMenuItem(
-            text = { Text(stringResource(Res.string.logs_select)) },
-            onClick = { onMenuOpenChange(false); onSelect() },
-        )
-        DropdownMenuItem(
-            text = { Text(stringResource(Res.string.logs_copy_all)) },
-            onClick = { onMenuOpenChange(false); onCopyAll() },
-        )
-        DropdownMenuItem(
-            text = { Text(stringResource(Res.string.logs_export)) },
-            onClick = { onMenuOpenChange(false); onExport() },
-        )
-        DropdownMenuItem(
-            text = { Text(stringResource(Res.string.logs_clear)) },
-            leadingIcon = { Icon(Icons.Filled.DeleteSweep, contentDescription = null) },
-            onClick = { onMenuOpenChange(false); onClear() },
-        )
+    Row {
+        IconButton(onClick = onRefresh) {
+            Icon(Icons.Filled.Refresh, contentDescription = stringResource(Res.string.common_refresh))
+        }
+        IconButton(onClick = { onMenuOpenChange(true) }) {
+            Icon(Icons.Filled.MoreVert, contentDescription = stringResource(Res.string.common_more_options))
+        }
+        DropdownMenu(expanded = menuOpen, onDismissRequest = { onMenuOpenChange(false) }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.logs_select)) },
+                onClick = { onMenuOpenChange(false); onSelect() },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.logs_copy_all)) },
+                onClick = { onMenuOpenChange(false); onCopyAll() },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.logs_export)) },
+                onClick = { onMenuOpenChange(false); onExport() },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.logs_clear)) },
+                leadingIcon = { Icon(Icons.Filled.DeleteSweep, contentDescription = null) },
+                onClick = { onMenuOpenChange(false); onClear() },
+            )
+        }
     }
 }
 
