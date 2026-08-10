@@ -214,6 +214,16 @@ class AddWikiViewModel(
             candidateError?.let { lastError = it }
         }
 
+        if (resolved != null) {
+            val rootBaseUrl = baseUrlPrefixes(resolvedBaseUrl).last()
+            if (resolved.site.baseUrl != rootBaseUrl) {
+                val (rootResolved, _) = tryResolve(hostOf(rootBaseUrl), rootBaseUrl, candidatePaths)
+                if (rootResolved != null && rootResolved.lang != null && rootResolved.lang == resolved.lang && rootResolved.sitename == resolved.sitename) {
+                    resolved = rootResolved
+                }
+            }
+        }
+
         if (resolved == null) {
             lastError?.let { AppLog.e(TAG, "Couldn't resolve a MediaWiki API at $resolvedBaseUrl", it) }
             val message = buildString {
