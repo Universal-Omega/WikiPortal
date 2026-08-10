@@ -34,6 +34,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableSet
+import kotlinx.collections.immutable.toImmutableList
+import kotlinx.collections.immutable.toImmutableSet
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.wikitide.wikiportal.data.AppRepository
@@ -111,7 +115,7 @@ fun SavedScreen(
     val selectionActive = selectedKeys.isNotEmpty()
 
     val openKeys = remember(tabs) {
-        tabs.map { it.wikiId to it.title }.toSet()
+        tabs.map { it.wikiId to it.title }.toImmutableSet()
     }
 
     fun keyOf(page: SavedPage) = page.wikiId + "|" + page.title + page.timestampEpochMillis
@@ -177,11 +181,11 @@ fun SavedScreen(
             }
         } else if (tab == TAB_HISTORY) {
             HistoryList(
-                history = history,
+                history = history.toImmutableList(),
                 showImages = showImages,
                 openKeys = openKeys,
                 selectionActive = selectionActive,
-                selectedKeys = selectedKeys,
+                selectedKeys = selectedKeys.toImmutableSet(),
                 keyOf = ::keyOf,
                 onToggleSelect = { key -> selectedKeys = if (key in selectedKeys) selectedKeys - key else selectedKeys + key },
                 onArticleClick = onArticleClick,
@@ -286,9 +290,9 @@ private fun groupHistoryByDay(history: List<SavedPage>, nowMillis: Long): List<H
     for (page in history) {
         val bucket = historyDayBucket(page.timestampEpochMillis, nowMillis)
         val current = sections.lastOrNull()
-        val continuesCurrentSection = current != null && current.bucket == bucket &&
-            (bucket != HistoryDayBucket.OLDER || epochDayFromMillis(current.epochMillis) == epochDayFromMillis(page.timestampEpochMillis))
-        if (continuesCurrentSection && current != null) {
+        val sameDayAsCurrent = bucket != HistoryDayBucket.OLDER ||
+            epochDayFromMillis(current?.epochMillis ?: -1) == epochDayFromMillis(page.timestampEpochMillis)
+        if (current != null && current.bucket == bucket && sameDayAsCurrent) {
             sections[sections.lastIndex] = current.copy(pages = current.pages + page)
         } else {
             sections += HistorySection(bucket, page.timestampEpochMillis, listOf(page))
@@ -305,11 +309,11 @@ private fun groupHistoryByDay(history: List<SavedPage>, nowMillis: Long): List<H
  */
 @Composable
 private fun HistoryList(
-    history: List<SavedPage>,
+    history: ImmutableList<SavedPage>,
     showImages: Boolean,
-    openKeys: Set<Pair<String, String>>,
+    openKeys: ImmutableSet<Pair<String, String>>,
     selectionActive: Boolean,
-    selectedKeys: Set<String>,
+    selectedKeys: ImmutableSet<String>,
     keyOf: (SavedPage) -> String,
     onToggleSelect: (String) -> Unit,
     onArticleClick: (wikiId: String, title: String) -> Unit,
