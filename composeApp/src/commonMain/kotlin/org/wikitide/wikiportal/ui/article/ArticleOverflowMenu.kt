@@ -42,10 +42,12 @@ fun ArticleOverflowMenu(
     isOfflineSaved: Boolean,
     isSavingOffline: Boolean,
     onToggleOfflineSave: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     DropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismiss,
+        modifier = modifier,
         shape = RoundedCornerShape(14.dp),
         shadowElevation = 6.dp,
     ) {
