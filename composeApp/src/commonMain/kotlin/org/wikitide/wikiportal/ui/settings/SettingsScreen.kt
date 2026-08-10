@@ -88,6 +88,7 @@ fun SettingsScreen(
     onOpenWikiPicker: () -> Unit,
     onOpenLogs: () -> Unit,
     onOpenFeedback: () -> Unit,
+    modifier: Modifier = Modifier,
     repository: AppRepository = koinInject(),
     versionProvider: AppVersionProvider = koinInject(),
 ) {
@@ -103,7 +104,7 @@ fun SettingsScreen(
     val indieWikiSuggestionsEnabled by repository.indieWikiSuggestionsEnabled.collectAsState()
     val uriHandler = LocalUriHandler.current
 
-    Column(Modifier.fillMaxSize()) {
+    Column(modifier.fillMaxSize()) {
         TopAppBar(
             title = { Text(stringResource(Res.string.settings_title), style = MaterialTheme.typography.headlineMedium) },
             windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
@@ -126,18 +127,7 @@ fun SettingsScreen(
             item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
             item { SectionLabel(stringResource(Res.string.settings_section_appearance)) }
             item {
-                Column(Modifier.padding(horizontal = 20.dp)) {
-                    RowLabel(icon = Icons.Filled.DarkMode, text = stringResource(Res.string.settings_theme))
-                    ThemeMode.entries.forEach { mode ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth().clickable { repository.setThemeMode(mode) }.padding(vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            RadioButton(selected = themeMode == mode, onClick = { repository.setThemeMode(mode) })
-                            Text(stringResource(mode.labelRes), modifier = Modifier.padding(start = 8.dp))
-                        }
-                    }
-                }
+                ThemeModeSelector(themeMode = themeMode, onSelect = repository::setThemeMode)
             }
             item {
                 SwitchRow(
@@ -149,20 +139,7 @@ fun SettingsScreen(
                 )
             }
             item {
-                Column(Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
-                    RowLabel(icon = Icons.Filled.TextFields, text = stringResource(Res.string.settings_text_size))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("A", style = MaterialTheme.typography.bodyMedium)
-                        Slider(
-                            value = textScale,
-                            onValueChange = repository::setTextScale,
-                            valueRange = 0.8f..1.6f,
-                            steps = 7,
-                            modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
-                        )
-                        Text("A", style = MaterialTheme.typography.headlineMedium)
-                    }
-                }
+                TextScaleRow(textScale = textScale, onTextScaleChange = repository::setTextScale)
             }
 
             item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
@@ -238,22 +215,7 @@ fun SettingsScreen(
             item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
             item { SectionLabel(stringResource(Res.string.settings_section_about)) }
             item {
-                Row(Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
-                    Icon(
-                        Icons.Filled.Info,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(24.dp).padding(top = 2.dp),
-                    )
-                    Column(Modifier.padding(start = 16.dp)) {
-                        Text(stringResource(Res.string.app_name), style = MaterialTheme.typography.titleMedium)
-                        Text(
-                            stringResource(Res.string.settings_about_body, versionProvider.versionName),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
+                AboutRow(versionName = versionProvider.versionName)
             }
             item {
                 SettingsRow(
@@ -275,6 +237,63 @@ private fun SectionLabel(text: String) {
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
     )
+}
+
+/** The list of theme options under Appearance, see [ThemeMode]. */
+@Composable
+private fun ThemeModeSelector(themeMode: ThemeMode, onSelect: (ThemeMode) -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier.padding(horizontal = 20.dp)) {
+        RowLabel(icon = Icons.Filled.DarkMode, text = stringResource(Res.string.settings_theme))
+        ThemeMode.entries.forEach { mode ->
+            Row(
+                modifier = Modifier.fillMaxWidth().clickable { onSelect(mode) }.padding(vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                RadioButton(selected = themeMode == mode, onClick = { onSelect(mode) })
+                Text(stringResource(mode.labelRes), modifier = Modifier.padding(start = 8.dp))
+            }
+        }
+    }
+}
+
+/** The "A ---- A" text scale slider under Appearance. */
+@Composable
+private fun TextScaleRow(textScale: Float, onTextScaleChange: (Float) -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
+        RowLabel(icon = Icons.Filled.TextFields, text = stringResource(Res.string.settings_text_size))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("A", style = MaterialTheme.typography.bodyMedium)
+            Slider(
+                value = textScale,
+                onValueChange = onTextScaleChange,
+                valueRange = 0.8f..1.6f,
+                steps = 7,
+                modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+            )
+            Text("A", style = MaterialTheme.typography.headlineMedium)
+        }
+    }
+}
+
+/** The app name, version, and description row under About. */
+@Composable
+private fun AboutRow(versionName: String, modifier: Modifier = Modifier) {
+    Row(modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
+        Icon(
+            Icons.Filled.Info,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(24.dp).padding(top = 2.dp),
+        )
+        Column(Modifier.padding(start = 16.dp)) {
+            Text(stringResource(Res.string.app_name), style = MaterialTheme.typography.titleMedium)
+            Text(
+                stringResource(Res.string.settings_about_body, versionName),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
 }
 
 @Composable
