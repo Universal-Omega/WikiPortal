@@ -41,12 +41,12 @@ fun ArticleCard(
     extract: String,
     thumbnailUrl: String?,
     showImages: Boolean,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
     previewBitmap: ImageBitmap? = null,
     wikiLabel: String? = null,
     selectionModeActive: Boolean = false,
     selected: Boolean = false,
-    onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null,
     trailingContent: (@Composable () -> Unit)? = null,
 ) {
