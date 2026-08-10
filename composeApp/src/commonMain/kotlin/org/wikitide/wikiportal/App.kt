@@ -2,6 +2,7 @@ package org.wikitide.wikiportal
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,7 +13,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
@@ -28,8 +31,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,7 +45,9 @@ import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
@@ -87,6 +94,10 @@ private val bottomDestinations = listOf(
     BottomDestination(SettingsRoute, Res.string.settings_title, Icons.Filled.Settings, Icons.Outlined.Settings),
 )
 
+/** The selected-state pill behind a bottom nav icon, sized and rounded to match Material 3's own indicator, but drawn by us so it can snap on instead of fading in. */
+private val NavigationIndicatorSize = DpSize(64.dp, 32.dp)
+private val NavigationIndicatorShape = RoundedCornerShape(percent = 50)
+
 /**
  * Shared by the portrait NavigationBar and the landscape NavigationRail
  * below. Only the icon itself is shared here, not the NavigationBarItem
@@ -96,22 +107,45 @@ private val bottomDestinations = listOf(
  * what makes their internal weight() work correctly. This helper does
  * not need any scope. It is just an Icon, optionally wrapped in a
  * badge, so it works fine from either place.
+ *
+ * The selected pill and the icon tint are both drawn here rather than
+ * left to NavigationBarItem's own built-in indicator, which fades in
+ * over a short animation. At full speed that fade reads as a flicker
+ * rather than a smooth transition, especially switching quickly between
+ * tabs. Both call sites below pass indicatorColor = Color.Transparent
+ * to turn that built-in animated indicator off, so this plain
+ * conditional background, with no animation at all, is the only pill
+ * that ever draws, and it appears the instant isSelected flips instead
+ * of fading in.
  */
 @Composable
 private fun DestinationIcon(destination: BottomDestination, isSelected: Boolean, openTabsCount: Int) {
-    val icon = @Composable {
-        Icon(
-            imageVector = if (isSelected) destination.selected else destination.unselected,
-            contentDescription = stringResource(destination.labelRes),
-        )
-    }
-    // Only the Tabs icon shows a count. This is just a small detail in
-    // how it renders. Clicking and selecting still work the same way
-    // for all four destinations.
-    if (destination.route == TabsRoute) {
-        BadgedBox(badge = { if (openTabsCount > 0) Badge { Text("$openTabsCount") } }) { icon() }
-    } else {
-        icon()
+    Box(
+        modifier = Modifier
+            .size(NavigationIndicatorSize)
+            .background(
+                color = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+                shape = NavigationIndicatorShape,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        val icon = @Composable {
+            Icon(
+                imageVector = if (isSelected) destination.selected else destination.unselected,
+                contentDescription = stringResource(destination.labelRes),
+                tint = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        // Only the Tabs icon shows a count. This is just a small detail
+        // in how it renders. Clicking and selecting still work the same
+        // way for all four destinations. BadgedBox sits inside the pill
+        // Box above, not around it, so the badge anchors to the 24dp
+        // icon glyph's own corner rather than the wider pill's.
+        if (destination.route == TabsRoute) {
+            BadgedBox(badge = { if (openTabsCount > 0) Badge { Text("$openTabsCount") } }) { icon() }
+        } else {
+            icon()
+        }
     }
 }
 
@@ -322,6 +356,10 @@ private fun NavigationRailItems(current: NavKey?, openTabsCount: Int, navigator:
                 onClick = { navigator.switchTab(destination.route) },
                 icon = { DestinationIcon(destination, isSelected, openTabsCount) },
                 label = { Text(stringResource(destination.labelRes)) },
+                // Transparent so the only pill that ever draws is the one
+                // DestinationIcon draws itself, which snaps on instead of
+                // fading in. See DestinationIcon's own comment for why.
+                colors = NavigationRailItemDefaults.colors(indicatorColor = Color.Transparent),
             )
         }
     }
@@ -354,6 +392,8 @@ private fun PortraitAppLayout(
                             onClick = { navigator.switchTab(destination.route) },
                             icon = { DestinationIcon(destination, isSelected, openTabsCount) },
                             label = { Text(stringResource(destination.labelRes)) },
+                            // Same reasoning as NavigationRailItem above.
+                            colors = NavigationBarItemDefaults.colors(indicatorColor = Color.Transparent),
                         )
                     }
                 }
