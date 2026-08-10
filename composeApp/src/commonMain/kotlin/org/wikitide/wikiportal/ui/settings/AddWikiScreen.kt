@@ -39,6 +39,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -63,14 +64,22 @@ import org.wikitide.wikiportal.resources.common_back
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddWikiScreen(onDone: () -> Unit, onBrowseWikis: () -> Unit, viewModel: AddWikiViewModel = koinViewModel()) {
+fun AddWikiScreen(onDone: () -> Unit, onBrowseWikis: () -> Unit, modifier: Modifier = Modifier, viewModel: AddWikiViewModel = koinViewModel()) {
     var urlInput by remember { mutableStateOf("") }
     var scriptPathInput by remember { mutableStateOf("") }
     val state by viewModel.state.collectAsState()
 
-    LaunchedEffect(state.done) { if (state.done) onDone() }
+    // onDone is read inside this effect without being a key, which is
+    // fine here since the effect is keyed on state.done and is never
+    // meant to restart just because onDone itself changed identity.
+    // rememberUpdatedState keeps the call using whatever the latest
+    // onDone is instead of the one captured the first time this
+    // composed.
+    val currentOnDone by rememberUpdatedState(onDone)
+    LaunchedEffect(state.done) { if (state.done) currentOnDone() }
 
     Scaffold(
+        modifier = modifier,
         contentWindowInsets = WindowInsets(0.dp),
         topBar = {
             TopAppBar(
@@ -80,63 +89,16 @@ fun AddWikiScreen(onDone: () -> Unit, onBrowseWikis: () -> Unit, viewModel: AddW
             )
         },
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .imePadding()
-                .padding(start = 20.dp, end = 20.dp, bottom = 20.dp, top = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text(
-                stringResource(Res.string.add_wiki_intro),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            OutlinedTextField(
-                value = urlInput,
-                onValueChange = { urlInput = it },
-                label = { Text(stringResource(Res.string.add_wiki_url_label)) },
-                placeholder = { Text(stringResource(Res.string.add_wiki_url_placeholder)) },
-                singleLine = true,
-                isError = state.errorMessage != null,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            AnimatedVisibility(visible = state.showScriptPathField) {
-                OutlinedTextField(
-                    value = scriptPathInput,
-                    onValueChange = { scriptPathInput = it },
-                    label = { Text(stringResource(Res.string.add_wiki_script_path_label)) },
-                    placeholder = { Text(stringResource(Res.string.add_wiki_script_path_placeholder)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-            state.errorMessage?.let {
-                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
-            }
-            Button(
-                onClick = { viewModel.submit(urlInput, scriptPathInput) },
-                enabled = !state.isChecking && urlInput.isNotBlank(),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                if (state.isChecking) {
-                    CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp).size(18.dp), strokeWidth = 2.dp)
-                }
-                Text(if (state.isChecking) stringResource(Res.string.add_wiki_checking) else stringResource(Res.string.add_wiki_submit))
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                horizontalArrangement = Arrangement.Center,
-            ) {
-                TextButton(onClick = onBrowseWikis) {
-                    Icon(Icons.Filled.TravelExplore, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Text(stringResource(Res.string.add_wiki_browse_indie), modifier = Modifier.padding(start = 8.dp))
-                }
-            }
-        }
+        AddWikiForm(
+            urlInput = urlInput,
+            onUrlInputChange = { urlInput = it },
+            scriptPathInput = scriptPathInput,
+            onScriptPathInputChange = { scriptPathInput = it },
+            state = state,
+            onSubmit = { viewModel.submit(urlInput, scriptPathInput) },
+            onBrowseWikis = onBrowseWikis,
+            modifier = Modifier.padding(innerPadding),
+        )
     }
 
     state.indieWikiSuggestion?.let { suggestion ->
@@ -146,6 +108,80 @@ fun AddWikiScreen(onDone: () -> Unit, onBrowseWikis: () -> Unit, viewModel: AddW
             onUseIndieWiki = viewModel::useSuggestedIndieWiki,
             onContinueAnyway = viewModel::continueWithOriginalUrl,
         )
+    }
+}
+
+/**
+ * The main add-a-wiki form: URL field, optional script path field,
+ * error text, submit button, and the "browse indie wikis" link below
+ * it.
+ */
+@Composable
+private fun AddWikiForm(
+    urlInput: String,
+    onUrlInputChange: (String) -> Unit,
+    scriptPathInput: String,
+    onScriptPathInputChange: (String) -> Unit,
+    state: AddWikiUiState,
+    onSubmit: () -> Unit,
+    onBrowseWikis: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .imePadding()
+            .padding(start = 20.dp, end = 20.dp, bottom = 20.dp, top = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            stringResource(Res.string.add_wiki_intro),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        OutlinedTextField(
+            value = urlInput,
+            onValueChange = onUrlInputChange,
+            label = { Text(stringResource(Res.string.add_wiki_url_label)) },
+            placeholder = { Text(stringResource(Res.string.add_wiki_url_placeholder)) },
+            singleLine = true,
+            isError = state.errorMessage != null,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        AnimatedVisibility(visible = state.showScriptPathField) {
+            OutlinedTextField(
+                value = scriptPathInput,
+                onValueChange = onScriptPathInputChange,
+                label = { Text(stringResource(Res.string.add_wiki_script_path_label)) },
+                placeholder = { Text(stringResource(Res.string.add_wiki_script_path_placeholder)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        state.errorMessage?.let {
+            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+        }
+        Button(
+            onClick = onSubmit,
+            enabled = !state.isChecking && urlInput.isNotBlank(),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            if (state.isChecking) {
+                CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp).size(18.dp), strokeWidth = 2.dp)
+            }
+            Text(if (state.isChecking) stringResource(Res.string.add_wiki_checking) else stringResource(Res.string.add_wiki_submit))
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+            horizontalArrangement = Arrangement.Center,
+        ) {
+            TextButton(onClick = onBrowseWikis) {
+                Icon(Icons.Filled.TravelExplore, contentDescription = null, modifier = Modifier.size(18.dp))
+                Text(stringResource(Res.string.add_wiki_browse_indie), modifier = Modifier.padding(start = 8.dp))
+            }
+        }
     }
 }
 
@@ -171,26 +207,43 @@ private fun IndieWikiSuggestionCard(
             shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
         ) {
-            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Filled.TravelExplore, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
-                Text(
-                    stringResource(Res.string.add_wiki_indie_found_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                )
-                Text(
-                    stringResource(Res.string.add_wiki_indie_found_body, suggestion.destinationName, suggestion.destinationBaseUrl),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Button(onClick = onUseIndieWiki, enabled = !isChecking, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(Res.string.add_wiki_use_indie, suggestion.destinationName))
-                }
-                OutlinedButton(onClick = onContinueAnyway, enabled = !isChecking, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(Res.string.add_wiki_continue_original))
-                }
-            }
+            IndieWikiSuggestionCardContent(
+                suggestion = suggestion,
+                isChecking = isChecking,
+                onUseIndieWiki = onUseIndieWiki,
+                onContinueAnyway = onContinueAnyway,
+                modifier = Modifier.padding(20.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun IndieWikiSuggestionCardContent(
+    suggestion: IndieWikiSuggestion,
+    isChecking: Boolean,
+    onUseIndieWiki: () -> Unit,
+    onContinueAnyway: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Icon(Icons.Filled.TravelExplore, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+        Text(
+            stringResource(Res.string.add_wiki_indie_found_title),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+        )
+        Text(
+            stringResource(Res.string.add_wiki_indie_found_body, suggestion.destinationName, suggestion.destinationBaseUrl),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Button(onClick = onUseIndieWiki, enabled = !isChecking, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(Res.string.add_wiki_use_indie, suggestion.destinationName))
+        }
+        OutlinedButton(onClick = onContinueAnyway, enabled = !isChecking, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(Res.string.add_wiki_continue_original))
         }
     }
 }
