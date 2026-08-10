@@ -44,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
@@ -267,7 +268,7 @@ private fun ThemeModeSelector(themeMode: ThemeMode, onSelect: (ThemeMode) -> Uni
                     shapes = shapes,
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text(stringResource(mode.labelRes))
+                    Text(stringResource(mode.labelRes), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
         }
