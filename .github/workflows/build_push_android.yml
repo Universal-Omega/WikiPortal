@@ -3,8 +3,7 @@ name: Artifact Build
 on: [push]
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 jobs:
   build:
@@ -35,30 +34,3 @@ jobs:
       with:
         name: debug-build
         path: "androidApp/build/outputs/apk/alpha/debug/*.apk"
-
-    - name: Upload Lint Results
-      if: always()
-      uses: actions/upload-artifact@v7
-      with:
-        name: lint-results
-        path: |
-          **/build/reports/lint-results-*.html
-          **/build/reports/lint-results-*.xml
-
-    - name: Run detekt with auto correct
-      if: always()
-      run: ./gradlew :composeApp:detekt --auto-correct
-
-    - name: Open PR with detekt fixes
-      if: always()
-      uses: peter-evans/create-pull-request@v7
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        commit-message: "Apply detekt auto fixes"
-        committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
-        author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
-        branch: detekt-autofix
-        base: ${{ github.head_ref }}
-        title: "Detekt auto fixes"
-        body: "Automated detekt fixes generated from the CI run on this PR."
-        delete-branch: true
