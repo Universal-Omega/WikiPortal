@@ -49,12 +49,14 @@ import org.wikitide.wikiportal.resources.common_clear
 fun CategoryBrowseScreen(
     onArticleClick: (title: String) -> Unit,
     onBack: () -> Unit,
+    modifier: Modifier = Modifier,
     viewModel: CategoryBrowseViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
     val selectedCategory = state.selectedCategory
 
     Scaffold(
+        modifier = modifier,
         topBar = {
             TopAppBar(
                 title = { Text(selectedCategory?.removePrefix("Category:") ?: stringResource(Res.string.category_browse_title)) },
