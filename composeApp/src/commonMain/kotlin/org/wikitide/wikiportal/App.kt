@@ -2,7 +2,7 @@ package org.wikitide.wikiportal
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -41,6 +41,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
@@ -237,8 +239,13 @@ private fun AppNavigationLayout(
     navDisplayContent: @Composable (Modifier) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    BoxWithConstraints(modifier.fillMaxSize()) {
-        if (maxWidth > maxHeight) {
+    val windowInfo = LocalWindowInfo.current
+    val density = LocalDensity.current
+    val isLandscape = with(density) {
+        windowInfo.containerSize.width.toDp() > windowInfo.containerSize.height.toDp()
+    }
+    Box(modifier.fillMaxSize()) {
+        if (isLandscape) {
             LandscapeAppLayout(current, showNav, openTabsCount, navigator, navDisplayContent)
         } else {
             PortraitAppLayout(current, showNav, openTabsCount, navigator, navDisplayContent)
