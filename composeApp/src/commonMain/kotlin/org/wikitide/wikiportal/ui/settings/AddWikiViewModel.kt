@@ -67,7 +67,7 @@ class AddWikiViewModel(
      * wiki.
      */
     private fun hostOf(baseUrl: String): String =
-        baseUrl.removePrefix("https://").removePrefix("http://").substringBefore("/").lowercase()
+        baseUrl.removePrefix("https://").removePrefix("http://").trimEnd('/').lowercase()
 
     /**
      * [skipIndieWikiCheck] is true for the two follow-up calls after a
