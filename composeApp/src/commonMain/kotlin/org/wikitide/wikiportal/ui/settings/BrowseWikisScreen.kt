@@ -48,6 +48,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,6 +57,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -79,6 +82,7 @@ import org.wikitide.wikiportal.resources.common_retry
 @Composable
 fun BrowseWikisScreen(
     onDone: () -> Unit,
+    modifier: Modifier = Modifier,
     browseViewModel: BrowseWikisViewModel = koinViewModel(),
     addWikiViewModel: AddWikiViewModel = koinViewModel(),
 ) {
@@ -91,7 +95,14 @@ fun BrowseWikisScreen(
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(addState.done) { if (addState.done) onDone() }
+    // onDone is read inside this effect without being a key, which is
+    // fine here since the effect is keyed on addState.done and is
+    // never meant to restart just because onDone itself changed
+    // identity. rememberUpdatedState keeps the call using whatever the
+    // latest onDone is instead of the one captured the first time this
+    // composed.
+    val currentOnDone by rememberUpdatedState(onDone)
+    LaunchedEffect(addState.done) { if (addState.done) currentOnDone() }
     LaunchedEffect(addState.errorMessage) {
         addState.errorMessage?.let { snackbarHostState.showSnackbar(it) }
     }
@@ -131,95 +142,152 @@ fun BrowseWikisScreen(
     }
 
     Scaffold(
+        modifier = modifier,
         contentWindowInsets = WindowInsets(0.dp),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            Column {
-                TopAppBar(
-                    title = { Text(stringResource(Res.string.browse_wikis_title)) },
-                    navigationIcon = { IconButton(onClick = onDone) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.common_back)) } },
-                    actions = {
-                        if (isRefreshing) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp).padding(end = 12.dp), strokeWidth = 2.dp)
-                        } else {
-                            IconButton(onClick = browseViewModel::refresh) {
-                                Icon(Icons.Filled.Refresh, contentDescription = stringResource(Res.string.browse_wikis_refresh_list))
-                            }
-                        }
-                    },
-                    windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
-                )
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = browseViewModel::setSearchQuery,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
-                    placeholder = { Text(stringResource(Res.string.browse_wikis_search_placeholder)) },
-                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { browseViewModel.setSearchQuery("") }) {
-                                Icon(Icons.Filled.Close, contentDescription = stringResource(Res.string.browse_wikis_clear_search))
-                            }
-                        }
-                    },
-                    singleLine = true,
-                    shape = MaterialTheme.shapes.large,
-                )
-                BrowseFilterRow(
-                    officialOnly = officialOnly,
-                    onOfficialOnlyChange = browseViewModel::setOfficialOnly,
-                    languages = availableLanguages,
-                    selectedLanguage = languageFilter,
-                    onLanguageSelected = browseViewModel::setLanguageFilter,
-                )
-            }
+            BrowseWikisTopBar(
+                onDone = onDone,
+                isRefreshing = isRefreshing,
+                onRefresh = browseViewModel::refresh,
+                searchQuery = searchQuery,
+                onSearchQueryChange = browseViewModel::setSearchQuery,
+                officialOnly = officialOnly,
+                onOfficialOnlyChange = browseViewModel::setOfficialOnly,
+                languages = availableLanguages.toImmutableList(),
+                selectedLanguage = languageFilter,
+                onSelectLanguage = browseViewModel::setLanguageFilter,
+            )
         },
     ) { innerPadding ->
-        when {
-            sites.isEmpty() && isRefreshing -> {
-                Box(Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            }
-            sites.isEmpty() -> {
-                Column(
-                    Modifier.fillMaxSize().padding(innerPadding).padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                ) {
-                    Icon(Icons.Filled.TravelExplore, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(
-                        stringResource(Res.string.browse_wikis_load_failed),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 8.dp),
-                    )
-                    TextButton(onClick = browseViewModel::refresh, modifier = Modifier.padding(top = 8.dp)) { Text(stringResource(Res.string.common_retry)) }
-                }
-            }
-            filtered.isEmpty() -> {
-                Box(Modifier.fillMaxSize().padding(innerPadding).padding(24.dp), contentAlignment = Alignment.TopCenter) {
-                    Text(
-                        stringResource(Res.string.browse_wikis_no_matches),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-            else -> {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(innerPadding),
-                    contentPadding = PaddingValues(vertical = 8.dp),
-                ) {
-                    items(filtered, key = { it.id + it.language }) { site ->
-                        IndieWikiRow(
-                            site = site,
-                            enabled = !addState.isChecking,
-                            onClick = {
-                                scope.launch { addWikiViewModel.submit("https://${site.destinationBaseUrl}", skipIndieWikiCheck = true) }
-                            },
-                        )
+        BrowseWikisContent(
+            sites = sites,
+            isRefreshing = isRefreshing,
+            filtered = filtered,
+            addState = addState,
+            onRetry = browseViewModel::refresh,
+            onSelectSite = { site -> scope.launch { addWikiViewModel.submit("https://${site.destinationBaseUrl}", skipIndieWikiCheck = true) } },
+            modifier = Modifier.padding(innerPadding),
+        )
+    }
+}
+
+/**
+ * The top bar area: the TopAppBar itself, the search field, and the
+ * filter chip row beneath it.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BrowseWikisTopBar(
+    onDone: () -> Unit,
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    officialOnly: Boolean,
+    onOfficialOnlyChange: (Boolean) -> Unit,
+    languages: ImmutableList<String>,
+    selectedLanguage: String?,
+    onSelectLanguage: (String?) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier) {
+        TopAppBar(
+            title = { Text(stringResource(Res.string.browse_wikis_title)) },
+            navigationIcon = { IconButton(onClick = onDone) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.common_back)) } },
+            actions = {
+                if (isRefreshing) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp).padding(end = 12.dp), strokeWidth = 2.dp)
+                } else {
+                    IconButton(onClick = onRefresh) {
+                        Icon(Icons.Filled.Refresh, contentDescription = stringResource(Res.string.browse_wikis_refresh_list))
                     }
+                }
+            },
+            windowInsets = TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top),
+        )
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = onSearchQueryChange,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+            placeholder = { Text(stringResource(Res.string.browse_wikis_search_placeholder)) },
+            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+            trailingIcon = {
+                if (searchQuery.isNotEmpty()) {
+                    IconButton(onClick = { onSearchQueryChange("") }) {
+                        Icon(Icons.Filled.Close, contentDescription = stringResource(Res.string.browse_wikis_clear_search))
+                    }
+                }
+            },
+            singleLine = true,
+            shape = MaterialTheme.shapes.large,
+        )
+        BrowseFilterRow(
+            officialOnly = officialOnly,
+            onOfficialOnlyChange = onOfficialOnlyChange,
+            languages = languages,
+            selectedLanguage = selectedLanguage,
+            onSelectLanguage = onSelectLanguage,
+        )
+    }
+}
+
+/**
+ * The Scaffold's main content: a loading spinner, an empty or
+ * no-matches message, or the results list, depending on state.
+ */
+@Composable
+private fun BrowseWikisContent(
+    sites: List<IndieWikiSite>,
+    isRefreshing: Boolean,
+    filtered: List<IndieWikiSite>,
+    addState: AddWikiUiState,
+    onRetry: () -> Unit,
+    onSelectSite: (IndieWikiSite) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    when {
+        sites.isEmpty() && isRefreshing -> {
+            Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        }
+        sites.isEmpty() -> {
+            Column(
+                modifier.fillMaxSize().padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Icon(Icons.Filled.TravelExplore, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    stringResource(Res.string.browse_wikis_load_failed),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+                TextButton(onClick = onRetry, modifier = Modifier.padding(top = 8.dp)) { Text(stringResource(Res.string.common_retry)) }
+            }
+        }
+        filtered.isEmpty() -> {
+            Box(modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.TopCenter) {
+                Text(
+                    stringResource(Res.string.browse_wikis_no_matches),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        else -> {
+            LazyColumn(
+                modifier = modifier.fillMaxSize(),
+                contentPadding = PaddingValues(vertical = 8.dp),
+            ) {
+                items(filtered, key = { it.id + it.language }) { site ->
+                    IndieWikiRow(
+                        site = site,
+                        enabled = !addState.isChecking,
+                        onClick = { onSelectSite(site) },
+                    )
                 }
             }
         }
@@ -230,9 +298,9 @@ fun BrowseWikisScreen(
 private fun BrowseFilterRow(
     officialOnly: Boolean,
     onOfficialOnlyChange: (Boolean) -> Unit,
-    languages: List<String>,
+    languages: ImmutableList<String>,
     selectedLanguage: String?,
-    onLanguageSelected: (String?) -> Unit,
+    onSelectLanguage: (String?) -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 8.dp),
@@ -250,13 +318,13 @@ private fun BrowseFilterRow(
         )
         FilterChip(
             selected = selectedLanguage == null,
-            onClick = { onLanguageSelected(null) },
+            onClick = { onSelectLanguage(null) },
             label = { Text(stringResource(Res.string.browse_wikis_all_languages)) },
         )
         languages.forEach { language ->
             FilterChip(
                 selected = selectedLanguage == language,
-                onClick = { onLanguageSelected(if (selectedLanguage == language) null else language) },
+                onClick = { onSelectLanguage(if (selectedLanguage == language) null else language) },
                 label = { Text(IndieWikiLanguages.displayName(language)) },
             )
         }
