@@ -60,8 +60,10 @@ fun PageSearchTopBar(
     onSearchSubmit: () -> Unit,
     onPreviousMatch: () -> Unit,
     onNextMatch: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     TopAppBar(
+        modifier = modifier,
         navigationIcon = {
             IconButton(onClick = onClose) {
                 Icon(Icons.Filled.Close, contentDescription = stringResource(Res.string.article_top_bar_close_search))
@@ -122,12 +124,14 @@ fun ArticleTopBar(
     openTabCount: Int,
     isSaved: Boolean,
     onClose: () -> Unit,
-    onToggleSaved: () -> Unit,
+    onToggleSave: () -> Unit,
     onOpenTabSwitcher: () -> Unit,
     onOpenOverflowMenu: () -> Unit,
+    modifier: Modifier = Modifier,
     overflowMenu: @Composable () -> Unit,
 ) {
     TopAppBar(
+        modifier = modifier,
         navigationIcon = {
             IconButton(onClick = onClose) {
                 Icon(Icons.Filled.Close, contentDescription = stringResource(Res.string.common_close))
@@ -142,7 +146,7 @@ fun ArticleTopBar(
             )
         },
         actions = {
-            IconButton(onClick = onToggleSaved) {
+            IconButton(onClick = onToggleSave) {
                 Icon(
                     imageVector = if (isSaved) Icons.Filled.Bookmark else Icons.Filled.BookmarkBorder,
                     contentDescription = if (isSaved) stringResource(Res.string.article_top_bar_unsave) else stringResource(Res.string.article_top_bar_save_for_later),

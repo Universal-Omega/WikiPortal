@@ -33,8 +33,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import org.koin.compose.viewmodel.koinViewModel
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.viewmodel.koinViewModel
 import org.wikitide.wikiportal.resources.Res
 import org.wikitide.wikiportal.resources.category_browse_empty
 import org.wikitide.wikiportal.resources.category_browse_no_results
@@ -49,12 +49,14 @@ import org.wikitide.wikiportal.resources.common_clear
 fun CategoryBrowseScreen(
     onArticleClick: (title: String) -> Unit,
     onBack: () -> Unit,
+    modifier: Modifier = Modifier,
     viewModel: CategoryBrowseViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
     val selectedCategory = state.selectedCategory
 
     Scaffold(
+        modifier = modifier,
         topBar = {
             TopAppBar(
                 title = { Text(selectedCategory?.removePrefix("Category:") ?: stringResource(Res.string.category_browse_title)) },

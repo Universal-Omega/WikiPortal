@@ -1,12 +1,12 @@
 package org.wikitide.wikiportal.util.offline
 
-import kotlin.io.encoding.Base64
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import org.wikitide.wikiportal.network.MediaWikiApi
+import kotlin.io.encoding.Base64
 
 /**
  * Rewrites every statically referenced link href, script src, img src,

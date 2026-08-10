@@ -1,0 +1,196 @@
+config:
+  validation: true
+
+comments:
+  active: false
+
+complexity:
+  ComplexCondition:
+    active: false
+  CyclomaticComplexMethod:
+    active: false
+  LongMethod:
+    active: false
+  LongParameterList:
+    active: false
+  TooManyFunctions:
+    active: false
+
+exceptions:
+  TooGenericExceptionCaught:
+    active: false
+
+ktlint:
+  active: true
+  ArgumentListWrapping:
+    active: false
+  BackingPropertyNaming:
+    active: false
+  BinaryExpressionWrapping:
+    active: false
+  BlankLineBetweenWhenConditions:
+    active: false
+    severity: info
+  ClassSignature:
+    active: false
+  FunctionExpressionBody:
+    active: false
+    severity: info
+  FunctionLiteral:
+    active: false
+  FunctionSignature:
+    active: false
+  Indentation:
+    active: true
+  MaximumLineLength:
+    active: false
+    maxLineLength: 120
+  MultiLineIfElse:
+    active: true
+  ParameterListWrapping:
+    active: false
+  PropertyName:
+    active: false
+  PropertyWrapping:
+    active: false
+  SpacingBetweenDeclarationsWithComments:
+    active: false
+    severity: info
+  StatementWrapping:
+    active: false
+  Wrapping:
+    active: false
+
+style:
+  ForbiddenComment:
+    active: false
+  ForbiddenImport:
+    active: true
+    forbiddenImports:
+      - value: 'kotlin.jvm.JvmField'
+        reason: 'Use explicit backing properties instead.'
+      - value: 'java.util.*'
+        reason: 'Use Kotlin standard library APIs instead.'
+  LoopWithTooManyJumpStatements:
+    active: false
+  MagicNumber:
+    active: false
+  MaxLineLength:
+    active: false
+    maxLineLength: 120
+  ReturnCount:
+    active: false
+  SpacingAfterPackageAndImports:
+    active: true
+  UnusedImport:
+    active: true
+  UnusedPrivateFunction:
+    active: true
+    ignoreAnnotated: ['Preview']
+  UnusedPrivateProperty:
+    active: true
+  WildcardImport:
+    active: true
+    excludeImports: []
+
+potential-bugs:
+  active: true
+
+coroutines:
+  active: true
+  GlobalCoroutineUsage:
+    active: true
+
+naming:
+  active: true
+  FunctionNaming:
+    active: true
+    ignoreAnnotated: ['Composable']
+  MatchingDeclarationName:
+    active: false
+  VariableNaming:
+    active: false
+
+Compose:
+  active: true
+  ComposableAnnotationNaming:
+    active: true
+  ComposableNaming:
+    active: true
+  ComposableNestingDepth:
+    active: true
+  ComposableParamOrder:
+    active: true
+  CompositionLocalAllowlist:
+    active: true
+    # allowedCompositionLocals: 
+  CompositionLocalNaming:
+    active: true
+  ConditionHoist:
+    active: true
+  ContentEmitterReturningValues:
+    active: true
+  ContentTrailingLambda:
+    active: true
+  ContentSlotReused:
+    active: true
+  DefaultsVisibility:
+    active: true
+  InvalidReadOnlyComposable:
+    active: true
+  LambdaParameterEventTrailing:
+    active: true
+  LambdaParameterInRestartableEffect:
+    active: true
+  Material2:
+    active: false
+  MissingReadOnlyComposable:
+    active: true
+  ModifierClickableOrder:
+    active: true
+  ModifierComposed:
+    active: true
+  ModifierMissing:
+    active: true
+  ModifierNaming:
+    active: true
+  ModifierNotUsedAtRoot:
+    active: true
+  ModifierReused:
+    active: true
+  ModifierWithoutDefault:
+    active: true
+  MultipleEmitters:
+    active: true
+  MutableParams:
+    active: true
+  MutableStateAutoboxing:
+    active: true
+  MutableStateParam:
+    active: true
+  ParameterNaming:
+    active: true
+  PreviewAnnotationNaming:
+    active: true
+  PreviewNaming:
+    active: true
+  PreviewPublic:
+    active: true
+  RememberContentMissing:
+    active: true
+  RememberMissing:
+    active: true
+  StaleRememberUpdatedStateInRemember:
+    active: true
+  StateParam:
+    active: true
+  UnnecessaryComposable:
+    active: true
+  UnstableCollections:
+    active: true
+  VarsWithoutStateBacking:
+    active: true
+  ViewModelForwarding:
+    active: true
+  ViewModelInjection:
+    active: true

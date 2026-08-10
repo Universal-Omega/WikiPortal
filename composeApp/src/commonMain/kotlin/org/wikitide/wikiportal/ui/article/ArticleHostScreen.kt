@@ -17,6 +17,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -36,6 +37,10 @@ import com.multiplatform.webview.web.NativeWebView
 import com.multiplatform.webview.web.WebViewNavigator
 import com.multiplatform.webview.web.rememberWebViewNavigator
 import io.ktor.http.Url
+import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.TabsRepository
@@ -45,24 +50,22 @@ import org.wikitide.wikiportal.data.model.SavedPage
 import org.wikitide.wikiportal.data.model.effectiveDisableSafeMode
 import org.wikitide.wikiportal.network.MediaWikiApi
 import org.wikitide.wikiportal.network.PageSummaryDto
+import org.wikitide.wikiportal.resources.Res
+import org.wikitide.wikiportal.resources.article_host_link_copied
+import org.wikitide.wikiportal.resources.article_host_share_failed
 import org.wikitide.wikiportal.ui.tabs.TabsScreen
 import org.wikitide.wikiportal.util.ShareOutcome
-import org.wikitide.wikiportal.util.rememberPageSharer
 import org.wikitide.wikiportal.util.nowEpochMillis
 import org.wikitide.wikiportal.util.offline.captureArticleForOffline
 import org.wikitide.wikiportal.util.offline.offlineLoadIdentityUrl
 import org.wikitide.wikiportal.util.offline.offlineTitlesForWiki
 import org.wikitide.wikiportal.util.offline.rewriteOfflineLinks
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.stringResource
-import org.wikitide.wikiportal.resources.Res
-import org.wikitide.wikiportal.resources.article_host_link_copied
-import org.wikitide.wikiportal.resources.article_host_share_failed
+import org.wikitide.wikiportal.util.rememberPageSharer
 
 @Composable
 fun ArticleHostScreen(
     onBack: () -> Unit,
+    modifier: Modifier = Modifier,
     tabsRepository: TabsRepository = koinInject(),
 ) {
     val tabs by tabsRepository.tabs.collectAsState()
@@ -71,11 +74,18 @@ fun ArticleHostScreen(
     val materializedTabIds by tabsRepository.materializedTabIds.collectAsState()
 
     if (tabs.isEmpty()) {
-        LaunchedEffect(Unit) { onBack() }
+        // onBack is read inside this effect without being a key, which
+        // is fine here since the effect is keyed on Unit and is never
+        // meant to restart. rememberUpdatedState keeps the call using
+        // whatever the latest onBack is instead of the one captured the
+        // first time this composed, without forcing the effect itself
+        // to relaunch on every recomposition.
+        val currentOnBack by rememberUpdatedState(onBack)
+        LaunchedEffect(Unit) { currentOnBack() }
         return
     }
 
-    Box(Modifier.fillMaxSize()) {
+    Box(modifier.fillMaxSize()) {
         tabs.forEach { tab ->
             // A tab that was restored from a previous session but hasn't
             // actually been tapped yet this launch has no WebView at
@@ -127,7 +137,7 @@ private fun SingleArticleTab(
     // wiki's main page title for the home button below, actually reaches
     // this tab instead of being frozen out by a remember() taken before
     // it existed.
-    val allWikis = remember(presetWikis, customWikis) { presetWikis + customWikis }
+    val allWikis = remember(presetWikis, customWikis) { (presetWikis + customWikis).toImmutableList() }
     val site = remember(tab.wikiId, allWikis) { allWikis.firstOrNull { it.id == tab.wikiId } ?: repository.activeWiki.value }
     val initialTitle = remember(tab.id) { tab.title }
     val openOfflineFromStart = tab.openedFromOffline
@@ -319,7 +329,7 @@ private fun SingleArticleTab(
         },
     )
 
-    var historyNavTrigger by remember(tab.id) { mutableStateOf(0) }
+    var historyNavTrigger by remember(tab.id) { mutableIntStateOf(0) }
 
     // Registered once, at tab creation, keyed by tab.id and not isActive.
     // See TabsRepository's comment on backHandlers for why this must not
@@ -584,7 +594,7 @@ private fun SingleArticleTab(
                         openTabCount = tabs.size,
                         isSaved = isSaved,
                         onClose = { scope.launch { capturePreviewAndRun(onBack) } },
-                        onToggleSaved = {
+                        onToggleSave = {
                             repository.toggleSaved(
                                 SavedPage(
                                     wikiId = site.id,
@@ -680,7 +690,7 @@ private fun SingleArticleTab(
                 disableSafeMode = effectiveDisableSafeMode,
                 openBlankInNewTab = openBlankInNewTab,
                 onWebViewReady = { nativeWebViewRef = it },
-                onStateChanged = { newState -> pageState = newState },
+                onStateChange = { newState -> pageState = newState },
                 modifier = Modifier.fillMaxSize(),
             )
 

@@ -17,10 +17,7 @@ import org.wikitide.wikiportal.util.LogExporter
 
 actual fun platformModule(): Module = module {
     single<SqlDriver> {
-        AndroidSqliteDriver(
-            WikiPortalSchema,
-            get<Context>(), "wikiportal.db",
-        )
+        AndroidSqliteDriver(WikiPortalSchema, get<Context>(), "wikiportal.db")
     }
     single<AppVersionProvider> { AndroidAppVersionProvider(get()) }
     single<LogExporter> { AndroidLogExporter(get()) }

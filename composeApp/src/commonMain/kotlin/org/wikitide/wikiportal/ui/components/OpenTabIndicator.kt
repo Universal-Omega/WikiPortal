@@ -25,8 +25,8 @@ import org.wikitide.wikiportal.resources.open_tab_indicator_label
  * everywhere an ArticleCard can link back into the tab switcher.
  */
 @Composable
-fun OpenTabIndicator() {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+fun OpenTabIndicator(modifier: Modifier = Modifier) {
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
         Icon(
             imageVector = Icons.Filled.Tab,
             contentDescription = null,

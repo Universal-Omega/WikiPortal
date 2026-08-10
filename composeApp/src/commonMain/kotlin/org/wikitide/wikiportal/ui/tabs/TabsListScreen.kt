@@ -37,13 +37,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.TabsRepository
-import org.wikitide.wikiportal.ui.components.ArticleCard
-import org.wikitide.wikiportal.ui.components.DestructiveConfirmDialog
-import org.jetbrains.compose.resources.stringResource
+import org.wikitide.wikiportal.data.model.ArticleTab
 import org.wikitide.wikiportal.resources.Res
 import org.wikitide.wikiportal.resources.common_cannot_be_undone
 import org.wikitide.wikiportal.resources.saved_cancel_selection
@@ -59,11 +59,14 @@ import org.wikitide.wikiportal.resources.tabs_close_selected
 import org.wikitide.wikiportal.resources.tabs_last_viewed
 import org.wikitide.wikiportal.resources.tabs_no_open_tabs
 import org.wikitide.wikiportal.resources.tabs_title
+import org.wikitide.wikiportal.ui.components.ArticleCard
+import org.wikitide.wikiportal.ui.components.DestructiveConfirmDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TabsListScreen(
     onOpenTab: (wikiId: String, title: String) -> Unit,
+    modifier: Modifier = Modifier,
     tabsRepository: TabsRepository = koinInject(),
     repository: AppRepository = koinInject(),
 ) {
@@ -86,7 +89,7 @@ fun TabsListScreen(
         selectedIds = selectedIds.filter { id -> tabs.any { it.id == id } }.toSet()
     }
 
-    Column(Modifier.fillMaxSize()) {
+    Column(modifier.fillMaxSize()) {
         TopAppBar(
             title = {
                 Text(
@@ -127,52 +130,15 @@ fun TabsListScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 items(tabs, key = { it.id }) { tab ->
-                    val isActive = tab.id == activeTabId
-                    val isSelected = tab.id in selectedIds
-                    ArticleCard(
-                        title = tab.title,
-                        extract = tab.extract.orEmpty(),
-                        thumbnailUrl = tab.thumbnailUrl,
+                    TabCard(
+                        tab = tab,
+                        isActive = tab.id == activeTabId,
+                        isSelected = tab.id in selectedIds,
                         showImages = showImages,
                         previewBitmap = previews[tab.id],
-                        wikiLabel = tab.wikiName.takeIf { it.isNotBlank() },
-                        selectionModeActive = selectionActive,
-                        selected = isSelected,
-                        modifier = if (isActive) {
-                            Modifier.border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary), RoundedCornerShape(12.dp))
-                        } else {
-                            Modifier
-                        },
-                        onClick = {
-                            if (selectionActive) {
-                                selectedIds = if (isSelected) selectedIds - tab.id else selectedIds + tab.id
-                            } else {
-                                onOpenTab(tab.wikiId, tab.title)
-                            }
-                        },
-                        onLongClick = {
-                            selectedIds = if (isSelected) selectedIds - tab.id else selectedIds + tab.id
-                        },
-                        trailingContent = if (isActive) {
-                            {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        Icons.Filled.CheckCircle,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(16.dp),
-                                    )
-                                    Text(
-                                        stringResource(Res.string.tabs_last_viewed),
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.padding(start = 4.dp),
-                                    )
-                                }
-                            }
-                        } else {
-                            null
-                        },
+                        selectionActive = selectionActive,
+                        onOpenTab = onOpenTab,
+                        onToggleSelect = { id -> selectedIds = if (id in selectedIds) selectedIds - id else selectedIds + id },
                     )
                 }
             }
@@ -200,6 +166,65 @@ fun TabsListScreen(
                 selectedIds = emptySet()
             },
             onDismiss = { showDeleteSelectedConfirm = false },
+        )
+    }
+}
+
+/**
+ * One row in the open-tabs list. The active tab gets both a
+ * highlighted border and a small "last viewed" trailing
+ * label, neither of which apply to any other tab in
+ * the list.
+ */
+@Composable
+private fun TabCard(
+    tab: ArticleTab,
+    isActive: Boolean,
+    isSelected: Boolean,
+    showImages: Boolean,
+    previewBitmap: ImageBitmap?,
+    selectionActive: Boolean,
+    onOpenTab: (wikiId: String, title: String) -> Unit,
+    onToggleSelect: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    ArticleCard(
+        title = tab.title,
+        extract = tab.extract.orEmpty(),
+        thumbnailUrl = tab.thumbnailUrl,
+        showImages = showImages,
+        onClick = {
+            if (selectionActive) onToggleSelect(tab.id) else onOpenTab(tab.wikiId, tab.title)
+        },
+        modifier = if (isActive) {
+            modifier.border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary), RoundedCornerShape(12.dp))
+        } else {
+            modifier
+        },
+        previewBitmap = previewBitmap,
+        wikiLabel = tab.wikiName.takeIf { it.isNotBlank() },
+        selectionModeActive = selectionActive,
+        selected = isSelected,
+        onLongClick = { onToggleSelect(tab.id) },
+        trailingContent = if (isActive) { { LastViewedLabel() } } else null,
+    )
+}
+
+/** The small "last viewed" badge shown as [TabCard]'s trailing content for the active tab. */
+@Composable
+private fun LastViewedLabel(modifier: Modifier = Modifier) {
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            Icons.Filled.CheckCircle,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(16.dp),
+        )
+        Text(
+            stringResource(Res.string.tabs_last_viewed),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(start = 4.dp),
         )
     }
 }

@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.getString
 import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.IndieWikiDirectory
 import org.wikitide.wikiportal.data.model.SkinOption
@@ -21,15 +22,14 @@ import org.wikitide.wikiportal.network.deriveWikiDefaultSkin
 import org.wikitide.wikiportal.network.matchCuratedSkin
 import org.wikitide.wikiportal.network.resolveDefaultSkin
 import org.wikitide.wikiportal.network.resolveFaviconUrl
-import org.wikitide.wikiportal.util.AppLog
-import org.wikitide.wikiportal.util.isMobilePlatform
-import org.jetbrains.compose.resources.getString
 import org.wikitide.wikiportal.resources.Res
 import org.wikitide.wikiportal.resources.add_wiki_error_duplicate
 import org.wikitide.wikiportal.resources.add_wiki_error_invalid_url
 import org.wikitide.wikiportal.resources.add_wiki_error_no_api
 import org.wikitide.wikiportal.resources.add_wiki_error_tried_paths
 import org.wikitide.wikiportal.resources.add_wiki_error_try_different_path
+import org.wikitide.wikiportal.util.AppLog
+import org.wikitide.wikiportal.util.isMobilePlatform
 
 private const val TAG = "AddWikiViewModel"
 

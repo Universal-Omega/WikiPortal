@@ -40,7 +40,7 @@ expect fun dynamicColorSchemeAvailable(): Boolean
 expect fun platformDynamicColorScheme(useDark: Boolean): ColorScheme?
 
 /**
- * @param onDarkThemeResolved Reports the app's actual resolved theme,
+ * @param onDarkThemeResolve Reports the app's actual resolved theme,
  * accounting for ThemeMode.SYSTEM, so a caller can keep OS chrome like
  * the status and navigation bar icons legible against it. This is
  * different from the device's raw dark mode setting, since the person
@@ -56,7 +56,7 @@ expect fun platformDynamicColorScheme(useDark: Boolean): ColorScheme?
 fun WikiPortalTheme(
     themeMode: ThemeMode,
     useDynamicColor: Boolean,
-    onDarkThemeResolved: (Boolean) -> Unit = {},
+    onDarkThemeResolve: (Boolean) -> Unit = {},
     content: @Composable () -> Unit,
 ) {
     val systemDark = isSystemInDarkTheme()
@@ -65,7 +65,7 @@ fun WikiPortalTheme(
         ThemeMode.LIGHT -> false
         ThemeMode.DARK -> true
     }
-    SideEffect { onDarkThemeResolved(useDark) }
+    SideEffect { onDarkThemeResolve(useDark) }
     val dynamicScheme = if (useDynamicColor && dynamicColorSchemeAvailable()) platformDynamicColorScheme(useDark) else null
     val colorScheme = dynamicScheme ?: if (useDark) DarkColors else LightColors
 

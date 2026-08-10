@@ -13,7 +13,7 @@ import org.wikitide.wikiportal.network.MediaWikiApi
  * its own ResourceLoader modules prefetched, styling guaranteed by
  * fetching it as plain CSS text rather than trusting the real
  * ResourceLoader JS runtime to apply it, scripts like collapsible
- * sections best-effort on top of that (OfflineModuleBundle), and every
+ * sections best-effort on top of that (OfflineModules), and every
  * remaining external resource inlined as a data URI
  * (OfflineResourceInliner). The result needs nothing from the network
  * to render.

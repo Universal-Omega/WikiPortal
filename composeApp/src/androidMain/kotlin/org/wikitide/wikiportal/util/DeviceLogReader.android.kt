@@ -40,7 +40,13 @@ private data class RawLine(
 
 private fun parseRawLine(line: String): RawLine? {
     val match = threadTimeLine.matchEntire(line) ?: return null
-    val (time, pid, tid, levelChar, rawTag, rawMessage) = match.destructured
+    val groups = match.groupValues
+    val time = groups[1]
+    val pid = groups[2]
+    val tid = groups[3]
+    val levelChar = groups[4]
+    val rawTag = groups[5]
+    val rawMessage = groups[6]
     val level = when (levelChar) {
         "V", "D" -> LogLevel.DEBUG
         "I" -> LogLevel.INFO

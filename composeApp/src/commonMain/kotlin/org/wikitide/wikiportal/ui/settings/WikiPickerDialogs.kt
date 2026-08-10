@@ -30,11 +30,11 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import kotlin.math.roundToInt
+import kotlinx.collections.immutable.ImmutableList
+import org.jetbrains.compose.resources.stringResource
 import org.wikitide.wikiportal.data.AppRepository
 import org.wikitide.wikiportal.data.model.WikiFolder
 import org.wikitide.wikiportal.data.model.WikiSite
-import org.jetbrains.compose.resources.stringResource
 import org.wikitide.wikiportal.resources.Res
 import org.wikitide.wikiportal.resources.common_back
 import org.wikitide.wikiportal.resources.common_cancel
@@ -46,6 +46,7 @@ import org.wikitide.wikiportal.resources.wiki_picker_new_folder
 import org.wikitide.wikiportal.resources.wiki_picker_no_folder
 import org.wikitide.wikiportal.resources.wiki_picker_no_skins
 import org.wikitide.wikiportal.resources.wiki_picker_skin_title
+import kotlin.math.roundToInt
 
 /**
  * Lets the person file a custom wiki into one of their own folders,
@@ -57,7 +58,7 @@ import org.wikitide.wikiportal.resources.wiki_picker_skin_title
 @Composable
 internal fun MoveToFolderDialog(
     wiki: WikiSite,
-    folders: List<WikiFolder>,
+    folders: ImmutableList<WikiFolder>,
     onDismiss: () -> Unit,
     onSelectFolder: (String?) -> Unit,
     onCreateFolder: (String) -> Unit,
@@ -173,7 +174,7 @@ internal fun SkinPickerDialog(
     wiki: WikiSite,
     repository: AppRepository,
     onDismiss: () -> Unit,
-    onSkinSelected: (String) -> Unit,
+    onSelectSkin: (String) -> Unit,
 ) {
     var isRefreshing by remember(wiki.id) { mutableStateOf(true) }
     LaunchedEffect(wiki.id) {
@@ -206,7 +207,7 @@ internal fun SkinPickerDialog(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { onSkinSelected(choice.code) }
+                                .clickable { onSelectSkin(choice.code) }
                                 .padding(vertical = 4.dp)
                                 .onGloballyPositioned { coordinates ->
                                     if (choice.code == wiki.skin) {
@@ -215,7 +216,7 @@ internal fun SkinPickerDialog(
                                 },
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            RadioButton(selected = choice.code == wiki.skin, onClick = { onSkinSelected(choice.code) })
+                            RadioButton(selected = choice.code == wiki.skin, onClick = { onSelectSkin(choice.code) })
                             Text(choice.name, modifier = Modifier.padding(start = 4.dp))
                         }
                     }

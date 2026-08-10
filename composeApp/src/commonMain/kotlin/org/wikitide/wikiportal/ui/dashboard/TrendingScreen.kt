@@ -38,9 +38,9 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.wikitide.wikiportal.network.TrendingArticle
-import org.jetbrains.compose.resources.stringResource
 import org.wikitide.wikiportal.resources.Res
 import org.wikitide.wikiportal.resources.common_back
 import org.wikitide.wikiportal.resources.dashboard_trending_on
@@ -67,6 +67,7 @@ private fun formatMostReadDate(raw: String?): String? {
 fun TrendingScreen(
     onArticleClick: (title: String) -> Unit,
     onBack: () -> Unit,
+    modifier: Modifier = Modifier,
     viewModel: TrendingViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -74,6 +75,7 @@ fun TrendingScreen(
         ?: stringResource(Res.string.dashboard_trending_on, state.wikiName)
 
     Scaffold(
+        modifier = modifier,
         topBar = {
             TopAppBar(
                 title = { Text(title) },

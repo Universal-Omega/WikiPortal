@@ -48,7 +48,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toImmutableList
 import org.jetbrains.compose.resources.stringResource
+import org.wikitide.wikiportal.data.AppRepository
+import org.wikitide.wikiportal.data.model.WikiFolder
+import org.wikitide.wikiportal.data.model.WikiSite
 import org.wikitide.wikiportal.resources.Res
 import org.wikitide.wikiportal.resources.common_delete
 import org.wikitide.wikiportal.resources.common_remove
@@ -65,9 +70,6 @@ import org.wikitide.wikiportal.resources.wiki_picker_n_wikis
 import org.wikitide.wikiportal.resources.wiki_picker_one_wiki
 import org.wikitide.wikiportal.resources.wiki_picker_options_for
 import org.wikitide.wikiportal.resources.wiki_picker_rename
-import org.wikitide.wikiportal.data.AppRepository
-import org.wikitide.wikiportal.data.model.WikiFolder
-import org.wikitide.wikiportal.data.model.WikiSite
 import org.wikitide.wikiportal.ui.components.DragReorderState
 import org.wikitide.wikiportal.ui.components.rememberDragReorderState
 import org.wikitide.wikiportal.ui.components.trackDragPosition
@@ -83,7 +85,7 @@ import org.wikitide.wikiportal.ui.components.trackDragPosition
 @Composable
 internal fun FolderSectionContent(
     folder: WikiFolder,
-    wikis: List<WikiSite>,
+    wikis: ImmutableList<WikiSite>,
     expanded: Boolean,
     activeWikiId: String,
     repository: AppRepository,
@@ -166,7 +168,7 @@ internal fun LazyListScope.folderSection(
     item(key = "folder-${folder.id}") {
         FolderSectionContent(
             folder = folder,
-            wikis = wikis,
+            wikis = wikis.toImmutableList(),
             expanded = expanded,
             activeWikiId = activeWikiId,
             repository = repository,
