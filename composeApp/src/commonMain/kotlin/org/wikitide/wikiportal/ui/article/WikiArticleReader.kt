@@ -4,8 +4,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import com.multiplatform.webview.web.LoadingState
 import com.multiplatform.webview.web.NativeWebView
@@ -181,6 +183,16 @@ fun WikiArticleReader(
     fun resolveMatchedSite(url: String): WikiSite? =
         if (AuthDomains.matches(url)) site else allWikis.firstOrNull { url.startsWith(it.baseUrl) }
 
+    // onStateChange is read inside this effect without being one of its
+    // keys, which is fine here since the effect is keyed on the
+    // WebView's own loading signals and is never meant to restart just
+    // because onStateChange itself changed identity, which it does on
+    // every recomposition since callers pass a fresh lambda each time.
+    // rememberUpdatedState keeps every call below using whatever the
+    // latest onStateChange is instead of the one captured when this
+    // effect was first launched.
+    val currentOnStateChange by rememberUpdatedState(onStateChange)
+
     LaunchedEffect(webViewState.pageTitle, webViewState.loadingState, webViewState.lastLoadedUrl, historyNavTrigger) {
         val loading = webViewState.loadingState
         val url = webViewState.lastLoadedUrl
@@ -195,7 +207,7 @@ fun WikiArticleReader(
                 isLoading = true,
                 progress = 0,
             )
-            onStateChange(lastKnown.value)
+            currentOnStateChange(lastKnown.value)
             return@LaunchedEffect
         }
 
@@ -208,7 +220,7 @@ fun WikiArticleReader(
                 isLoading = isLoading,
                 progress = progress,
             )
-            onStateChange(lastKnown.value)
+            currentOnStateChange(lastKnown.value)
             return@LaunchedEffect
         }
 
@@ -239,7 +251,7 @@ fun WikiArticleReader(
                         isLoading = false,
                         progress = 100,
                     )
-                    onStateChange(lastKnown.value)
+                    currentOnStateChange(lastKnown.value)
                 } else {
                     // Cross-site, unmatched, content has no URL-based
                     // title extraction to fall back on, so this asks
@@ -254,7 +266,7 @@ fun WikiArticleReader(
                             isLoading = false,
                             progress = 100,
                         )
-                        onStateChange(lastKnown.value)
+                        currentOnStateChange(lastKnown.value)
                     }
                 }
             }
@@ -291,14 +303,14 @@ fun WikiArticleReader(
                 isLoading = isLoading,
                 progress = progress,
             )
-            onStateChange(lastKnown.value)
+            currentOnStateChange(lastKnown.value)
         } else if (url != null) {
             lastKnown.value = lastKnown.value.copy(
                 url = url,
                 isLoading = isLoading,
                 progress = progress,
             )
-            onStateChange(lastKnown.value)
+            currentOnStateChange(lastKnown.value)
         }
     }
 
