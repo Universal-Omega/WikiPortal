@@ -181,7 +181,7 @@ fun LogsScreen(onBack: () -> Unit, modifier: Modifier = Modifier, logExporter: L
                 onAppOnlyChange = { appOnly = it },
                 visibleLevels = visibleLevels,
                 onToggleLevel = { level ->
-                    visibleLevels = if (level in visibleLevels) visibleLevels - level else visibleLevels + level
+                    visibleLevels = (if (level in visibleLevels) visibleLevels - level else visibleLevels + level).toPersistentSet()
                 },
                 searchQuery = searchQuery,
                 onQueryChange = { searchQuery = it },
