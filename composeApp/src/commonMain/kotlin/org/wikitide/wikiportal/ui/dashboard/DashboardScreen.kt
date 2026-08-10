@@ -556,7 +556,7 @@ private fun FeedErrorContent(errorMessage: String, onRefresh: () -> Unit, onOpen
     }
 }
 
-/** The text and retry/switch-wiki buttons inside [FeedErrorContent], split out to keep that function's own nesting shallow. */
+/** The text and retry/switch-wiki buttons inside [FeedErrorContent]. */
 @Composable
 private fun FeedErrorContentBody(errorMessage: String, onRefresh: () -> Unit, onOpenWikiPicker: () -> Unit, modifier: Modifier = Modifier) {
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
