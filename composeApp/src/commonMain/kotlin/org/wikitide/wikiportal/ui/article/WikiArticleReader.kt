@@ -15,6 +15,7 @@ import com.multiplatform.webview.web.rememberWebViewState
 import com.multiplatform.webview.web.rememberWebViewStateWithHTMLData
 import io.ktor.http.URLBuilder
 import io.ktor.http.decodeURLQueryComponent
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.delay
 import org.wikitide.wikiportal.data.model.AuthDomains
 import org.wikitide.wikiportal.data.model.WikiSite
@@ -94,7 +95,7 @@ fun WikiArticleReader(
      * navigation is handled by the same lookup with no special casing
      * needed.
      */
-    allWikis: List<WikiSite>,
+    allWikis: ImmutableList<WikiSite>,
     historyNavTrigger: Int = 0,
     /** The tab's last known live address, see ArticleTab.currentUrl. Null for a freshly-opened tab. */
     restoreUrl: String? = null,
@@ -103,7 +104,7 @@ fun WikiArticleReader(
     /** Off by default. When on, target="_blank" links and window.open calls open a real new tab instead of navigating in place. */
     openBlankInNewTab: Boolean = false,
     onWebViewReady: (NativeWebView) -> Unit = {},
-    onStateChanged: (WikiPageState) -> Unit,
+    onStateChange: (WikiPageState) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val initialUrl = remember {
@@ -194,7 +195,7 @@ fun WikiArticleReader(
                 isLoading = true,
                 progress = 0,
             )
-            onStateChanged(lastKnown.value)
+            onStateChange(lastKnown.value)
             return@LaunchedEffect
         }
 
@@ -207,7 +208,7 @@ fun WikiArticleReader(
                 isLoading = isLoading,
                 progress = progress,
             )
-            onStateChanged(lastKnown.value)
+            onStateChange(lastKnown.value)
             return@LaunchedEffect
         }
 
@@ -238,7 +239,7 @@ fun WikiArticleReader(
                         isLoading = false,
                         progress = 100,
                     )
-                    onStateChanged(lastKnown.value)
+                    onStateChange(lastKnown.value)
                 } else {
                     // Cross-site, unmatched, content has no URL-based
                     // title extraction to fall back on, so this asks
@@ -253,7 +254,7 @@ fun WikiArticleReader(
                             isLoading = false,
                             progress = 100,
                         )
-                        onStateChanged(lastKnown.value)
+                        onStateChange(lastKnown.value)
                     }
                 }
             }
@@ -290,14 +291,14 @@ fun WikiArticleReader(
                 isLoading = isLoading,
                 progress = progress,
             )
-            onStateChanged(lastKnown.value)
+            onStateChange(lastKnown.value)
         } else if (url != null) {
             lastKnown.value = lastKnown.value.copy(
                 url = url,
                 isLoading = isLoading,
                 progress = progress,
             )
-            onStateChanged(lastKnown.value)
+            onStateChange(lastKnown.value)
         }
     }
 
