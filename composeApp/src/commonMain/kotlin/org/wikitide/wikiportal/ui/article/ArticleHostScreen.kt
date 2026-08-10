@@ -37,6 +37,7 @@ import com.multiplatform.webview.web.NativeWebView
 import com.multiplatform.webview.web.WebViewNavigator
 import com.multiplatform.webview.web.rememberWebViewNavigator
 import io.ktor.http.Url
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -64,6 +65,7 @@ import org.wikitide.wikiportal.util.rememberPageSharer
 @Composable
 fun ArticleHostScreen(
     onBack: () -> Unit,
+    modifier: Modifier = Modifier,
     tabsRepository: TabsRepository = koinInject(),
 ) {
     val tabs by tabsRepository.tabs.collectAsState()
@@ -72,11 +74,18 @@ fun ArticleHostScreen(
     val materializedTabIds by tabsRepository.materializedTabIds.collectAsState()
 
     if (tabs.isEmpty()) {
-        LaunchedEffect(Unit) { onBack() }
+        // onBack is read inside this effect without being a key, which
+        // is fine here since the effect is keyed on Unit and is never
+        // meant to restart. rememberUpdatedState keeps the call using
+        // whatever the latest onBack is instead of the one captured the
+        // first time this composed, without forcing the effect itself
+        // to relaunch on every recomposition.
+        val currentOnBack by rememberUpdatedState(onBack)
+        LaunchedEffect(Unit) { currentOnBack() }
         return
     }
 
-    Box(Modifier.fillMaxSize()) {
+    Box(modifier.fillMaxSize()) {
         tabs.forEach { tab ->
             // A tab that was restored from a previous session but hasn't
             // actually been tapped yet this launch has no WebView at
@@ -128,7 +137,7 @@ private fun SingleArticleTab(
     // wiki's main page title for the home button below, actually reaches
     // this tab instead of being frozen out by a remember() taken before
     // it existed.
-    val allWikis = remember(presetWikis, customWikis) { presetWikis + customWikis }
+    val allWikis = remember(presetWikis, customWikis) { (presetWikis + customWikis).toImmutableList() }
     val site = remember(tab.wikiId, allWikis) { allWikis.firstOrNull { it.id == tab.wikiId } ?: repository.activeWiki.value }
     val initialTitle = remember(tab.id) { tab.title }
     val openOfflineFromStart = tab.openedFromOffline
@@ -585,7 +594,7 @@ private fun SingleArticleTab(
                         openTabCount = tabs.size,
                         isSaved = isSaved,
                         onClose = { scope.launch { capturePreviewAndRun(onBack) } },
-                        onToggleSaved = {
+                        onToggleSave = {
                             repository.toggleSaved(
                                 SavedPage(
                                     wikiId = site.id,
@@ -681,7 +690,7 @@ private fun SingleArticleTab(
                 disableSafeMode = effectiveDisableSafeMode,
                 openBlankInNewTab = openBlankInNewTab,
                 onWebViewReady = { nativeWebViewRef = it },
-                onStateChanged = { newState -> pageState = newState },
+                onStateChange = { newState -> pageState = newState },
                 modifier = Modifier.fillMaxSize(),
             )
 

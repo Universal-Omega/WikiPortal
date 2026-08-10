@@ -63,7 +63,7 @@ import org.wikitide.wikiportal.util.copyPlainText
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun FeedbackScreen(onBack: () -> Unit, viewModel: FeedbackViewModel = koinViewModel()) {
+fun FeedbackScreen(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: FeedbackViewModel = koinViewModel()) {
     val state by viewModel.state.collectAsState()
     val scope = rememberCoroutineScope()
     val clipboard = LocalClipboard.current
@@ -80,6 +80,7 @@ fun FeedbackScreen(onBack: () -> Unit, viewModel: FeedbackViewModel = koinViewMo
     }
 
     Scaffold(
+        modifier = modifier,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
@@ -90,96 +91,141 @@ fun FeedbackScreen(onBack: () -> Unit, viewModel: FeedbackViewModel = koinViewMo
         },
     ) { innerPadding ->
         if (state.sent) {
-            Column(
-                Modifier.fillMaxSize().padding(innerPadding).padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                Icon(Icons.Filled.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.height(48.dp))
-                Text(stringResource(Res.string.feedback_thanks_sent), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 12.dp))
-                Button(onClick = onBack, modifier = Modifier.padding(top = 20.dp)) { Text(stringResource(Res.string.common_done)) }
-            }
+            FeedbackSentContent(onBack = onBack, modifier = Modifier.padding(innerPadding))
             return@Scaffold
         }
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .imePadding()
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Text(
-                stringResource(Res.string.feedback_intro),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        FeedbackForm(
+            state = state,
+            onSelectCategory = viewModel::setCategory,
+            onMessageChange = viewModel::setMessage,
+            onDisplayNameChange = viewModel::setDisplayName,
+            onContactChange = viewModel::setContact,
+            onIncludeLogsChange = viewModel::setIncludeLogs,
+            onSubmit = viewModel::submit,
+            modifier = Modifier.padding(innerPadding),
+        )
+    }
+}
 
-            Column {
-                Text(stringResource(Res.string.feedback_about_label), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 8.dp))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FeedbackCategory.entries.forEach { category ->
-                        FilterChip(
-                            selected = state.category == category,
-                            onClick = { viewModel.setCategory(category) },
-                            label = { Text(stringResource(category.labelRes)) },
-                        )
-                    }
-                }
-            }
+/** The "thanks, feedback sent" success view, shown by [FeedbackScreen] once [FeedbackUiState.sent] is true. */
+@Composable
+private fun FeedbackSentContent(onBack: () -> Unit, modifier: Modifier = Modifier) {
+    Column(
+        modifier.fillMaxSize().padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Icon(Icons.Filled.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.height(48.dp))
+        Text(stringResource(Res.string.feedback_thanks_sent), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 12.dp))
+        Button(onClick = onBack, modifier = Modifier.padding(top = 20.dp)) { Text(stringResource(Res.string.common_done)) }
+    }
+}
 
-            OutlinedTextField(
-                value = state.message,
-                onValueChange = viewModel::setMessage,
-                modifier = Modifier.fillMaxWidth().height(160.dp),
-                label = { Text(stringResource(Res.string.feedback_message_label)) },
-                isError = state.errorMessage != null,
-            )
+/** The main feedback form: category chips, message, display name, contact, "include logs", and send. */
+@Composable
+private fun FeedbackForm(
+    state: FeedbackUiState,
+    onSelectCategory: (FeedbackCategory) -> Unit,
+    onMessageChange: (String) -> Unit,
+    onDisplayNameChange: (String) -> Unit,
+    onContactChange: (String) -> Unit,
+    onIncludeLogsChange: (Boolean) -> Unit,
+    onSubmit: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .imePadding()
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Text(
+            stringResource(Res.string.feedback_intro),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
 
-            OutlinedTextField(
-                value = state.displayName,
-                onValueChange = viewModel::setDisplayName,
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(Res.string.feedback_display_name_label)) },
-                singleLine = true,
-            )
+        Text(stringResource(Res.string.feedback_about_label), style = MaterialTheme.typography.titleMedium)
+        FeedbackCategoryChips(selectedCategory = state.category, onSelectCategory = onSelectCategory)
 
-            OutlinedTextField(
-                value = state.contact,
-                onValueChange = viewModel::setContact,
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(Res.string.feedback_contact_label)) },
-                singleLine = true,
-            )
+        OutlinedTextField(
+            value = state.message,
+            onValueChange = onMessageChange,
+            modifier = Modifier.fillMaxWidth().height(160.dp),
+            label = { Text(stringResource(Res.string.feedback_message_label)) },
+            isError = state.errorMessage != null,
+        )
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(checked = state.includeLogs, onCheckedChange = viewModel::setIncludeLogs)
-                Column {
-                    Text(stringResource(Res.string.feedback_include_logs), style = MaterialTheme.typography.bodyMedium)
-                    Text(
-                        stringResource(Res.string.feedback_include_logs_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
+        OutlinedTextField(
+            value = state.displayName,
+            onValueChange = onDisplayNameChange,
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text(stringResource(Res.string.feedback_display_name_label)) },
+            singleLine = true,
+        )
 
-            state.errorMessage?.let {
-                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-            }
+        OutlinedTextField(
+            value = state.contact,
+            onValueChange = onContactChange,
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text(stringResource(Res.string.feedback_contact_label)) },
+            singleLine = true,
+        )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = viewModel::submit, enabled = !state.isSubmitting) {
-                    if (state.isSubmitting) {
-                        CircularProgressIndicator(modifier = Modifier.height(18.dp), color = MaterialTheme.colorScheme.onPrimary)
-                    } else {
-                        Text(stringResource(Res.string.feedback_send))
-                    }
-                }
-                // OutlinedButton(onClick = { copyFeedback() }) { Text("Copy feedback") }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(checked = state.includeLogs, onCheckedChange = onIncludeLogsChange)
+            IncludeLogsLabel()
+        }
+
+        state.errorMessage?.let {
+            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+        }
+
+        FeedbackSubmitButton(isSubmitting = state.isSubmitting, onSubmit = onSubmit)
+    }
+}
+
+/** The send button, and its in-flight spinner. */
+@Composable
+private fun FeedbackSubmitButton(isSubmitting: Boolean, onSubmit: () -> Unit, modifier: Modifier = Modifier) {
+    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Button(onClick = onSubmit, enabled = !isSubmitting) {
+            if (isSubmitting) {
+                CircularProgressIndicator(modifier = Modifier.height(18.dp), color = MaterialTheme.colorScheme.onPrimary)
+            } else {
+                Text(stringResource(Res.string.feedback_send))
             }
         }
+    }
+}
+
+/** The row of category chips under "About", see [FeedbackCategory]. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun FeedbackCategoryChips(selectedCategory: FeedbackCategory, onSelectCategory: (FeedbackCategory) -> Unit, modifier: Modifier = Modifier) {
+    FlowRow(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        FeedbackCategory.entries.forEach { category ->
+            FilterChip(
+                selected = selectedCategory == category,
+                onClick = { onSelectCategory(category) },
+                label = { Text(stringResource(category.labelRes)) },
+            )
+        }
+    }
+}
+
+/** The title and hint text next to the "include logs" checkbox. */
+@Composable
+private fun IncludeLogsLabel(modifier: Modifier = Modifier) {
+    Column(modifier) {
+        Text(stringResource(Res.string.feedback_include_logs), style = MaterialTheme.typography.bodyMedium)
+        Text(
+            stringResource(Res.string.feedback_include_logs_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }

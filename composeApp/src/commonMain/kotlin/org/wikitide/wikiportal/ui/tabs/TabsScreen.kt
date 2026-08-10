@@ -76,6 +76,7 @@ import org.wikitide.wikiportal.ui.components.DestructiveConfirmDialog
 fun TabsScreen(
     onBack: () -> Unit,
     onSelectTab: (String) -> Unit,
+    modifier: Modifier = Modifier,
     tabsRepository: TabsRepository = koinInject(),
 ) {
     val tabs by tabsRepository.tabs.collectAsState()
@@ -90,6 +91,7 @@ fun TabsScreen(
     }
 
     Scaffold(
+        modifier = modifier,
         contentWindowInsets = WindowInsets(0.dp),
         topBar = {
             TopAppBar(
@@ -166,79 +168,7 @@ private fun TabCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Column(Modifier.fillMaxSize()) {
-            Box(Modifier.weight(1f).fillMaxWidth()) {
-                when {
-                    // Real captured tab content, Android and IOS only,
-                    // takes priority.
-                    preview != null -> Image(
-                        bitmap = preview,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
-                        contentScale = ContentScale.Crop,
-                        alignment = Alignment.TopCenter,
-                    )
-                    // Falls back to the article's lead image where no
-                    // capture is available, Desktop and Web, or hasn't
-                    // happened yet.
-                    tab.thumbnailUrl != null -> AsyncImage(
-                        model = tab.thumbnailUrl,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
-                        contentScale = ContentScale.Crop,
-                        alignment = Alignment.TopCenter,
-                    )
-                    else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.Filled.Public,
-                            contentDescription = null,
-                            modifier = Modifier.size(40.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                if (isActive) {
-                    Row(
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .padding(4.dp)
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(MaterialTheme.colorScheme.primary)
-                            .padding(horizontal = 6.dp, vertical = 3.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            Icons.Filled.CheckCircle,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(12.dp),
-                        )
-                        Text(
-                            stringResource(Res.string.tabs_viewing),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.padding(start = 3.dp),
-                        )
-                    }
-                }
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(4.dp)
-                        .size(30.dp)
-                        .clip(CircleShape)
-                        .background(Color.Black.copy(alpha = 0.55f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    IconButton(onClick = onClose, modifier = Modifier.matchParentSize()) {
-                        Icon(
-                            imageVector = Icons.Filled.Close,
-                            contentDescription = stringResource(Res.string.tabs_close_tab),
-                            tint = Color.White,
-                            modifier = Modifier.size(18.dp),
-                        )
-                    }
-                }
-            }
+            TabCardThumbnail(tab = tab, preview = preview, isActive = isActive, onClose = onClose, modifier = Modifier.weight(1f).fillMaxWidth())
             Column(Modifier.fillMaxWidth().padding(10.dp)) {
                 Text(
                     tab.title,
@@ -252,6 +182,87 @@ private fun TabCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The image area of a [TabCard]: the captured preview or fallback lead
+ * image, plus the "viewing" badge and close button overlaid on top of
+ * it.
+ */
+@Composable
+private fun TabCardThumbnail(tab: ArticleTab, preview: ImageBitmap?, isActive: Boolean, onClose: () -> Unit, modifier: Modifier = Modifier) {
+    Box(modifier) {
+        when {
+            // Real captured tab content, Android and IOS only, takes
+            // priority.
+            preview != null -> Image(
+                bitmap = preview,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+                contentScale = ContentScale.Crop,
+                alignment = Alignment.TopCenter,
+            )
+            // Falls back to the article's lead image where no capture
+            // is available, Desktop and Web, or hasn't happened yet.
+            tab.thumbnailUrl != null -> AsyncImage(
+                model = tab.thumbnailUrl,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+                contentScale = ContentScale.Crop,
+                alignment = Alignment.TopCenter,
+            )
+            else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Icon(
+                    Icons.Filled.Public,
+                    contentDescription = null,
+                    modifier = Modifier.size(40.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        if (isActive) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(4.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(MaterialTheme.colorScheme.primary)
+                    .padding(horizontal = 6.dp, vertical = 3.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    Icons.Filled.CheckCircle,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(12.dp),
+                )
+                Text(
+                    stringResource(Res.string.tabs_viewing),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.padding(start = 3.dp),
+                )
+            }
+        }
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(4.dp)
+                .size(30.dp)
+                .clip(CircleShape)
+                .background(Color.Black.copy(alpha = 0.55f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            IconButton(onClick = onClose, modifier = Modifier.matchParentSize()) {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = stringResource(Res.string.tabs_close_tab),
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp),
                 )
             }
         }

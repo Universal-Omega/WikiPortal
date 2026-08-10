@@ -130,7 +130,7 @@ private val navConfig = SavedStateConfiguration {
 
 @OptIn(KoinExperimentalAPI::class)
 @Composable
-fun WikiPortalApp(onDarkThemeResolved: (Boolean) -> Unit = {}) {
+fun WikiPortalApp(modifier: Modifier = Modifier, onDarkThemeResolve: (Boolean) -> Unit = {}) {
     // Coil3 caches images by default even without this setup, but adding
     // crossfade avoids a blank flash before the image pops in, which can
     // look like it is still loading even when it was actually a cache
@@ -152,7 +152,7 @@ fun WikiPortalApp(onDarkThemeResolved: (Boolean) -> Unit = {}) {
     val backStack = rememberNavBackStack(navConfig, DashboardRoute)
     navigator.backStack = backStack
 
-    WikiPortalTheme(themeMode = themeMode, useDynamicColor = dynamicColor, onDarkThemeResolved = onDarkThemeResolved) {
+    WikiPortalTheme(themeMode = themeMode, useDynamicColor = dynamicColor, onDarkThemeResolve = onDarkThemeResolve) {
         val current = backStack.lastOrNull()
         // ArticleRoute is not one of the bottomDestinations on purpose, so
         // the nav stays hidden during normal article reading. That
@@ -187,97 +187,14 @@ fun WikiPortalApp(onDarkThemeResolved: (Boolean) -> Unit = {}) {
         // also gives a sensible result for a wide desktop window or a
         // tablet or foldable, not just a rotated phone, which a strict
         // orientation check would miss.
-        BoxWithConstraints(Modifier.fillMaxSize()) {
-            if (maxWidth > maxHeight) {
-                // The background is set here, not just on the Scaffold
-                // below, because of the cutout side. When a side display
-                // cutout eats into this Row, the sliver of screen the
-                // system reserves for it shows this Row's own background
-                // before Compose draws the rail or Scaffold inside it.
-                // Without this, that sliver shows the theme's default
-                // window background, a light gray, instead of the app's
-                // actual background.
-                Row(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-                    if (showNav) {
-                        NavigationRail(
-                            // The rail owns the Start edge of this Row, so
-                            // it should absorb a Start-side cutout or
-                            // inset, not the Scaffold below. If the
-                            // Scaffold also claimed the Start inset, the
-                            // side without a cutout would still get
-                            // padded for no reason.
-                            modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Start)),
-                        ) {
-                            // NavigationRail does not center its items by
-                            // default. Left alone, they stack from the top
-                            // and leave the rest of the rail's height as
-                            // empty space below them. This Column is what
-                            // centers the group within the rail's full
-                            // height. Using spacedBy also gives the items
-                            // some breathing room, since Center alone
-                            // would pack them edge to edge with no gap.
-                            Column(
-                                modifier = Modifier.fillMaxHeight(),
-                                verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterVertically),
-                            ) {
-                                bottomDestinations.forEach { destination ->
-                                    val isSelected = destination.route == current
-                                    NavigationRailItem(
-                                        selected = isSelected,
-                                        onClick = { navigator.switchTab(destination.route) },
-                                        icon = { DestinationIcon(destination, isSelected, openTabs.size) },
-                                        label = { Text(stringResource(destination.labelRes)) },
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    // Bottom and End are always this Scaffold's job. Start
-                    // is too, except when the rail is showing. In that
-                    // case the rail already absorbed it above, and adding
-                    // it again here would double pad that side on top of
-                    // the rail's own width.
-                    val scaffoldInsetSides = if (showNav) {
-                        WindowInsetsSides.Bottom + WindowInsetsSides.End
-                    } else {
-                        WindowInsetsSides.Bottom + WindowInsetsSides.End + WindowInsetsSides.Start
-                    }
-                    Scaffold(
-                        modifier = Modifier.weight(1f),
-                        containerColor = MaterialTheme.colorScheme.background,
-                        // Each screen's own TopAppBar already reserves
-                        // space for the status bar by default. Reserving
-                        // it here too would double pad everything, so top
-                        // is never included above.
-                        contentWindowInsets = WindowInsets.safeDrawing.only(scaffoldInsetSides),
-                    ) { innerPadding ->
-                        navDisplayContent(Modifier.padding(innerPadding))
-                    }
-                }
-            } else {
-                Scaffold(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal),
-                    bottomBar = {
-                        if (showNav) {
-                            NavigationBar {
-                                bottomDestinations.forEach { destination ->
-                                    val isSelected = destination.route == current
-                                    NavigationBarItem(
-                                        selected = isSelected,
-                                        onClick = { navigator.switchTab(destination.route) },
-                                        icon = { DestinationIcon(destination, isSelected, openTabs.size) },
-                                        label = { Text(stringResource(destination.labelRes)) },
-                                    )
-                                }
-                            }
-                        }
-                    },
-                ) { innerPadding ->
-                    navDisplayContent(Modifier.padding(innerPadding))
-                }
-            }
-        }
+        AppNavigationLayout(
+            current = current,
+            showNav = showNav,
+            openTabsCount = openTabs.size,
+            navigator = navigator,
+            navDisplayContent = navDisplayContent,
+            modifier = modifier,
+        )
 
         // This is registered after Scaffold and NavDisplay above. See
         // SystemBackInterceptor's own comment for why. That way, on
@@ -296,5 +213,153 @@ fun WikiPortalApp(onDarkThemeResolved: (Boolean) -> Unit = {}) {
             enabled = backStack.lastOrNull() == ArticleRoute && (isSwitcherOpen || activeTabCanGoBack),
             onBack = { navigator.handleBack() },
         )
+    }
+}
+
+/**
+ * Picks between [LandscapeAppLayout] and [PortraitAppLayout] based on
+ * the available size, and owns the incoming modifier so WikiPortalApp
+ * itself only ever references it once, passed straight through here,
+ * rather than applying it directly to whichever of the two branches
+ * happens to be active. Comparing width to height instead of using a
+ * platform orientation API. There isn't one available in commonMain
+ * that works the same way across Android, IOS, Desktop, and WasmJs.
+ * This also gives a sensible result for a wide desktop window or a
+ * tablet or foldable, not just a rotated phone, which a strict
+ * orientation check would miss.
+ */
+@Composable
+private fun AppNavigationLayout(
+    current: NavKey?,
+    showNav: Boolean,
+    openTabsCount: Int,
+    navigator: Navigator,
+    navDisplayContent: @Composable (Modifier) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        if (maxWidth > maxHeight) {
+            LandscapeAppLayout(current, showNav, openTabsCount, navigator, navDisplayContent)
+        } else {
+            PortraitAppLayout(current, showNav, openTabsCount, navigator, navDisplayContent)
+        }
+    }
+}
+
+/**
+ * Wide layout, a side NavigationRail next to the content instead of a
+ * bottom bar.
+ */
+@Composable
+private fun LandscapeAppLayout(
+    current: NavKey?,
+    showNav: Boolean,
+    openTabsCount: Int,
+    navigator: Navigator,
+    navDisplayContent: @Composable (Modifier) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // The background is set here, not just on the Scaffold below,
+    // because of the cutout side. When a side display cutout eats into
+    // this Row, the sliver of screen the system reserves for it shows
+    // this Row's own background before Compose draws the rail or
+    // Scaffold inside it. Without this, that sliver shows the theme's
+    // default window background, a light gray, instead of the app's
+    // actual background.
+    Row(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        if (showNav) {
+            NavigationRail(
+                // The rail owns the Start edge of this Row, so it should
+                // absorb a Start-side cutout or inset, not the Scaffold
+                // below. If the Scaffold also claimed the Start inset,
+                // the side without a cutout would still get padded for
+                // no reason.
+                modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Start)),
+            ) {
+                NavigationRailItems(current = current, openTabsCount = openTabsCount, navigator = navigator)
+            }
+        }
+        // Bottom and End are always this Scaffold's job. Start is too,
+        // except when the rail is showing. In that case the rail
+        // already absorbed it above, and adding it again here would
+        // double pad that side on top of the rail's own width.
+        val scaffoldInsetSides = if (showNav) {
+            WindowInsetsSides.Bottom + WindowInsetsSides.End
+        } else {
+            WindowInsetsSides.Bottom + WindowInsetsSides.End + WindowInsetsSides.Start
+        }
+        Scaffold(
+            modifier = Modifier.weight(1f),
+            containerColor = MaterialTheme.colorScheme.background,
+            // Each screen's own TopAppBar already reserves space for the
+            // status bar by default. Reserving it here too would double
+            // pad everything, so top is never included above.
+            contentWindowInsets = WindowInsets.safeDrawing.only(scaffoldInsetSides),
+        ) { innerPadding ->
+            navDisplayContent(Modifier.padding(innerPadding))
+        }
+    }
+}
+
+/**
+ * The rail's own list of destinations. NavigationRail does not
+ * center its items by default. Left alone, they stack from the top and
+ * leave the rest of the rail's height as empty space below them. This
+ * Column is what centers the group within the rail's full height.
+ * Using spacedBy also gives the items some breathing room, since
+ * Center alone would pack them edge to edge with no gap.
+ */
+@Composable
+private fun NavigationRailItems(current: NavKey?, openTabsCount: Int, navigator: Navigator, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier.fillMaxHeight(),
+        verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterVertically),
+    ) {
+        bottomDestinations.forEach { destination ->
+            val isSelected = destination.route == current
+            NavigationRailItem(
+                selected = isSelected,
+                onClick = { navigator.switchTab(destination.route) },
+                icon = { DestinationIcon(destination, isSelected, openTabsCount) },
+                label = { Text(stringResource(destination.labelRes)) },
+            )
+        }
+    }
+}
+
+/**
+ * Narrow layout, a bottom NavigationBar under the content instead of a
+ * side rail.
+ */
+@Composable
+private fun PortraitAppLayout(
+    current: NavKey?,
+    showNav: Boolean,
+    openTabsCount: Int,
+    navigator: Navigator,
+    navDisplayContent: @Composable (Modifier) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Scaffold(
+        modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal),
+        bottomBar = {
+            if (showNav) {
+                NavigationBar {
+                    bottomDestinations.forEach { destination ->
+                        val isSelected = destination.route == current
+                        NavigationBarItem(
+                            selected = isSelected,
+                            onClick = { navigator.switchTab(destination.route) },
+                            icon = { DestinationIcon(destination, isSelected, openTabsCount) },
+                            label = { Text(stringResource(destination.labelRes)) },
+                        )
+                    }
+                }
+            }
+        },
+    ) { innerPadding ->
+        navDisplayContent(Modifier.padding(innerPadding))
     }
 }

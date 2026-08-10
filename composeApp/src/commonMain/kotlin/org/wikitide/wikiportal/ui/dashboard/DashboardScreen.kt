@@ -70,6 +70,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableSet
+import kotlinx.collections.immutable.toImmutableList
+import kotlinx.collections.immutable.toImmutableSet
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -127,6 +131,7 @@ fun DashboardScreen(
     onOpenWikiPicker: () -> Unit,
     onOpenCategoryBrowse: () -> Unit,
     onOpenTrending: () -> Unit,
+    modifier: Modifier = Modifier,
     feedViewModel: FeedViewModel = koinViewModel(),
     searchViewModel: SearchViewModel = koinViewModel(),
     relevantLinksViewModel: RelevantLinksViewModel = koinViewModel(),
@@ -144,132 +149,233 @@ fun DashboardScreen(
     // existing tab, see App.kt's openArticle, instead of opening a
     // duplicate.
     val openTitles = remember(tabs, feedState.wiki?.id) {
-        tabs.filter { it.wikiId == feedState.wiki?.id }.map { it.title }.toSet()
+        tabs.filter { it.wikiId == feedState.wiki?.id }.map { it.title }.toImmutableSet()
     }
 
     LaunchedEffect(tabIndex) {
         if (tabIndex == TAB_RELEVANT) relevantLinksViewModel.ensureLoaded()
     }
 
-    Box(Modifier.fillMaxSize()) {
+    Box(modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
-            BoxWithConstraints(Modifier.fillMaxWidth()) {
-                val isCompactHeight = maxHeight < 500.dp
-                val showSearchBar = !isCompactHeight || searchState.query.isNotBlank()
-
-                Column(Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.background)
-                            .windowInsetsPadding(TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top))
-                            .heightIn(min = 64.dp)
-                            .padding(start = 16.dp, end = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            stringResource(Res.string.dashboard_title),
-                            style = MaterialTheme.typography.headlineMedium,
-                            maxLines = 1,
-                            softWrap = false,
-                        )
-                        Row(
-                            modifier = Modifier.weight(1f),
-                            horizontalArrangement = Arrangement.End,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            if (isCompactHeight && !showSearchBar) {
-                                IconButton(onClick = { isFullScreenSearchOpen = true }) {
-                                    Icon(imageVector = Icons.Filled.Search, contentDescription = stringResource(Res.string.common_search))
-                                }
-                            }
-                            // Jumps straight to the wiki's own main page. The
-                            // title comes from that wiki's siteinfo and is
-                            // never assumed, since custom wikis can rename it.
-                            // This reuses the normal article-open path so it
-                            // lands in a tab exactly like any other link.
-                            IconButton(
-                                onClick = {
-                                    val wikiId = feedState.wiki?.id ?: return@IconButton
-                                    val mainPage = feedState.mainPageTitle ?: return@IconButton
-                                    onArticleClick(wikiId, mainPage)
-                                },
-                                enabled = feedState.wiki != null && feedState.mainPageTitle != null,
-                            ) {
-                                Icon(imageVector = Icons.Filled.Home, contentDescription = stringResource(Res.string.dashboard_go_to_main_page))
-                            }
-                            WikiSwitcherChip(
-                                wikiName = feedState.wiki?.name.orEmpty(),
-                                onClick = onOpenWikiPicker,
-                                modifier = Modifier.weight(1f, fill = false),
-                            )
-                        }
-                    }
-
-                    if (showSearchBar) {
-                        Box(Modifier.fillMaxWidth()) {
-                            OutlinedTextField(
-                                value = searchState.query,
-                                onValueChange = searchViewModel::onQueryChange,
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                                placeholder = { Text(stringResource(Res.string.dashboard_search_wiki, searchState.wikiName)) },
-                                singleLine = true,
-                                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                                trailingIcon = {
-                                    if (searchState.query.isNotEmpty()) {
-                                        IconButton(onClick = { searchViewModel.onQueryChange("") }) {
-                                            Icon(Icons.Filled.Close, contentDescription = stringResource(Res.string.common_clear))
-                                        }
-                                    }
-                                },
-                                readOnly = isCompactHeight,
-                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                                shape = MaterialTheme.shapes.large,
-                            )
-                            if (isCompactHeight) {
-                                Box(
-                                    Modifier.matchParentSize()
-                                        .clickable(onClick = { isFullScreenSearchOpen = true }),
-                                ) {}
-                            }
-                        }
-                    }
-                }
-            }
+            DashboardHeader(
+                feedState = feedState,
+                searchState = searchState,
+                onArticleClick = onArticleClick,
+                onOpenWikiPicker = onOpenWikiPicker,
+                onQueryChange = searchViewModel::onQueryChange,
+                onOpenFullScreenSearch = { isFullScreenSearchOpen = true },
+            )
 
             if (searchState.query.isNotBlank()) {
                 SearchResultsContent(searchState, onArticleClick, onSearchFor = searchViewModel::searchFor)
             } else {
-                SecondaryTabRow(selectedTabIndex = tabIndex) {
-                    Tab(selected = tabIndex == TAB_FEED, onClick = { tabIndex = TAB_FEED }, text = { Text(stringResource(Res.string.dashboard_tab_feed)) })
-                    Tab(selected = tabIndex == TAB_RELEVANT, onClick = { tabIndex = TAB_RELEVANT }, text = { Text(stringResource(Res.string.dashboard_tab_relevant)) })
-                }
-                when (tabIndex) {
-                    TAB_FEED -> FeedTabContent(
-                        state = feedState,
-                        openTitles = openTitles,
-                        onArticleClick = onArticleClick,
-                        onOpenWikiPicker = onOpenWikiPicker,
-                        onRefresh = feedViewModel::refresh,
-                        onShuffleRandom = feedViewModel::shuffleRandomPick,
-                        onOpenCategoryBrowse = onOpenCategoryBrowse,
-                        onOpenTrending = onOpenTrending,
-                    )
-                    else -> RelevantLinksTabContent(
-                        state = relevantState,
-                        onArticleClick = { title -> feedState.wiki?.id?.let { onArticleClick(it, title) } },
-                        onRefresh = relevantLinksViewModel::refresh,
-                    )
-                }
+                DashboardTabs(
+                    tabIndex = tabIndex,
+                    onTabIndexChange = { tabIndex = it },
+                    feedState = feedState,
+                    relevantState = relevantState,
+                    openTitles = openTitles,
+                    onArticleClick = onArticleClick,
+                    onOpenWikiPicker = onOpenWikiPicker,
+                    onRefreshFeed = feedViewModel::refresh,
+                    onShuffleRandom = feedViewModel::shuffleRandomPick,
+                    onOpenCategoryBrowse = onOpenCategoryBrowse,
+                    onOpenTrending = onOpenTrending,
+                    onRefreshRelevant = relevantLinksViewModel::refresh,
+                )
             }
         }
 
         if (isFullScreenSearchOpen) {
             FullScreenSearchOverlay(
                 searchState = searchState,
-                searchViewModel = searchViewModel,
+                onQueryChange = searchViewModel::onQueryChange,
+                onSearchFor = searchViewModel::searchFor,
                 onArticleClick = onArticleClick,
                 onClose = { isFullScreenSearchOpen = false },
+            )
+        }
+    }
+}
+
+/**
+ * The dashboard's top area: title row with the home and wiki-switcher
+ * actions, plus the search field below it (hidden behind a search icon
+ * in compact-height layouts).
+ */
+@Composable
+private fun DashboardHeader(
+    feedState: FeedUiState,
+    searchState: SearchUiState,
+    onArticleClick: (wikiId: String, title: String) -> Unit,
+    onOpenWikiPicker: () -> Unit,
+    onQueryChange: (String) -> Unit,
+    onOpenFullScreenSearch: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    BoxWithConstraints(modifier.fillMaxWidth()) {
+        val isCompactHeight = maxHeight < 500.dp
+        val showSearchBar = !isCompactHeight || searchState.query.isNotBlank()
+
+        Column(Modifier.fillMaxWidth()) {
+            DashboardTitleRow(
+                feedState = feedState,
+                isCompactHeight = isCompactHeight,
+                showSearchBar = showSearchBar,
+                onArticleClick = onArticleClick,
+                onOpenWikiPicker = onOpenWikiPicker,
+                onOpenFullScreenSearch = onOpenFullScreenSearch,
+            )
+
+            if (showSearchBar) {
+                DashboardSearchField(
+                    query = searchState.query,
+                    wikiName = searchState.wikiName,
+                    isCompactHeight = isCompactHeight,
+                    onQueryChange = onQueryChange,
+                    onOpenFullScreenSearch = onOpenFullScreenSearch,
+                )
+            }
+        }
+    }
+}
+
+/** The "Dashboard" title, home button, and wiki switcher chip. */
+@Composable
+private fun DashboardTitleRow(
+    feedState: FeedUiState,
+    isCompactHeight: Boolean,
+    showSearchBar: Boolean,
+    onArticleClick: (wikiId: String, title: String) -> Unit,
+    onOpenWikiPicker: () -> Unit,
+    onOpenFullScreenSearch: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.background)
+            .windowInsetsPadding(TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top))
+            .heightIn(min = 64.dp)
+            .padding(start = 16.dp, end = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            stringResource(Res.string.dashboard_title),
+            style = MaterialTheme.typography.headlineMedium,
+            maxLines = 1,
+            softWrap = false,
+        )
+        Row(
+            modifier = Modifier.weight(1f),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (isCompactHeight && !showSearchBar) {
+                IconButton(onClick = onOpenFullScreenSearch) {
+                    Icon(imageVector = Icons.Filled.Search, contentDescription = stringResource(Res.string.common_search))
+                }
+            }
+            // Jumps straight to the wiki's own main page. The title
+            // comes from that wiki's siteinfo and is never assumed,
+            // since custom wikis can rename it. This reuses the normal
+            // article-open path so it lands in a tab exactly like any
+            // other link.
+            IconButton(
+                onClick = {
+                    val wikiId = feedState.wiki?.id ?: return@IconButton
+                    val mainPage = feedState.mainPageTitle ?: return@IconButton
+                    onArticleClick(wikiId, mainPage)
+                },
+                enabled = feedState.wiki != null && feedState.mainPageTitle != null,
+            ) {
+                Icon(imageVector = Icons.Filled.Home, contentDescription = stringResource(Res.string.dashboard_go_to_main_page))
+            }
+            WikiSwitcherChip(
+                wikiName = feedState.wiki?.name.orEmpty(),
+                onClick = onOpenWikiPicker,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+        }
+    }
+}
+
+/** The search field beneath the title row, tappable-through to the full-screen overlay in compact-height layouts. */
+@Composable
+private fun DashboardSearchField(
+    query: String,
+    wikiName: String,
+    isCompactHeight: Boolean,
+    onQueryChange: (String) -> Unit,
+    onOpenFullScreenSearch: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            placeholder = { Text(stringResource(Res.string.dashboard_search_wiki, wikiName)) },
+            singleLine = true,
+            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+            trailingIcon = {
+                if (query.isNotEmpty()) {
+                    IconButton(onClick = { onQueryChange("") }) {
+                        Icon(Icons.Filled.Close, contentDescription = stringResource(Res.string.common_clear))
+                    }
+                }
+            },
+            readOnly = isCompactHeight,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            shape = MaterialTheme.shapes.large,
+        )
+        if (isCompactHeight) {
+            Box(
+                Modifier.matchParentSize()
+                    .clickable(onClick = onOpenFullScreenSearch),
+            ) {}
+        }
+    }
+}
+
+/** The Feed/Relevant tab row and its selected content. */
+@Composable
+private fun DashboardTabs(
+    tabIndex: Int,
+    onTabIndexChange: (Int) -> Unit,
+    feedState: FeedUiState,
+    relevantState: RelevantLinksUiState,
+    openTitles: ImmutableSet<String>,
+    onArticleClick: (wikiId: String, title: String) -> Unit,
+    onOpenWikiPicker: () -> Unit,
+    onRefreshFeed: () -> Unit,
+    onShuffleRandom: () -> Unit,
+    onOpenCategoryBrowse: () -> Unit,
+    onOpenTrending: () -> Unit,
+    onRefreshRelevant: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier) {
+        SecondaryTabRow(selectedTabIndex = tabIndex) {
+            Tab(selected = tabIndex == TAB_FEED, onClick = { onTabIndexChange(TAB_FEED) }, text = { Text(stringResource(Res.string.dashboard_tab_feed)) })
+            Tab(selected = tabIndex == TAB_RELEVANT, onClick = { onTabIndexChange(TAB_RELEVANT) }, text = { Text(stringResource(Res.string.dashboard_tab_relevant)) })
+        }
+        when (tabIndex) {
+            TAB_FEED -> FeedTabContent(
+                state = feedState,
+                openTitles = openTitles,
+                onArticleClick = onArticleClick,
+                onOpenWikiPicker = onOpenWikiPicker,
+                onRefresh = onRefreshFeed,
+                onShuffleRandom = onShuffleRandom,
+                onOpenCategoryBrowse = onOpenCategoryBrowse,
+                onOpenTrending = onOpenTrending,
+            )
+            else -> RelevantLinksTabContent(
+                state = relevantState,
+                onArticleClick = { title -> feedState.wiki?.id?.let { onArticleClick(it, title) } },
+                onRefresh = onRefreshRelevant,
             )
         }
     }
@@ -345,44 +451,57 @@ private fun DidYouMeanRow(suggestion: String, onClick: () -> Unit) {
 @Composable
 private fun FullScreenSearchOverlay(
     searchState: SearchUiState,
-    searchViewModel: SearchViewModel,
+    onQueryChange: (String) -> Unit,
+    onSearchFor: (String) -> Unit,
     onArticleClick: (wikiId: String, title: String) -> Unit,
     onClose: () -> Unit,
 ) {
-    val keyboardController = LocalSoftwareKeyboardController.current
     Column(
         Modifier.fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top)),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(onClick = onClose) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.article_top_bar_close_search))
-            }
-            OutlinedTextField(
-                value = searchState.query,
-                onValueChange = searchViewModel::onQueryChange,
-                modifier = Modifier.weight(1f).padding(end = 8.dp),
-                placeholder = { Text(stringResource(Res.string.dashboard_search_wiki, searchState.wikiName)) },
-                singleLine = true,
-                trailingIcon = {
-                    if (searchState.query.isNotEmpty()) {
-                        IconButton(onClick = { searchViewModel.onQueryChange("") }) {
-                            Icon(Icons.Filled.Close, contentDescription = stringResource(Res.string.common_clear))
-                        }
-                    }
-                },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { keyboardController?.hide() }),
-                shape = MaterialTheme.shapes.large,
-            )
-        }
+        FullScreenSearchField(
+            query = searchState.query,
+            wikiName = searchState.wikiName,
+            onQueryChange = onQueryChange,
+            onClose = onClose,
+        )
+
         Box(Modifier.weight(1f).imePadding()) {
-            SearchResultsContent(searchState, onArticleClick, onSearchFor = searchViewModel::searchFor)
+            SearchResultsContent(searchState, onArticleClick, onSearchFor = onSearchFor)
         }
+    }
+}
+
+/** The back button and search field row at the top of [FullScreenSearchOverlay]. */
+@Composable
+private fun FullScreenSearchField(query: String, wikiName: String, onQueryChange: (String) -> Unit, onClose: () -> Unit, modifier: Modifier = Modifier) {
+    val keyboardController = LocalSoftwareKeyboardController.current
+    Row(
+        modifier = modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = onClose) {
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.article_top_bar_close_search))
+        }
+        OutlinedTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            modifier = Modifier.weight(1f).padding(end = 8.dp),
+            placeholder = { Text(stringResource(Res.string.dashboard_search_wiki, wikiName)) },
+            singleLine = true,
+            trailingIcon = {
+                if (query.isNotEmpty()) {
+                    IconButton(onClick = { onQueryChange("") }) {
+                        Icon(Icons.Filled.Close, contentDescription = stringResource(Res.string.common_clear))
+                    }
+                }
+            },
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = { keyboardController?.hide() }),
+            shape = MaterialTheme.shapes.large,
+        )
     }
 }
 
@@ -390,7 +509,7 @@ private fun FullScreenSearchOverlay(
 @Composable
 private fun FeedTabContent(
     state: FeedUiState,
-    openTitles: Set<String>,
+    openTitles: ImmutableSet<String>,
     onArticleClick: (wikiId: String, title: String) -> Unit,
     onOpenWikiPicker: () -> Unit,
     onRefresh: () -> Unit,
@@ -409,103 +528,145 @@ private fun FeedTabContent(
             nothingToShowYet -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
-            fullyFailed -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(stringResource(Res.string.dashboard_could_not_load_wiki), style = MaterialTheme.typography.titleMedium)
-                    state.errorMessage.let {
-                        Text(
-                            it,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
-                        )
-                    }
-                    Row {
-                        TextButton(onClick = onRefresh) { Text(stringResource(Res.string.common_retry)) }
-                        TextButton(onClick = onOpenWikiPicker) { Text(stringResource(Res.string.dashboard_switch_wiki)) }
-                    }
-                }
+            fullyFailed -> FeedErrorContent(
+                errorMessage = state.errorMessage.orEmpty(),
+                onRefresh = onRefresh,
+                onOpenWikiPicker = onOpenWikiPicker,
+                modifier = Modifier.fillMaxSize(),
+            )
+            else -> FeedListContent(
+                state = state,
+                wikiId = wikiId,
+                openTitles = openTitles,
+                onArticleClick = onArticleClick,
+                onRefresh = onRefresh,
+                onShuffleRandom = onShuffleRandom,
+                onOpenCategoryBrowse = onOpenCategoryBrowse,
+                onOpenTrending = onOpenTrending,
+            )
+        }
+    }
+}
+
+/** The "could not load wiki" error state, shown by [FeedTabContent] when the feed has nothing at all to show. */
+@Composable
+private fun FeedErrorContent(errorMessage: String, onRefresh: () -> Unit, onOpenWikiPicker: () -> Unit, modifier: Modifier = Modifier) {
+    Box(modifier, contentAlignment = Alignment.Center) {
+        FeedErrorContentBody(errorMessage = errorMessage, onRefresh = onRefresh, onOpenWikiPicker = onOpenWikiPicker)
+    }
+}
+
+/** The text and retry/switch-wiki buttons inside [FeedErrorContent]. */
+@Composable
+private fun FeedErrorContentBody(errorMessage: String, onRefresh: () -> Unit, onOpenWikiPicker: () -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(stringResource(Res.string.dashboard_could_not_load_wiki), style = MaterialTheme.typography.titleMedium)
+        Text(
+            errorMessage,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
+        )
+        Row {
+            TextButton(onClick = onRefresh) { Text(stringResource(Res.string.common_retry)) }
+            TextButton(onClick = onOpenWikiPicker) { Text(stringResource(Res.string.dashboard_switch_wiki)) }
+        }
+    }
+}
+
+/** The normal, fully-loaded feed list: trending, continue reading, saved, and recent activity. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FeedListContent(
+    state: FeedUiState,
+    wikiId: String,
+    openTitles: ImmutableSet<String>,
+    onArticleClick: (wikiId: String, title: String) -> Unit,
+    onRefresh: () -> Unit,
+    onShuffleRandom: () -> Unit,
+    onOpenCategoryBrowse: () -> Unit,
+    onOpenTrending: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    LazyColumn(
+        modifier = modifier,
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        if (state.trending.isNotEmpty()) {
+            item {
+                TrendingCard(
+                    wikiName = state.wiki?.name.orEmpty(),
+                    trending = state.trending.toImmutableList(),
+                    expandable = state.trendingExpandable,
+                    onArticleClick = { title -> onArticleClick(wikiId, title) },
+                    onOpenTrending = onOpenTrending,
+                )
             }
-            else -> LazyColumn(
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                if (state.trending.isNotEmpty()) {
-                    item {
-                        TrendingCard(
-                            wikiName = state.wiki?.name.orEmpty(),
-                            trending = state.trending,
-                            expandable = state.trendingExpandable,
-                            onArticleClick = { title -> onArticleClick(wikiId, title) },
-                            onOpenTrending = onOpenTrending,
-                        )
-                    }
-                }
-                if (state.continueReading.isNotEmpty()) {
-                    item {
-                        HorizontalArticleRow(
-                            title = stringResource(Res.string.dashboard_continue_reading),
-                            pages = state.continueReading,
-                            showImages = state.showImages,
-                            onClick = { title -> onArticleClick(wikiId, title) },
-                        )
-                    }
-                }
-                if (state.savedPages.isNotEmpty()) {
-                    item {
-                        HorizontalArticleRow(
-                            title = stringResource(Res.string.dashboard_saved),
-                            pages = state.savedPages,
-                            showImages = state.showImages,
-                            onClick = { title -> onArticleClick(wikiId, title) },
-                        )
-                    }
-                }
-                item {
-                    CategoryBrowseEntry(onClick = onOpenCategoryBrowse)
-                }
-                item {
-                    RandomPickCard(
-                        page = state.randomPick,
-                        showImages = state.showImages,
-                        onClick = { title -> onArticleClick(wikiId, title) },
-                        onShuffle = onShuffleRandom,
-                    )
-                }
-                item {
-                    Text(
-                        text = stringResource(Res.string.dashboard_recent_activity_on, state.wiki?.name.orEmpty()),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
-                    )
-                }
-                if (state.recentChanges.isEmpty() && !state.isLoading) {
-                    item {
-                        Text(
-                            stringResource(Res.string.dashboard_no_recent_activity),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(vertical = 8.dp),
-                        )
-                    }
-                }
-                items(state.recentChanges, key = { it.title }) { change ->
-                    RecentChangeRow(
-                        change = change,
-                        onClick = { onArticleClick(wikiId, change.title) },
-                        trailingContent = if (change.title in openTitles) {
-                            { OpenTabIndicator() }
-                        } else {
-                            null
-                        },
-                    )
-                }
-                item {
-                    TextButton(onClick = onRefresh, modifier = Modifier.padding(vertical = 12.dp)) {
-                        Text(stringResource(Res.string.common_refresh))
-                    }
-                }
+        }
+        if (state.continueReading.isNotEmpty()) {
+            item {
+                HorizontalArticleRow(
+                    title = stringResource(Res.string.dashboard_continue_reading),
+                    pages = state.continueReading.toImmutableList(),
+                    showImages = state.showImages,
+                    onClick = { title -> onArticleClick(wikiId, title) },
+                )
+            }
+        }
+        if (state.savedPages.isNotEmpty()) {
+            item {
+                HorizontalArticleRow(
+                    title = stringResource(Res.string.dashboard_saved),
+                    pages = state.savedPages.toImmutableList(),
+                    showImages = state.showImages,
+                    onClick = { title -> onArticleClick(wikiId, title) },
+                )
+            }
+        }
+        item {
+            CategoryBrowseEntry(onClick = onOpenCategoryBrowse)
+        }
+        item {
+            RandomPickCard(
+                page = state.randomPick,
+                showImages = state.showImages,
+                onClick = { title -> onArticleClick(wikiId, title) },
+                onShuffle = onShuffleRandom,
+            )
+        }
+        item {
+            Text(
+                text = stringResource(Res.string.dashboard_recent_activity_on, state.wiki?.name.orEmpty()),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+            )
+        }
+        if (state.recentChanges.isEmpty() && !state.isLoading) {
+            item {
+                Text(
+                    stringResource(Res.string.dashboard_no_recent_activity),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 8.dp),
+                )
+            }
+        }
+        items(state.recentChanges, key = { it.title }) { change ->
+            RecentChangeRow(
+                change = change,
+                onClick = { onArticleClick(wikiId, change.title) },
+                trailingContent = if (change.title in openTitles) {
+                    { OpenTabIndicator() }
+                } else {
+                    null
+                },
+            )
+        }
+        item {
+            TextButton(onClick = onRefresh, modifier = Modifier.padding(vertical = 12.dp)) {
+                Text(stringResource(Res.string.common_refresh))
             }
         }
     }
@@ -514,7 +675,7 @@ private fun FeedTabContent(
 @Composable
 private fun HorizontalArticleRow(
     title: String,
-    pages: List<SavedPage>,
+    pages: ImmutableList<SavedPage>,
     showImages: Boolean,
     onClick: (title: String) -> Unit,
 ) {
@@ -639,7 +800,7 @@ private fun RecentChangeRow(
 @Composable
 private fun TrendingCard(
     wikiName: String,
-    trending: List<TrendingArticle>,
+    trending: ImmutableList<TrendingArticle>,
     expandable: Boolean,
     onArticleClick: (title: String) -> Unit,
     onOpenTrending: () -> Unit,

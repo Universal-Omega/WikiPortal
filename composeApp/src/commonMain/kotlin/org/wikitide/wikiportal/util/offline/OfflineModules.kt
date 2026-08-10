@@ -1,5 +1,6 @@
 package org.wikitide.wikiportal.util.offline
 
+import androidx.compose.runtime.Immutable
 import io.ktor.http.URLBuilder
 import io.ktor.http.decodeURLQueryComponent
 import org.wikitide.wikiportal.data.model.WikiSite
@@ -59,6 +60,7 @@ private fun extractReferencedModuleNames(html: String): Set<String> {
 }
 
 /** [css] is ready to drop straight into a `<style>` tag, [js] into a `<script>` tag. Either is null if that request came back empty or failed. */
+@Immutable
 class OfflineModules(val css: String?, val js: String?)
 
 /**

@@ -19,6 +19,7 @@ fun initKoin() {
     koinStarted = true
 }
 
+@Suppress("FunctionNaming")
 fun MainViewController(): UIViewController = ComposeUIViewController {
     WikiPortalApp()
 }
