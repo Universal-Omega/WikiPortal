@@ -63,7 +63,7 @@ import org.wikitide.wikiportal.util.copyPlainText
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun FeedbackScreen(onBack: () -> Unit, viewModel: FeedbackViewModel = koinViewModel()) {
+fun FeedbackScreen(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: FeedbackViewModel = koinViewModel()) {
     val state by viewModel.state.collectAsState()
     val scope = rememberCoroutineScope()
     val clipboard = LocalClipboard.current
@@ -80,6 +80,7 @@ fun FeedbackScreen(onBack: () -> Unit, viewModel: FeedbackViewModel = koinViewMo
     }
 
     Scaffold(
+        modifier = modifier,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
@@ -119,15 +120,7 @@ fun FeedbackScreen(onBack: () -> Unit, viewModel: FeedbackViewModel = koinViewMo
 
             Column {
                 Text(stringResource(Res.string.feedback_about_label), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 8.dp))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FeedbackCategory.entries.forEach { category ->
-                        FilterChip(
-                            selected = state.category == category,
-                            onClick = { viewModel.setCategory(category) },
-                            label = { Text(stringResource(category.labelRes)) },
-                        )
-                    }
-                }
+                FeedbackCategoryChips(selectedCategory = state.category, onSelectCategory = viewModel::setCategory)
             }
 
             OutlinedTextField(
@@ -156,14 +149,7 @@ fun FeedbackScreen(onBack: () -> Unit, viewModel: FeedbackViewModel = koinViewMo
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = state.includeLogs, onCheckedChange = viewModel::setIncludeLogs)
-                Column {
-                    Text(stringResource(Res.string.feedback_include_logs), style = MaterialTheme.typography.bodyMedium)
-                    Text(
-                        stringResource(Res.string.feedback_include_logs_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                IncludeLogsLabel()
             }
 
             state.errorMessage?.let {
@@ -181,5 +167,33 @@ fun FeedbackScreen(onBack: () -> Unit, viewModel: FeedbackViewModel = koinViewMo
                 // OutlinedButton(onClick = { copyFeedback() }) { Text("Copy feedback") }
             }
         }
+    }
+}
+
+/** The row of category chips under "About", see [FeedbackCategory]. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun FeedbackCategoryChips(selectedCategory: FeedbackCategory, onSelectCategory: (FeedbackCategory) -> Unit, modifier: Modifier = Modifier) {
+    FlowRow(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        FeedbackCategory.entries.forEach { category ->
+            FilterChip(
+                selected = selectedCategory == category,
+                onClick = { onSelectCategory(category) },
+                label = { Text(stringResource(category.labelRes)) },
+            )
+        }
+    }
+}
+
+/** The title and hint text next to the "include logs" checkbox. */
+@Composable
+private fun IncludeLogsLabel(modifier: Modifier = Modifier) {
+    Column(modifier) {
+        Text(stringResource(Res.string.feedback_include_logs), style = MaterialTheme.typography.bodyMedium)
+        Text(
+            stringResource(Res.string.feedback_include_logs_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
