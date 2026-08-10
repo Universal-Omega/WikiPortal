@@ -1,5 +1,6 @@
 package org.wikitide.wikiportal.navigation
 
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import org.wikitide.wikiportal.data.AppRepository
@@ -16,9 +17,12 @@ class Navigator(
     }
 
     fun switchTab(route: Route) {
-        val survivors = backStack.filter { it in tabRoutes && it != route }
-        backStack.clear()
-        backStack.addAll(survivors + route)
+        val target = backStack.filter { it in tabRoutes && it != route } + route
+        if (backStack.toList() == target) return
+        Snapshot.withMutableSnapshot {
+            backStack.clear()
+            backStack.addAll(target)
+        }
     }
 
     /**
