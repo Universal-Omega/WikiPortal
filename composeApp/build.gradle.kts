@@ -32,8 +32,8 @@ kotlin {
         }
 
         lint {
-            checkTestSources = true
             checkDependencies = true
+            checkTestSources = true
             targetSdk = libs.versions.targetSdk.get().toInt()
         }
     }
@@ -97,8 +97,8 @@ kotlin {
             implementation(libs.jetbrains.lifecycle.runtime.compose)
             implementation(libs.jetbrains.navigation3.ui)
 
-            implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.collections.immutable)
+            implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
 
             implementation(libs.ktor.client.contentnegotiation)
