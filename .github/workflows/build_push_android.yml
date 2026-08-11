@@ -31,7 +31,10 @@ jobs:
 
     - name: Test
       if: always()
-      run: cat composeApp/build/generated/sqldelight/code/WikiPortalDatabase/commonMain/org/wikitide/wikiportal/db/WikiPortalQueries.kt
+      uses: actions/upload-artifact@v7
+      with:
+        name: debug-build-test
+        path: "composeApp/build/generated/sqldelight/code/WikiPortalDatabase/commonMain/org/wikitide/wikiportal/db/WikiPortalQueries.kt"
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v7
