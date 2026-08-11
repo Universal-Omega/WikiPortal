@@ -41,6 +41,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -63,6 +64,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontStyle
@@ -110,13 +112,15 @@ import org.wikitide.wikiportal.resources.dashboard_shuffle
 import org.wikitide.wikiportal.resources.dashboard_switch_wiki
 import org.wikitide.wikiportal.resources.dashboard_tab_feed
 import org.wikitide.wikiportal.resources.dashboard_tab_relevant
-import org.wikitide.wikiportal.resources.dashboard_title
 import org.wikitide.wikiportal.resources.dashboard_trending_on
 import org.wikitide.wikiportal.resources.dashboard_views_count
 import org.wikitide.wikiportal.ui.components.ArticleCard
+import org.wikitide.wikiportal.ui.components.CollapsedHeaderIconButton
+import org.wikitide.wikiportal.ui.components.CollapsibleSearchFieldHost
 import org.wikitide.wikiportal.ui.components.CompactArticleChip
 import org.wikitide.wikiportal.ui.components.OpenTabIndicator
 import org.wikitide.wikiportal.ui.components.WikiSwitcherChip
+import org.wikitide.wikiportal.ui.components.rememberCollapsibleHeaderState
 
 /** Index of the "Feed" tab in [DashboardScreen]'s [SecondaryTabRow]. */
 private const val TAB_FEED = 0
@@ -156,11 +160,19 @@ fun DashboardScreen(
         if (tabIndex == TAB_RELEVANT) relevantLinksViewModel.ensureLoaded()
     }
 
-    Box(modifier.fillMaxSize()) {
+    val searchCollapseState = rememberCollapsibleHeaderState(fullHeight = SEARCH_FIELD_HEIGHT)
+    LaunchedEffect(tabIndex, searchState.query.isNotBlank()) { searchCollapseState.expand() }
+
+    Box(
+        modifier
+            .fillMaxSize()
+            .nestedScroll(searchCollapseState.nestedScrollConnection),
+    ) {
         Column(modifier = Modifier.fillMaxSize()) {
             DashboardHeader(
                 feedState = feedState,
                 searchState = searchState,
+                collapseFraction = searchCollapseState.collapseFraction,
                 onArticleClick = onArticleClick,
                 onOpenWikiPicker = onOpenWikiPicker,
                 onQueryChange = searchViewModel::onQueryChange,
@@ -199,15 +211,20 @@ fun DashboardScreen(
     }
 }
 
+/** Height reserved for [DashboardSearchField] while fully expanded. */
+private val SEARCH_FIELD_HEIGHT = 72.dp
+
 /**
- * The dashboard's top area: title row with the home and wiki-switcher
- * actions, plus the search field below it (hidden behind a search icon
- * in compact-height layouts).
+ * The dashboard's top area: title row with the home shortcut and wiki
+ * switcher, plus the search field below it. The field hides behind a
+ * search icon in compact-height layouts, and shrinks into that same
+ * icon on scroll otherwise, see [CollapsibleHeaderState].
  */
 @Composable
 private fun DashboardHeader(
     feedState: FeedUiState,
     searchState: SearchUiState,
+    collapseFraction: Float,
     onArticleClick: (wikiId: String, title: String) -> Unit,
     onOpenWikiPicker: () -> Unit,
     onQueryChange: (String) -> Unit,
@@ -217,36 +234,44 @@ private fun DashboardHeader(
     BoxWithConstraints(modifier.fillMaxWidth()) {
         val isCompactHeight = maxHeight < 500.dp
         val showSearchBar = !isCompactHeight || searchState.query.isNotBlank()
+        // A compact layout already reduces the field to a tap-through
+        // trigger for the full-screen overlay, so there's no real field
+        // underneath for the scroll-collapse to act on there.
+        val effectiveCollapseFraction = if (isCompactHeight) 0f else collapseFraction
+        val searchIconFraction = when {
+            isCompactHeight && !showSearchBar -> 1f
+            isCompactHeight -> 0f
+            else -> effectiveCollapseFraction
+        }
 
         Column(Modifier.fillMaxWidth()) {
             DashboardTitleRow(
                 feedState = feedState,
-                isCompactHeight = isCompactHeight,
-                showSearchBar = showSearchBar,
+                searchIconVisibleFraction = searchIconFraction,
                 onArticleClick = onArticleClick,
                 onOpenWikiPicker = onOpenWikiPicker,
                 onOpenFullScreenSearch = onOpenFullScreenSearch,
             )
 
             if (showSearchBar) {
-                DashboardSearchField(
-                    query = searchState.query,
-                    wikiName = searchState.wikiName,
-                    isCompactHeight = isCompactHeight,
-                    onQueryChange = onQueryChange,
-                    onOpenFullScreenSearch = onOpenFullScreenSearch,
-                )
+                CollapsibleSearchFieldHost(collapseFraction = effectiveCollapseFraction, fullHeight = SEARCH_FIELD_HEIGHT) {
+                    DashboardSearchField(
+                        query = searchState.query,
+                        wikiName = searchState.wikiName,
+                        isCompactHeight = isCompactHeight,
+                        onQueryChange = onQueryChange,
+                        onOpenFullScreenSearch = onOpenFullScreenSearch,
+                    )
+                }
             }
         }
     }
 }
 
-/** The "Dashboard" title, home button, and wiki switcher chip. */
 @Composable
 private fun DashboardTitleRow(
     feedState: FeedUiState,
-    isCompactHeight: Boolean,
-    showSearchBar: Boolean,
+    searchIconVisibleFraction: Float,
     onArticleClick: (wikiId: String, title: String) -> Unit,
     onOpenWikiPicker: () -> Unit,
     onOpenFullScreenSearch: () -> Unit,
@@ -258,46 +283,38 @@ private fun DashboardTitleRow(
             .background(MaterialTheme.colorScheme.background)
             .windowInsetsPadding(TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top))
             .heightIn(min = 64.dp)
-            .padding(start = 16.dp, end = 4.dp),
+            .padding(horizontal = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            stringResource(Res.string.dashboard_title),
-            style = MaterialTheme.typography.headlineMedium,
-            maxLines = 1,
-            softWrap = false,
-        )
-        Row(
-            modifier = Modifier.weight(1f),
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically,
+        // Jumps straight to the wiki's own main page. The title comes
+        // from that wiki's siteinfo and is never assumed, since custom
+        // wikis can rename it. This reuses the normal article-open path
+        // so it lands in a tab exactly like any other link.
+        FilledTonalIconButton(
+            onClick = {
+                val wikiId = feedState.wiki?.id ?: return@FilledTonalIconButton
+                val mainPage = feedState.mainPageTitle ?: return@FilledTonalIconButton
+                onArticleClick(wikiId, mainPage)
+            },
+            enabled = feedState.wiki != null && feedState.mainPageTitle != null,
         ) {
-            if (isCompactHeight && !showSearchBar) {
-                IconButton(onClick = onOpenFullScreenSearch) {
-                    Icon(imageVector = Icons.Filled.Search, contentDescription = stringResource(Res.string.common_search))
-                }
-            }
-            // Jumps straight to the wiki's own main page. The title
-            // comes from that wiki's siteinfo and is never assumed,
-            // since custom wikis can rename it. This reuses the normal
-            // article-open path so it lands in a tab exactly like any
-            // other link.
-            IconButton(
-                onClick = {
-                    val wikiId = feedState.wiki?.id ?: return@IconButton
-                    val mainPage = feedState.mainPageTitle ?: return@IconButton
-                    onArticleClick(wikiId, mainPage)
-                },
-                enabled = feedState.wiki != null && feedState.mainPageTitle != null,
-            ) {
-                Icon(imageVector = Icons.Filled.Home, contentDescription = stringResource(Res.string.dashboard_go_to_main_page))
-            }
-            WikiSwitcherChip(
-                wikiName = feedState.wiki?.name.orEmpty(),
-                onClick = onOpenWikiPicker,
-                modifier = Modifier.weight(1f, fill = false),
-            )
+            Icon(imageVector = Icons.Filled.Home, contentDescription = stringResource(Res.string.dashboard_go_to_main_page))
         }
+
+        WikiSwitcherChip(
+            wikiName = feedState.wiki?.name.orEmpty(),
+            faviconUrl = feedState.wiki?.faviconUrl,
+            onClick = onOpenWikiPicker,
+            modifier = Modifier.weight(1f),
+        )
+
+        CollapsedHeaderIconButton(
+            visibleFraction = searchIconVisibleFraction,
+            icon = Icons.Filled.Search,
+            contentDescription = stringResource(Res.string.common_search),
+            onClick = onOpenFullScreenSearch,
+        )
     }
 }
 
