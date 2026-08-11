@@ -38,6 +38,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.wikitide.wikiportal.resources.Res
 import org.wikitide.wikiportal.resources.category_browse_empty
 import org.wikitide.wikiportal.resources.category_browse_no_results
+import org.wikitide.wikiportal.resources.category_browse_popular
 import org.wikitide.wikiportal.resources.category_browse_search_placeholder
 import org.wikitide.wikiportal.resources.category_browse_title
 import org.wikitide.wikiportal.resources.category_browse_type_to_search
@@ -113,6 +114,19 @@ private fun CategorySearchContent(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            state.query.isBlank() && state.isLoadingSuggestions && state.suggestedCategories.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+            state.query.isBlank() && state.suggestedCategories.isNotEmpty() -> LazyColumn {
+                item { SectionLabel(stringResource(Res.string.category_browse_popular)) }
+                items(state.suggestedCategories, key = { it }) { category ->
+                    ListItem(
+                        headlineContent = { Text(category.removePrefix("Category:"), maxLines = 2, overflow = TextOverflow.Ellipsis) },
+                        leadingContent = { Icon(Icons.Filled.Category, contentDescription = null) },
+                        modifier = Modifier.clickable { onSelect(category) },
+                    )
+                }
+            }
             state.query.isBlank() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
                     stringResource(Res.string.category_browse_type_to_search),
@@ -131,6 +145,16 @@ private fun CategorySearchContent(
             }
         }
     }
+}
+
+@Composable
+private fun SectionLabel(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+    )
 }
 
 @Composable

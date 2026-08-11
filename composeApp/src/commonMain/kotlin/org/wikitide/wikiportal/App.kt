@@ -2,7 +2,7 @@ package org.wikitide.wikiportal
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -15,10 +15,10 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tab
-import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Tab
@@ -41,6 +41,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
@@ -83,7 +85,7 @@ private data class BottomDestination(val route: Route, val labelRes: StringResou
 private val bottomDestinations = listOf(
     BottomDestination(DashboardRoute, Res.string.dashboard_title, Icons.Filled.Dashboard, Icons.Outlined.Dashboard),
     BottomDestination(TabsRoute, Res.string.tabs_title, Icons.Filled.Tab, Icons.Outlined.Tab),
-    BottomDestination(SavedRoute, Res.string.dashboard_saved, Icons.Filled.Bookmark, Icons.Outlined.Bookmark),
+    BottomDestination(SavedRoute, Res.string.dashboard_saved, Icons.Filled.Bookmark, Icons.Filled.BookmarkBorder),
     BottomDestination(SettingsRoute, Res.string.settings_title, Icons.Filled.Settings, Icons.Outlined.Settings),
 )
 
@@ -237,8 +239,13 @@ private fun AppNavigationLayout(
     navDisplayContent: @Composable (Modifier) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    BoxWithConstraints(modifier.fillMaxSize()) {
-        if (maxWidth > maxHeight) {
+    val windowInfo = LocalWindowInfo.current
+    val density = LocalDensity.current
+    val isLandscape = with(density) {
+        windowInfo.containerSize.width.toDp() > windowInfo.containerSize.height.toDp()
+    }
+    Box(modifier.fillMaxSize()) {
+        if (isLandscape) {
             LandscapeAppLayout(current, showNav, openTabsCount, navigator, navDisplayContent)
         } else {
             PortraitAppLayout(current, showNav, openTabsCount, navigator, navDisplayContent)

@@ -171,3 +171,24 @@ data class CategorySearchQuery(
 data class CategorySearchResultDto(
     val title: String = "",
 )
+
+@Serializable
+data class PopularCategoriesResponse(
+    val query: PopularCategoriesQuery? = null,
+    override val error: ApiErrorDto? = null,
+) : ActionApiResponse
+
+@Serializable
+data class PopularCategoriesQuery(
+    val querypage: QueryPageDto? = null,
+)
+
+@Serializable
+data class QueryPageDto(
+    val results: List<QueryPageResultDto> = emptyList(),
+)
+
+@Serializable
+data class QueryPageResultDto(
+    val title: String = "",
+)

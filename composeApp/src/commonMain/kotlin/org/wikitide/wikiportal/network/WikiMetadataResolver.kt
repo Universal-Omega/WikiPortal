@@ -32,7 +32,11 @@ fun deriveArticlePathPrefix(baseUrl: String, articlepath: String?): String? {
     if (!trimmed.contains("\$1")) return null
     val prefix = trimmed.substringBefore("\$1")
     if (prefix.contains("://")) return prefix
-    return if (prefix.startsWith("/")) "$baseUrl$prefix" else "$baseUrl/$prefix"
+    if (!prefix.startsWith("/")) return "$baseUrl/$prefix"
+
+    val root = domainRootOf(baseUrl)
+    val baseUrlPath = baseUrl.removePrefix(root)
+    return if (baseUrlPath.isNotEmpty() && prefix.startsWith("$baseUrlPath/")) "$root$prefix" else "$baseUrl$prefix"
 }
 
 fun resolveFaviconUrl(favicon: String?, baseUrl: String): String? {
@@ -46,6 +50,7 @@ fun parseFaviconFromHtml(html: String, baseUrl: String): String? {
         .map { it.value }
         .firstOrNull { REL_ICON_REGEX.containsMatchIn(it) }
         ?.let { HREF_REGEX.find(it)?.groupValues?.get(1) }
+        ?.let { decodeHtmlEntities(it) }
         ?: return null
     if (href.contains("\$wg")) return null
     return resolveMaybeRelativeUrl(href, baseUrl)
@@ -55,14 +60,31 @@ private val LINK_TAG_REGEX = Regex("""<link\b[^>]*>""", RegexOption.IGNORE_CASE)
 private val REL_ICON_REGEX = Regex("""rel\s*=\s*["'](?:shortcut icon|icon)["']""", RegexOption.IGNORE_CASE)
 private val HREF_REGEX = Regex("""href\s*=\s*["']([^"']+)["']""", RegexOption.IGNORE_CASE)
 
+private fun decodeHtmlEntities(text: String): String =
+    text
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", "\"")
+        .replace("&#39;", "'")
+        .replace("&apos;", "'")
+        .replace("&amp;", "&")
+
 /**
  * Shared by [resolveFaviconUrl] and [parseFaviconFromHtml]. Both need
  * to turn a possibly root-relative or scheme-relative path into an
- * absolute URL against the wiki's own base.
+ * absolute URL.
  */
 private fun resolveMaybeRelativeUrl(path: String, baseUrl: String): String {
+    if (path.startsWith("//")) return "${baseUrl.substringBefore("://")}:$path"
     if (path.contains("://")) return path
-    return if (path.startsWith("/")) "$baseUrl$path" else "$baseUrl/$path"
+    if (path.startsWith("/")) return "${domainRootOf(baseUrl)}$path"
+    return "$baseUrl/$path"
+}
+
+private fun domainRootOf(baseUrl: String): String {
+    val hostStart = baseUrl.indexOf("://").let { if (it == -1) 0 else it + 3 }
+    val pathStart = baseUrl.indexOf('/', hostStart)
+    return if (pathStart == -1) baseUrl else baseUrl.substring(0, pathStart)
 }
 
 /**

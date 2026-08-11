@@ -25,14 +25,16 @@ import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.TravelExplore
+import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -42,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
@@ -80,6 +83,7 @@ import org.wikitide.wikiportal.resources.settings_suggest_indie_title
 import org.wikitide.wikiportal.resources.settings_text_size
 import org.wikitide.wikiportal.resources.settings_theme
 import org.wikitide.wikiportal.resources.settings_title
+import org.wikitide.wikiportal.ui.theme.dynamicColorSchemeAvailable
 import org.wikitide.wikiportal.util.AppVersionProvider
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -129,14 +133,16 @@ fun SettingsScreen(
             item {
                 ThemeModeSelector(themeMode = themeMode, onSelect = repository::setThemeMode)
             }
-            item {
-                SwitchRow(
-                    icon = Icons.Filled.Palette,
-                    title = stringResource(Res.string.settings_dynamic_color_title),
-                    subtitle = stringResource(Res.string.settings_dynamic_color_subtitle),
-                    checked = dynamicColor,
-                    onCheckedChange = repository::setDynamicColor,
-                )
+            if (dynamicColorSchemeAvailable()) {
+                item {
+                    SwitchRow(
+                        icon = Icons.Filled.Palette,
+                        title = stringResource(Res.string.settings_dynamic_color_title),
+                        subtitle = stringResource(Res.string.settings_dynamic_color_subtitle),
+                        checked = dynamicColor,
+                        onCheckedChange = repository::setDynamicColor,
+                    )
+                }
             }
             item {
                 TextScaleRow(textScale = textScale, onTextScaleChange = repository::setTextScale)
@@ -239,18 +245,31 @@ private fun SectionLabel(text: String) {
     )
 }
 
-/** The list of theme options under Appearance, see [ThemeMode]. */
+/** The theme options under Appearance, see [ThemeMode]. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ThemeModeSelector(themeMode: ThemeMode, onSelect: (ThemeMode) -> Unit, modifier: Modifier = Modifier) {
     Column(modifier.padding(horizontal = 20.dp)) {
         RowLabel(icon = Icons.Filled.DarkMode, text = stringResource(Res.string.settings_theme))
-        ThemeMode.entries.forEach { mode ->
-            Row(
-                modifier = Modifier.fillMaxWidth().clickable { onSelect(mode) }.padding(vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                RadioButton(selected = themeMode == mode, onClick = { onSelect(mode) })
-                Text(stringResource(mode.labelRes), modifier = Modifier.padding(start = 8.dp))
+        val modes = ThemeMode.entries
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+        ) {
+            modes.forEachIndexed { index, mode ->
+                val shapes = when (index) {
+                    0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                    modes.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                    else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+                }
+                ToggleButton(
+                    checked = themeMode == mode,
+                    onCheckedChange = { checked -> if (checked) onSelect(mode) },
+                    shapes = shapes,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(stringResource(mode.labelRes), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
             }
         }
     }

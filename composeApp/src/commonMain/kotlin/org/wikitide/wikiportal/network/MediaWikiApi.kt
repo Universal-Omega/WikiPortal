@@ -128,7 +128,12 @@ class MediaWikiApi(
     suspend fun resolveFinalBaseUrl(url: String): Result<String> = runCatchingCancellable {
         val response = httpClient.get(url)
         val finalUrl = response.request.url
-        "${finalUrl.protocol.name}://${finalUrl.host.lowercase()}"
+        val requestedHost = Url(url).host.lowercase()
+        val resolvedHost = finalUrl.host.lowercase()
+        val requestedPath = Url(url).encodedPath.trimEnd('/')
+        val resolvedPath = finalUrl.encodedPath
+        val path = if (requestedHost == resolvedHost) Url(url).encodedPath.trimEnd('/') else ""
+        "${finalUrl.protocol.name}://$resolvedHost$path"
     }
 
     suspend fun getRandomArticles(site: WikiSite, count: Int = 15): Result<List<PageSummaryDto>> =
@@ -234,6 +239,23 @@ class MediaWikiApi(
                 ?.map { RecentChangeEntry(title = it.title, user = it.user) }
                 .orEmpty()
         }
+
+    /**
+     * Category titles with the most member pages on [site], newest
+     * cached run of Special:MostLinkedCategories. Used to seed Category
+     * Browse with something to show before the person has typed
+     * anything, see CategoryBrowseViewModel.
+     */
+    suspend fun getPopularCategories(site: WikiSite, limit: Int = 20): Result<List<String>> =
+        actionApi.get<PopularCategoriesResponse>(
+            site.apiUrl,
+            mapOf(
+                "action" to "query",
+                "list" to "querypage",
+                "qppage" to "Mostlinkedcategories",
+                "qplimit" to limit,
+            ),
+        ).map { it.query?.querypage?.results?.map { result -> result.title }.orEmpty() }
 
     /**
      * Category titles, like "Category:Geography", matching [query] by

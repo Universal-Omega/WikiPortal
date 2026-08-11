@@ -83,11 +83,11 @@ class DragReorderState<T> internal constructor(
             val ownHeight = positions[draggedId]?.height ?: 0f
             if (ownHeight > 0f) {
                 if (index == 0 && finalOffsetY < -ownHeight) {
-                    onExitBounds.invoke(draggedId, -1)
+                    onExitBounds(draggedId, -1)
                     return
                 }
                 if (index == items.lastIndex && finalOffsetY > ownHeight) {
-                    onExitBounds.invoke(draggedId, 1)
+                    onExitBounds(draggedId, 1)
                     return
                 }
             }

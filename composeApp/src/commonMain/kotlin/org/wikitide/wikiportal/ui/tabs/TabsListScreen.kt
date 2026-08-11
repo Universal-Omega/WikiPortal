@@ -46,6 +46,8 @@ import org.wikitide.wikiportal.data.TabsRepository
 import org.wikitide.wikiportal.data.model.ArticleTab
 import org.wikitide.wikiportal.resources.Res
 import org.wikitide.wikiportal.resources.common_cannot_be_undone
+import org.wikitide.wikiportal.resources.common_deselect_all
+import org.wikitide.wikiportal.resources.common_select_all
 import org.wikitide.wikiportal.resources.saved_cancel_selection
 import org.wikitide.wikiportal.resources.saved_n_selected
 import org.wikitide.wikiportal.resources.tabs_close
@@ -79,6 +81,7 @@ fun TabsListScreen(
     var showDeleteSelectedConfirm by remember { mutableStateOf(false) }
     var selectedIds by remember { mutableStateOf(setOf<String>()) }
     val selectionActive = selectedIds.isNotEmpty()
+    val allSelected = tabs.isNotEmpty() && selectedIds.size == tabs.size
 
     LaunchedEffect(activeTabId) {
         val index = tabs.indexOfFirst { it.id == activeTabId }
@@ -106,6 +109,13 @@ fun TabsListScreen(
             },
             actions = {
                 if (selectionActive) {
+                    IconButton(onClick = { selectedIds = if (allSelected) emptySet() else tabs.map { it.id }.toSet() }) {
+                        Icon(
+                            Icons.Filled.CheckCircle,
+                            contentDescription = stringResource(if (allSelected) Res.string.common_deselect_all else Res.string.common_select_all),
+                            tint = if (allSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                     IconButton(onClick = { showDeleteSelectedConfirm = true }) {
                         Icon(Icons.Filled.Delete, contentDescription = stringResource(Res.string.tabs_close_selected))
                     }

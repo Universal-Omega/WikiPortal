@@ -66,8 +66,12 @@ class IndieWikiDirectory(
                 ?.let { raw -> runCatching { json.decodeFromString<List<IndieWikiSite>>(raw) }.getOrNull() }
             if (cached != null) _sites.value = cached
         }
+        if (_sites.value.isEmpty()) {
+            runCatching { refresh() }
+            return
+        }
         val updatedAt = store.getSetting(SettingKeys.INDIE_WIKI_CACHE_UPDATED_AT)?.toLongOrNull() ?: 0L
-        if (_sites.value.isEmpty() || nowEpochMillis() - updatedAt > CACHE_MAX_AGE_MILLIS) {
+        if (nowEpochMillis() - updatedAt > CACHE_MAX_AGE_MILLIS) {
             appScope.launch { refresh() }
         }
     }
