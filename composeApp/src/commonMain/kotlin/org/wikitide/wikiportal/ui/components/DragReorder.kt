@@ -124,7 +124,9 @@ class DragReorderState<T> internal constructor(
             dragOffsetY > 0 && currentIndex < order.lastIndex -> currentIndex + 1
             else -> return
         }
-        val neighborCenter = positions[id(order[neighborIndex])]?.center ?: return
+        val neighborId = id(order[neighborIndex])
+        val neighborBounds = positions[neighborId] ?: return
+        val neighborCenter = neighborBounds.center
         val crossedNeighbor = if (neighborIndex > currentIndex) draggedCenter > neighborCenter else draggedCenter < neighborCenter
         if (crossedNeighbor) {
             val reordered = order.toMutableList()
@@ -133,6 +135,11 @@ class DragReorderState<T> internal constructor(
             items = reordered
             dragOffsetY -= (neighborCenter - originalCenter)
             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+            val draggedBounds = positions[itemId]
+            if (draggedBounds != null) {
+                positions[itemId] = neighborBounds
+                positions[neighborId] = draggedBounds
+            }
         }
     }
 }
