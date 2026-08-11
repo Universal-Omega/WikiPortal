@@ -23,7 +23,7 @@ kotlin {
         extraWarnings.set(true)
         progressiveMode.set(true)
 
-        freeCompilerArgs.add("-Xsuppress-warning=REDUNDANT_VISIBILITY_MODIFIER")
+        freeCompilerArgs.add("-Xwarning-level=REDUNDANT_VISIBILITY_MODIFIER:disabled")
     }
 
     android {
