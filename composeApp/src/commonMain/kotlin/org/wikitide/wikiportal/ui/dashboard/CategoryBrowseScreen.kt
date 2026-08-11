@@ -88,7 +88,7 @@ fun CategoryBrowseScreen(
                 showSearchIcon = selectedCategory == null,
                 searchIconVisibleFraction = if (selectedCategory == null) searchCollapseState.collapseFraction else 0f,
                 onBack = { if (selectedCategory != null) viewModel.clearSelection() else onBack() },
-                onOpenSearch = { /* Search field already sits inline below; the icon just scrolls it back into view. */ searchCollapseState.expand() },
+                onOpenSearch = { searchCollapseState.expand() },
             )
 
             if (selectedCategory == null) {
