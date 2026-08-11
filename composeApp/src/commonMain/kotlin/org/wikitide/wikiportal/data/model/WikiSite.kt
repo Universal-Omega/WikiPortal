@@ -22,7 +22,7 @@ data class WikiSite(
     /**
      * The wiki's own reported default skin, with its own real display
      * name, regardless of whether it's one of this app's curated
-     * [WikiSkins.options]. This exists purely as a last-resort fallback
+     * [WikiSkins.mobileOptions]. This exists purely as a last-resort fallback
      * for the skin picker: when [availableSkins] comes back as a real,
      * successfully-fetched but genuinely empty list, meaning the wiki
      * uses no skin this app curates at all, showing the full curated
@@ -163,18 +163,24 @@ val WikiSite.skinIsUnset: Boolean
     get() = !skinIsUserSet && skin == WikiSite.DEFAULT_SKIN
 
 /**
- * Skins this app has actually been tested against and is willing to
- * offer in the "Change skin" picker, see WikiPickerScreen. This is a
- * fixed, curated list rather than deriving the choices entirely from
- * siteinfo, since "which skin renders well in this app's narrow
- * WebView" isn't a fact any API can report. What siteinfo's
- * siprop=skins is used for is narrowing this list down further, per
- * wiki, to only the ones actually installed there, see
+ * Skins this app has actually been tested against inside a phone or
+ * tablet's narrow WebView, and is willing to offer there in the
+ * "Change skin" picker, see WikiPickerScreen. This is a fixed, curated
+ * list rather than deriving the choices entirely from siteinfo, since
+ * "which skin renders well in this app's narrow WebView" isn't a fact
+ * any API can report. What siteinfo's siprop=skins is used for on
+ * mobile is narrowing this list down further, per wiki, to only the
+ * ones actually installed there, see
  * WikiMetadataResolver.deriveAvailableSkins and WikiSite.skinChoices.
- * The picker is always a subset of [options], never a superset.
+ * On mobile, the picker is always a subset of [mobileOptions], never a
+ * superset.
+ *
+ * Desktop has no narrow-viewport concern to curate around, so it skips
+ * this list entirely and offers every skin the wiki itself reports,
+ * see [deriveAvailableSkins]'s own isMobilePlatform branch.
  */
 object WikiSkins {
-    val options: List<String> = listOf(
+    val mobileOptions: List<String> = listOf(
         WikiSite.DEFAULT_SKIN,
         "chameleon",
         "citizen",
