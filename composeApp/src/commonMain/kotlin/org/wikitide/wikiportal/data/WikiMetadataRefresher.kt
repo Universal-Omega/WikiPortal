@@ -101,7 +101,7 @@ class WikiMetadataRefresher(private val api: MediaWikiApi) {
         val resolved = resolvedQuery.general ?: return null
         val sitename = resolved.sitename ?: return null
 
-        val curatedSkins = deriveAvailableSkins(resolvedQuery.skins)
+        val curatedSkins = deriveAvailableSkins(resolvedQuery.skins, isMobilePlatform())
         val uncuratedDefault = deriveUncuratedDefaultSkin(resolvedQuery.skins)
         val resolvedArticlePathPrefix = deriveArticlePathPrefix(site.baseUrl, resolved.articlepath)
         val resolvedMainPageTitle = deriveMainPageTitle(resolved.mainpage)
@@ -136,7 +136,7 @@ class WikiMetadataRefresher(private val api: MediaWikiApi) {
             // case except when nobody has ever chosen one. See its
             // own comment for the different ways it can still change
             // in that case.
-            skin = resolveDefaultSkin(site, deriveWikiDefaultSkin(resolvedQuery.skins), uncuratedDefault, curatedSkins, detectedMobileSkin),
+            skin = resolveDefaultSkin(site, deriveWikiDefaultSkin(resolvedQuery.skins, isMobilePlatform()), uncuratedDefault, curatedSkins, detectedMobileSkin),
             mainPageTitle = resolvedMainPageTitle,
             mainPageIsDomainRoot = resolved.mainpageisdomainroot,
         )
