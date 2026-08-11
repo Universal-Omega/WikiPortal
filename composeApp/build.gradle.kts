@@ -20,10 +20,7 @@ val javaTarget = JvmTarget.fromTarget(libs.versions.jvmTarget.get())
 kotlin {
     compilerOptions {
         allWarningsAsErrors.set(true)
-        extraWarnings.set(true)
         progressiveMode.set(true)
-
-        freeCompilerArgs.add("-Xwarning-level=REDUNDANT_VISIBILITY_MODIFIER:disabled")
     }
 
     android {
