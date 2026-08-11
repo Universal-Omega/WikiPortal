@@ -88,37 +88,50 @@ private fun domainRootOf(baseUrl: String): String {
 }
 
 /**
- * Which of this app's curated skins, see [WikiSkins], are actually
- * usable on this wiki, according to its own siteinfo, siprop=skins.
- * This is deliberately an intersection, not just "whatever the wiki
- * reports".
+ * Which skins are actually usable on this wiki, according to its own
+ * siteinfo, siprop=skins. On a phone or tablet this stays an
+ * intersection against [WikiSkins.mobileOptions], the small set this
+ * app has actually been tested against inside a narrow WebView. On
+ * desktop there is no narrow-viewport concern, so this instead returns
+ * every skin the wiki itself reports as usable, curated list or not.
+ * A desktop window can render whatever CSS a skin ships just fine, and
+ * limiting the picker to the same handful of phone-tested skins there
+ * would just hide real, working options for no reason.
  *
  * This returns null, rather than an empty list, if [skins] itself is
  * empty. That only happens when the siprop=skins probe genuinely came
  * back empty or failed outright.
  */
-fun deriveAvailableSkins(skins: List<SkinInfoDto>): List<SkinOption>? {
+fun deriveAvailableSkins(skins: List<SkinInfoDto>, isMobilePlatform: Boolean): List<SkinOption>? {
     if (skins.isEmpty()) return null
     // Minerva is in $wgSkipSkins on some wikis even when it is the default mobile skin.
     // Keep it regardless of that flag.
     val usableByCode = skins.filterNot { it.unusable && it.code != "minerva" }.associateBy { it.code }
-    // This iterates WikiSkins.options, not `skins`, so the picker's
-    // ordering stays stable and curated rather than following whatever
-    // order this particular wiki's siteinfo happens to list skins in.
-    return WikiSkins.options.mapNotNull { code -> usableByCode[code]?.let { SkinOption(code, it.name.ifBlank { code }) } }
+    if (!isMobilePlatform) {
+        // Desktop offers the wiki's full set, in whatever order
+        // siteinfo itself reports, rather than reordering around a
+        // curated list that no longer applies here.
+        return usableByCode.values.map { SkinOption(it.code, it.name.ifBlank { it.code }) }
+    }
+    // This iterates WikiSkins.mobileOptions, not `skins`, so the
+    // picker's ordering stays stable and curated rather than following
+    // whatever order this particular wiki's siteinfo happens to list
+    // skins in.
+    return WikiSkins.mobileOptions.mapNotNull { code -> usableByCode[code]?.let { SkinOption(code, it.name.ifBlank { code }) } }
 }
 
 /**
  * The wiki's own reported default skin, the siprop=skins entry with
- * default: true, if it is one of this app's curated and allowed skins.
- * This is null if the wiki didn't report a default at all, or its
- * default isn't something this app supports, in which case
- * [resolveDefaultSkin] just leaves this app's own blanket fallback in
- * place.
+ * default: true. On mobile this is null unless that default is also
+ * one of this app's curated and allowed [WikiSkins.mobileOptions],
+ * in which case [resolveDefaultSkin] just leaves this app's own
+ * blanket fallback in place. On desktop, where [deriveAvailableSkins]
+ * already offers the wiki's entire skin set rather than a curated
+ * subset, the reported default is always honored, curated or not.
  */
-fun deriveWikiDefaultSkin(skins: List<SkinInfoDto>): SkinOption? {
+fun deriveWikiDefaultSkin(skins: List<SkinInfoDto>, isMobilePlatform: Boolean): SkinOption? {
     val reportedDefault = skins.firstOrNull { it.default } ?: return null
-    if (reportedDefault.code !in WikiSkins.options) return null
+    if (isMobilePlatform && reportedDefault.code !in WikiSkins.mobileOptions) return null
     return SkinOption(reportedDefault.code, reportedDefault.name.ifBlank { reportedDefault.code })
 }
 
