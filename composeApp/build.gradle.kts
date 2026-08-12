@@ -18,6 +18,10 @@ plugins {
 val javaTarget = JvmTarget.fromTarget(libs.versions.jvmTarget.get())
 
 kotlin {
+    compilerOptions {
+        progressiveMode.set(true)
+    }
+
     android {
         namespace = "org.wikitide.wikiportal.shared"
         compileSdk = libs.versions.compileSdk.get().toInt()
@@ -38,7 +42,11 @@ kotlin {
         }
     }
 
-    jvm("desktop")
+    jvm("desktop") {
+        compilerOptions {
+            jvmTarget.set(javaTarget)
+        }
+    }
 
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
