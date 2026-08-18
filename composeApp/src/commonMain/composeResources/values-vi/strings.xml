@@ -44,6 +44,7 @@
     <string name="browse_wikis_title">Khám phá wiki</string>
     <string name="category_browse_empty">Thể loại này trống</string>
     <string name="category_browse_no_results">Không tìm thấy thể loại %1$s</string>
+    <string name="category_browse_popular">Thể loại nổi bật</string>
     <string name="category_browse_search_placeholder">Tìm kiếm thể loại trên %1$s</string>
     <string name="category_browse_title">Tìm trong thể loại</string>
     <string name="category_browse_type_to_search">Nhập chủ đề để tìm thể loại của nó</string>
@@ -55,6 +56,7 @@
     <string name="common_close">Đóng</string>
     <string name="common_create">Tạo</string>
     <string name="common_delete">Xóa</string>
+    <string name="common_deselect_all">Bỏ chọn tất cả</string>
     <string name="common_done">Xong</string>
     <string name="common_loading">Đang tải...</string>
     <string name="common_more_options">Tùy chọn</string>
@@ -63,6 +65,7 @@
     <string name="common_retry">Thử lại</string>
     <string name="common_save">Lưu</string>
     <string name="common_search">Tìm kiếm</string>
+    <string name="common_select_all">Chọn tất cả</string>
     <string name="common_selected">Đã chọn</string>
     <string name="dashboard_continue_reading">Tiếp tục đọc</string>
     <string name="dashboard_could_not_load_wiki">Không thể tải wiki này</string>
@@ -109,6 +112,12 @@
     <string name="feedback_send">Gửi</string>
     <string name="feedback_thanks_sent">Cảm ơn bạn, phản hồi đã được gửi.</string>
     <string name="feedback_title">Phản hồi Beta</string>
+    <string name="history_days_ago">%1$dng trước</string>
+    <string name="history_hours_ago">%1$dh trước</string>
+    <string name="history_just_now">Vừa xong</string>
+    <string name="history_minutes_ago">%1$dp trước</string>
+    <string name="history_today">Hôm nay</string>
+    <string name="history_yesterday">Hôm qua</string>
     <string name="logs_all">Tất cả</string>
     <string name="logs_app_only">Chỉ ứng dụng</string>
     <string name="logs_clear">Xóa nhật ký</string>
@@ -221,13 +230,4 @@
     <string name="wiki_picker_skin_title">Giao diện cho %1$s</string>
     <string name="wiki_picker_your_wikis">Wiki của bạn</string>
     <string name="wiki_switcher_chip_switch_wiki">Chuyển wiki</string>
-    <string name="category_browse_popular">Thể loại nổi bật</string>
-    <string name="common_deselect_all">Bỏ chọn tất cả</string>
-    <string name="common_select_all">Chọn tất cả</string>
-    <string name="history_days_ago">%1$dng trước</string>
-    <string name="history_hours_ago">%1$dh trước</string>
-    <string name="history_just_now">Vừa xong</string>
-    <string name="history_minutes_ago">%1$dp trước</string>
-    <string name="history_today">Hôm nay</string>
-    <string name="history_yesterday">Hôm qua</string>
 </resources>
