@@ -69,9 +69,7 @@
     },
     {
       "matchDatasources": ["maven"],
-      "matchPackageNames": ["/-alpha", "/-beta", "/-rc", "/-M[0-9]+$"],
-      "matchUpdateTypes": ["major", "minor", "patch"],
-      "enabled": true,
+      "matchNewValue": "/-alpha|-beta|-rc|-M[0-9]+$/",
       "commitMessageSuffix": "(pre-release)"
     }
   ]
