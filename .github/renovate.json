@@ -47,6 +47,11 @@
       "commitMessagePrefix": "ci:"
     },
     {
+      "matchManagers": ["github-actions"],
+      "matchPackageNames": ["gradle/actions"],
+      "enabled": false
+    },
+    {
       "matchManagers": ["gradle"],
       "matchPackageNames": ["/^org.jetbrains.kotlin/", "/^org.jetbrains.compose/", "/^org.jetbrains.kotlinx/"],
       "groupName": "kotlin and compose multiplatform"
