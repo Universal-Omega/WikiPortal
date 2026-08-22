@@ -6,7 +6,7 @@
     ":dependencyDashboard"
   ],
   "timezone": "UTC",
-  "schedule": ["before 6am on monday"],
+  "schedule": ["after 4pm and before 11pm"],
   "prConcurrentLimit": 20,
   "prHourlyLimit": 0,
   "labels": ["dependencies"],
