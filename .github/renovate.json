@@ -1,0 +1,73 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    ":dependencyDashboard"
+  ],
+  "timezone": "UTC",
+  "schedule": ["before 6am on monday"],
+  "prConcurrentLimit": 20,
+  "prHourlyLimit": 0,
+  "labels": ["dependencies"],
+  "gradle": {
+    "enabled": true
+  },
+  "github-actions": {
+    "enabled": true
+  },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/gradle/libs\\.versions\\.toml$/"],
+      "matchStrings": [
+        "sqlJs = \"(?<currentValue>[^\"]+)\""
+      ],
+      "depNameTemplate": "sql.js",
+      "datasourceTemplate": "npm"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/gradle/libs\\.versions\\.toml$/"],
+      "matchStrings": [
+        "copyWebpackPlugin = \"(?<currentValue>[^\"]+)\""
+      ],
+      "depNameTemplate": "copy-webpack-plugin",
+      "datasourceTemplate": "npm"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchManagers": ["custom.regex"],
+      "groupName": "kotlin/js npm packages"
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "github actions",
+      "commitMessagePrefix": "ci:"
+    },
+    {
+      "matchManagers": ["gradle"],
+      "matchPackageNames": ["/^org.jetbrains.kotlin/", "/^org.jetbrains.compose/", "/^org.jetbrains.kotlinx/"],
+      "groupName": "kotlin and compose multiplatform"
+    },
+    {
+      "matchManagers": ["gradle"],
+      "matchPackageNames": ["/^androidx\\./"],
+      "groupName": "androidx"
+    },
+    {
+      "matchManagers": ["gradle"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "matchCurrentVersion": "!/^0/",
+      "automerge": false
+    },
+    {
+      "matchDatasources": ["maven"],
+      "matchPackageNames": ["/-alpha", "/-beta", "/-rc", "/-M[0-9]+$"],
+      "matchUpdateTypes": ["major", "minor", "patch"],
+      "enabled": true,
+      "commitMessageSuffix": "(pre-release)"
+    }
+  ]
+}
