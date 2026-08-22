@@ -26,7 +26,7 @@ webviewMultiplatform = "2.0.3"
 
 # npm dependencies
 copyWebpackPlugin = "14.0.0"
-sqlJs = "1.14.1"
+sqlJs = "1.14.2"
 
 jvmTarget = "17"
 minSdk = "26"
