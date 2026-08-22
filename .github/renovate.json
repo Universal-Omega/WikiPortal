@@ -71,6 +71,10 @@
       "matchDatasources": ["maven"],
       "matchNewValue": "/-alpha|-beta|-rc|-M[0-9]+$/",
       "commitMessageSuffix": "(pre-release)"
+    },
+    {
+      "matchCurrentValue": "/-alpha|-beta|-rc|-M[0-9]+/",
+      "ignoreUnstable": false
     }
   ]
 }
