@@ -1,7 +1,7 @@
 # https://docs.gradle.org/current/userguide/plugins.html#sec:version_catalog_plugin_application
 # https://docs.gradle.org/current/userguide/dependency_versions.html#sec:strict-version
 [versions]
-androidGradlePlugin = "9.3.1"
+androidGradlePlugin = "9.3.2"
 androidxActivityCompose = "1.13.0"
 androidxCore = "1.19.0"
 androidxSqlite = "2.7.0"
