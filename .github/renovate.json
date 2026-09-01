@@ -63,6 +63,11 @@
     },
     {
       "matchManagers": ["gradle"],
+      "matchPackageNames": ["/^com.android\\./"],
+      "groupName": "android gradle plugin"
+    },
+    {
+      "matchManagers": ["gradle"],
       "matchUpdateTypes": ["patch", "minor"],
       "matchCurrentVersion": "!/^0/",
       "automerge": false
