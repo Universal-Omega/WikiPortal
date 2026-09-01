@@ -64,7 +64,8 @@
     {
       "matchManagers": ["gradle"],
       "matchPackageNames": ["/^com.android\\./"],
-      "groupName": "android gradle plugin"
+      "groupName": "android gradle plugin",
+      "commitMessageTopic": "androidGradlePlugin"
     },
     {
       "matchManagers": ["gradle"],
