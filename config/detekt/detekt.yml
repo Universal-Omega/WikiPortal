@@ -144,6 +144,8 @@ Compose:
     active: true
   Material2:
     active: false
+  MissingNonRestartableComposable:
+    active: true
   MissingReadOnlyComposable:
     active: true
   ModifierClickableOrder:
@@ -185,6 +187,8 @@ Compose:
   StateParam:
     active: true
   UnnecessaryComposable:
+    active: true
+  UnnecessaryLaunchedEffect:
     active: true
   UnstableCollections:
     active: true
