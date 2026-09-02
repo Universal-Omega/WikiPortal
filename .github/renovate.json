@@ -1,0 +1,86 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    ":dependencyDashboard"
+  ],
+  "timezone": "UTC",
+  "schedule": ["after 4pm and before 11pm"],
+  "prConcurrentLimit": 20,
+  "prHourlyLimit": 0,
+  "labels": ["dependencies"],
+  "gradle": {
+    "enabled": true
+  },
+  "github-actions": {
+    "enabled": true
+  },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/gradle/libs\\.versions\\.toml$/"],
+      "matchStrings": [
+        "sqlJs = \"(?<currentValue>[^\"]+)\""
+      ],
+      "depNameTemplate": "sql.js",
+      "datasourceTemplate": "npm"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/gradle/libs\\.versions\\.toml$/"],
+      "matchStrings": [
+        "copyWebpackPlugin = \"(?<currentValue>[^\"]+)\""
+      ],
+      "depNameTemplate": "copy-webpack-plugin",
+      "datasourceTemplate": "npm"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchManagers": ["custom.regex"],
+      "groupName": "kotlin/js npm packages"
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "github actions",
+      "commitMessagePrefix": "ci:"
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "matchPackageNames": ["gradle/actions"],
+      "enabled": false
+    },
+    {
+      "matchManagers": ["gradle"],
+      "matchPackageNames": ["/^org.jetbrains.kotlin/", "/^org.jetbrains.compose/", "/^org.jetbrains.kotlinx/"],
+      "groupName": "kotlin and compose multiplatform"
+    },
+    {
+      "matchManagers": ["gradle"],
+      "matchPackageNames": ["/^androidx\\./"],
+      "groupName": "androidx"
+    },
+    {
+      "matchManagers": ["gradle"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "matchCurrentVersion": "!/^0/",
+      "automerge": false
+    },
+    {
+      "matchDatasources": ["maven"],
+      "matchNewValue": "/-alpha|-beta|-rc|-M[0-9]+$/",
+      "commitMessageSuffix": "(pre-release)"
+    },
+    {
+      "matchCurrentValue": "/-alpha|-beta|-rc|-M[0-9]+/",
+      "ignoreUnstable": false
+    },
+    {
+      "matchManagers": ["gradle"],
+      "matchPackageNames": ["org.jetbrains.compose.material3:material3"],
+      "enabled": false,
+      "description": "material3 version is paired to the composeMultiplatform release, not independently versioned. Check the Compose Multiplatform release notes 'Libraries' table for the matching material3 coordinate when bumping composeMultiplatform, then update composeMaterial3 in libs.versions.toml by hand."
+    }
+  ]
+}

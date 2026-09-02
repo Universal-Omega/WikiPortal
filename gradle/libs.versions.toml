@@ -1,23 +1,23 @@
 # https://docs.gradle.org/current/userguide/plugins.html#sec:version_catalog_plugin_application
 # https://docs.gradle.org/current/userguide/dependency_versions.html#sec:strict-version
 [versions]
-androidGradlePlugin = "9.3.1"
+androidGradlePlugin = "9.4.0"
 androidxActivityCompose = "1.13.0"
 androidxCore = "1.19.0"
 androidxSqlite = "2.7.0"
 buildkonfigGradlePlugin = "0.22.0"
-coil = "3.5.0"
-composeMaterial3 = "1.11.0-alpha07"
+coil = "3.6.1"
+composeMaterial3 = "1.12.0-alpha03"
 composeMaterialIconsExtended = "1.7.3"
-composeMultiplatform = "1.11.1"
-composeRulesDetekt = "0.6.4"
+composeMultiplatform = "1.12.0"
+composeRulesDetekt = "0.6.6"
 detekt = "2.0.0-alpha.6"
 jetbrainsLifecycle = "2.11.0"
 jetbrainsNavigation3 = "1.1.1"
 koin = "4.2.2"
 kotlinGradlePlugin = "2.4.10"
 kotlinxBrowser = "0.5.0"
-kotlinxCollectionsImmutable = "0.5.1"
+kotlinxCollectionsImmutable = "0.5.2"
 kotlinxCoroutines = "1.11.0"
 kotlinxSerialization = "1.11.0"
 ktor = "3.5.2"
@@ -26,15 +26,15 @@ webviewMultiplatform = "2.0.3"
 
 # npm dependencies
 copyWebpackPlugin = "14.0.0"
-sqlJs = "1.14.1"
+sqlJs = "1.14.2"
 
 jvmTarget = "17"
 minSdk = "26"
 compileSdk = "37"
 targetSdk = "37"
 
-versionCode = "10"
-versionName = "1.0.8"
+versionCode = "11"
+versionName = "1.0.9"
 
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidxActivityCompose" }
