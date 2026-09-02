@@ -19,6 +19,7 @@ val javaTarget = JvmTarget.fromTarget(libs.versions.jvmTarget.get())
 
 kotlin {
     compilerOptions {
+        allWarningsAsErrors.set(true)
         progressiveMode.set(true)
     }
 
