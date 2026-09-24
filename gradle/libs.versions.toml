@@ -3,7 +3,7 @@
 [versions]
 androidGradlePlugin = "9.4.1"
 androidxActivityCompose = "1.13.0"
-androidxCore = "1.19.0"
+androidxCore = "1.19.1"
 androidxSqlite = "2.7.1"
 buildkonfigGradlePlugin = "0.23.0"
 coil = "3.6.3"
