@@ -130,8 +130,6 @@ class MediaWikiApi(
         val finalUrl = response.request.url
         val requestedHost = Url(url).host.lowercase()
         val resolvedHost = finalUrl.host.lowercase()
-        val requestedPath = Url(url).encodedPath.trimEnd('/')
-        val resolvedPath = finalUrl.encodedPath
         val path = if (requestedHost == resolvedHost) Url(url).encodedPath.trimEnd('/') else ""
         "${finalUrl.protocol.name}://$resolvedHost$path"
     }

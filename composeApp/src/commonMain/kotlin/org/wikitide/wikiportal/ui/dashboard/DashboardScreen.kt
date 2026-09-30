@@ -529,7 +529,7 @@ private fun FeedTabContent(
                 CircularProgressIndicator()
             }
             fullyFailed -> FeedErrorContent(
-                errorMessage = state.errorMessage.orEmpty(),
+                errorMessage = state.errorMessage,
                 onRefresh = onRefresh,
                 onOpenWikiPicker = onOpenWikiPicker,
                 modifier = Modifier.fillMaxSize(),
@@ -784,7 +784,7 @@ private fun RecentChangeRow(
             if (!change.user.isNullOrBlank()) {
                 Spacer(Modifier.size(2.dp))
                 Text(
-                    stringResource(Res.string.dashboard_edited_by, change.user.orEmpty()),
+                    stringResource(Res.string.dashboard_edited_by, change.user),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
                 )
