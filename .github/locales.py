@@ -1,5 +1,6 @@
 import glob
 import os
+import re
 import lxml.etree as ET  # builtin library doesn't preserve comments
 
 
@@ -9,14 +10,49 @@ COMPOSE_SOURCE_GLOB = "**/composeResources/values/strings.xml"
 LOCALES_CONFIG_PATH = "androidApp/src/main/res/xml/locales_config.xml"
 BASE_LOCALE = "en"
 
+LEGACY_DIR = re.compile(r"^values-(?P<lang>[a-z]{2,3})(?:-r(?P<region>[A-Z]{2}|[0-9]{3}))?$")
+BCP47_DIR = re.compile(
+    r"^values-b\+(?P<lang>[a-z]{2,3})(?:\+(?P<script>[A-Z][a-z]{3}))?(?:\+(?P<region>[A-Z]{2}|[0-9]{3}))?$"
+)
+LEGACY_LANGUAGES = {"in": "id", "iw": "he", "ji": "yi"}
 
-def compose_dir_to_iso(dir_name):
-    # values-fr becomes fr, values-fr-rFR becomes fr-FR.
-    code = dir_name[len("values-"):]
-    parts = code.split("-")
-    if len(parts) == 2 and parts[1].startswith("r"):
-        return f"{parts[0]}-{parts[1][1:]}"
-    return code
+
+def locale_folders():
+    for folder in glob.glob(COMPOSE_LOCALE_GLOB, recursive=True):
+        if os.path.isdir(folder) and "build" not in folder.split(os.sep):
+            yield folder
+
+
+def compose_dir_to_tag(dir_name):
+    # values-fr-rFR and values-b+fr+FR both become fr-FR. Anything else returns None.
+    match = BCP47_DIR.match(dir_name)
+    if match:
+        parts = (match.group("lang"), match.group("script"), match.group("region"))
+        return "-".join(part for part in parts if part)
+    match = LEGACY_DIR.match(dir_name)
+    if match:
+        region = match.group("region")
+        return f"{match.group('lang')}-{region}" if region else match.group("lang")
+    return None
+
+
+def warn_legacy_language(folder, tag):
+    # Weblate writes in, iw and ji for Android but Compose Multiplatform matches id, he and yi.
+    modern = LEGACY_LANGUAGES.get(tag.split("-")[0])
+    if modern:
+        print(f"::warning::{folder} uses a legacy language code, rename it to use {modern}")
+
+
+def warn_missing_script_fallback(folder):
+    # A script folder needs a script less folder next to it or the locale can fail to resolve.
+    match = BCP47_DIR.match(os.path.basename(folder))
+    if not match or not match.group("script"):
+        return
+    parent = os.path.dirname(folder)
+    lang = match.group("lang")
+    fallback = os.path.join(parent, f"values-b+{lang}")
+    if not os.path.isdir(fallback) and not os.path.isdir(os.path.join(parent, f"values-{lang}")):
+        print(f"::warning::{folder} has no script less fallback at {fallback}")
 
 
 def get_source_order(source_path):
@@ -59,13 +95,13 @@ def sort_to_source_order(file_path, order):
         tree.write(fp, encoding="utf-8", method="xml", pretty_print=True, xml_declaration=False)
 
 
-def write_locales_config(path, isos):
+def write_locales_config(path, tags):
     # Writes an Android locale-config XML listing every supported locale tag.
     ns = "http://schemas.android.com/apk/res/android"
     root = ET.Element("locale-config", nsmap={"android": ns})
-    for iso in isos:
+    for tag in tags:
         locale = ET.SubElement(root, "locale")
-        locale.set(f"{{{ns}}}name", iso)
+        locale.set(f"{{{ns}}}name", tag)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     tree = ET.ElementTree(root)
     with open(path, 'wb') as fp:
@@ -74,13 +110,17 @@ def write_locales_config(path, isos):
 
 
 # Collect every locale folder from every composeResources module.
-locale_isos = {BASE_LOCALE}
-for folder in glob.glob(COMPOSE_LOCALE_GLOB, recursive=True):
-    if os.path.basename(folder) == "values":
+locale_tags = {BASE_LOCALE}
+for folder in locale_folders():
+    tag = compose_dir_to_tag(os.path.basename(folder))
+    if tag is None:
+        print(f"::warning::Skipping unrecognized folder {folder}")
         continue
-    locale_isos.add(compose_dir_to_iso(os.path.basename(folder)))
+    locale_tags.add(tag)
+    warn_missing_script_fallback(folder)
+    warn_legacy_language(folder, tag)
 
-write_locales_config(LOCALES_CONFIG_PATH, sorted(locale_isos))
+write_locales_config(LOCALES_CONFIG_PATH, sorted(locale_tags))
 
 # Sort strings in every locale file to match each module's source key order.
 for source_file in glob.glob(COMPOSE_SOURCE_GLOB, recursive=True):
