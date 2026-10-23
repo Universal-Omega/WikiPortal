@@ -10,6 +10,7 @@
   "prConcurrentLimit": 20,
   "prHourlyLimit": 0,
   "labels": ["dependencies"],
+  "gitIgnoredAuthors": ["41898282+github-actions[bot]@users.noreply.github.com"],
   "gradle": {
     "enabled": true
   },
