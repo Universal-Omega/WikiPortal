@@ -39,6 +39,11 @@
   ],
   "packageRules": [
     {
+      "matchPackageNames": ["*"],
+      "semanticCommitType": "chore",
+      "semanticCommitScope": "deps"
+    },
+    {
       "matchManagers": ["custom.regex"],
       "groupName": "kotlin/js npm packages"
     },
