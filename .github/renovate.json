@@ -90,15 +90,6 @@
     },
     {
       "matchManagers": ["gradle"],
-      "registryUrls": [
-        "https://dl.google.com/android/maven2/",
-        "https://repo.maven.apache.org/maven2/",
-        "https://maven.scijava.org/content/repositories/public/"
-      ],
-      "description": "Mirrors dependencyResolutionManagement.repositories in settings.gradle.kts (Google, Maven Central, scijava)."
-    },
-    {
-      "matchManagers": ["gradle"],
       "matchPackageNames": ["/\\.gradle\\.plugin/"],
       "registryUrls": [
         "https://plugins.gradle.org/m2/",
