@@ -87,6 +87,15 @@
       "matchPackageNames": ["org.jetbrains.compose.material3:material3"],
       "enabled": false,
       "description": "material3 version is paired to the composeMultiplatform release, not independently versioned. The Renovate Material3 workflow reads the matching coordinate from the Compose Multiplatform release notes and updates composeMaterial3 in libs.versions.toml."
+    },
+    {
+      "matchManagers": ["gradle"],
+      "matchPackageNames": ["/\\.gradle\\.plugin/"],
+      "registryUrls": [
+        "https://plugins.gradle.org/m2/",
+        "https://dl.google.com/android/maven2/",
+        "https://maven-central.storage-download.googleapis.com/maven2/"
+      ]
     }
   ]
 }
