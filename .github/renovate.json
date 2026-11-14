@@ -90,12 +90,13 @@
     },
     {
       "matchManagers": ["gradle"],
-      "matchPackageNames": ["/\\.gradle\\.plugin/"],
       "registryUrls": [
         "https://plugins.gradle.org/m2/",
         "https://dl.google.com/android/maven2/",
-        "https://maven-central.storage-download.googleapis.com/maven2/"
-      ]
+        "https://maven-central.storage-download.googleapis.com/maven2/",
+        "https://maven.scijava.org/content/repositories/public/"
+      ],
+      "description": "Mirrors the repositories declared in settings.gradle.kts (Gradle Plugin Portal, Google, Maven Central, scijava). Maven Central uses Google's mirror because Renovate skips repo.maven.apache.org for Gradle plugin markers. Update this list whenever settings.gradle.kts changes."
     }
   ]
 }
